@@ -1,30 +1,37 @@
 import { NextResponse } from 'next/server';
-import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/laravel-proxy';
+import { auth } from '@/auth';
+import { revokePassportAccessToken } from '@/lib/auth/passport';
 
 export async function POST(req: Request) {
-  let headers: Headers;
-  try {
-    headers = buildProxyHeaders(req, {
-      'Content-Type': 'application/json',
-    });
-  } catch {
-    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+  const session = await auth();
+  const accessToken =
+    typeof session?.accessToken === 'string' && session.accessToken.length > 0
+      ? session.accessToken
+      : null;
+
+  if (!accessToken) {
+    return NextResponse.json({ message: 'Logged out' }, { status: 200 });
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-    method: 'POST',
-    headers,
-    cache: 'no-store',
-  });
+  try {
+    const response = await revokePassportAccessToken({
+      accessToken,
+      origin: req.headers.get('origin'),
+    });
 
-  const payload = await response.text();
-  const nextResponse = new NextResponse(payload, {
-    status: response.status,
-    headers: {
-      'Content-Type': response.headers.get('content-type') ?? 'application/json',
-    },
-  });
+    const contentType = response.headers.get('content-type') ?? 'application/json';
+    if (contentType.includes('application/json')) {
+      const payload = await response.json().catch(() => null);
+      return NextResponse.json(payload ?? { message: 'Logged out' }, { status: response.status });
+    }
 
-  appendSetCookie(response, nextResponse, req);
-  return nextResponse;
+    return new NextResponse(await response.text(), {
+      status: response.status,
+      headers: {
+        'Content-Type': contentType,
+      },
+    });
+  } catch {
+    return NextResponse.json({ message: 'Logout failed' }, { status: 500 });
+  }
 }

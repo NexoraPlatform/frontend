@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { useSearchParams } from 'next/navigation';
@@ -97,7 +97,7 @@ const createEmptyBriefDraft = (): AiBriefFormDraft => ({
 });
 
 export default function ClientProjectRequests({ withLayout = true }: ClientProjectRequestsProps) {
-    const { user, loading, userLoading } = useAuth();
+    const { user, loading, userLoading, refreshUser } = useAuth();
     const locale = useLocale();
     const t = useTranslations();
     const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
@@ -113,6 +113,8 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const router = useRouter();
     const searchParams = useSearchParams();
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
+    const roleRefreshAttemptedRef = useRef(false);
+    const [isRefreshingRole, setIsRefreshingRole] = useState(false);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
     const [releasingId, setReleasingId] = useState<string | null>(null);
     const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
@@ -717,15 +719,24 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
             return;
         }
 
+        if (!hasRoleInfo && !roleRefreshAttemptedRef.current) {
+            roleRefreshAttemptedRef.current = true;
+            setIsRefreshingRole(true);
+            void refreshUser().finally(() => {
+                setIsRefreshingRole(false);
+            });
+            return;
+        }
+
         if (hasRoleInfo && !isClientRole) {
             if (withLayout) {
-                router.push(getDashboardHomeHref());
+                router.replace(getDashboardHomeHref());
             }
             return;
         }
 
         loadProjects();
-    }, [user, userLoading, router, loadProjects, hasRoleInfo, isClientRole, withLayout]);
+    }, [user, userLoading, router, loadProjects, hasRoleInfo, isClientRole, refreshUser, withLayout]);
 
 
 
@@ -1043,7 +1054,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         ? "min-h-screen bg-white dark:bg-[#070C14] flex flex-col items-center justify-center"
         : "py-16 flex flex-col items-center justify-center";
 
-    if (loading || userLoading || loadingProjects) {
+    if (loading || userLoading || loadingProjects || isRefreshingRole) {
         return (
             <div className={loadingClassName}>
                 <Loader2 className="w-8 h-8 animate-spin text-[#1BC47D]" />

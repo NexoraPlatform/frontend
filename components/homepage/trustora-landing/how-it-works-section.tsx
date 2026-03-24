@@ -71,7 +71,7 @@ export function TrustoraLandingHowItWorksSection() {
                       <div className="glass-effect relative z-10 flex h-24 w-24 items-center justify-center rounded-3xl transition-transform duration-300 group-hover:scale-110">
                         <Icon className="h-10 w-10 text-primary" />
                       </div>
-                      <div className="absolute -right-4 -top-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                      <div className="absolute -right-9 -top-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
                         <span className="text-2xl font-bold text-primary">{step.number}</span>
                       </div>
                       <motion.div

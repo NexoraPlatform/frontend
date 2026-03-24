@@ -19,6 +19,23 @@
       "INACTIVE": "Inactive",
       "DRAFT": "Draft"
     },
+    "summary": {
+      "cards": {
+        "total": "Total tests",
+        "active": "Active tests",
+        "questions": "Questions",
+        "results": "Results"
+      }
+    },
+    "table": {
+      "test": "Test",
+      "service": "Service",
+      "level": "Level",
+      "status": "Status",
+      "configuration": "Configuration",
+      "activity": "Activity",
+      "actions": "Actions"
+    },
     "list_title": "Tests List",
     "list_description": "{count} tests found",
     "question_count": "{count} questions",
@@ -46,31 +63,36 @@
     "detail": {
       "test_details": "Test Details",
       "general_info": "General Information",
-      "service_label": "Service:",
-      "category_label": "Category:",
-      "level_label": "Level:",
-      "status_label": "Status:",
-      "created_label": "Created:",
+      "service_label": "Service",
+      "category_label": "Category",
+      "level_label": "Level",
+      "status_label": "Status",
+      "created_label": "Created",
       "test_config": "Test Configuration",
-      "time_limit_label": "Time Limit:",
-      "passing_score_label": "Passing Score:",
-      "questions_label": "Number of Questions:",
-      "total_points_label": "Total Points:",
+      "time_limit_label": "Time Limit",
+      "passing_score_label": "Passing Score",
+      "questions_label": "Questions",
+      "total_points_label": "Total Points",
       "description": "Description",
       "questions_section": "Questions ({count})",
+      "questions_description": "Review every question, answer key and coding requirement for this test.",
       "question_label": "Question {number}",
-      "code_template": "Code Template:",
-      "expected_output": "Expected Output:",
-      "test_cases": "Test Cases:",
-      "input_label": "Input:",
-      "expected_output_label": "Expected Output:",
-      "explanation": "Explanation:",
+      "code_template": "Code template",
+      "expected_output": "Expected output",
+      "test_cases": "Test cases",
+      "input_label": "Input",
+      "expected_output_label": "Expected output",
+      "explanation": "Explanation",
       "edit_test": "Edit Test",
       "view_statistics": "View Statistics",
       "preview": "Preview",
       "delete_test": "Delete Test",
       "deactivate": "Deactivate",
-      "activate": "Activate"
+      "activate": "Activate",
+      "actions_title": "Test Actions",
+      "actions_description": "Manage the lifecycle of this test and open related admin views.",
+      "correct_option": "Correct",
+      "not_found": "The requested test could not be loaded."
     },
     "statistics": {
       "subtitle": "Detailed test performance analysis",
@@ -82,13 +104,16 @@
       "score_label": "Score",
       "time_spent_label": "Time Spent",
       "question_stats_title": "Question Statistics",
-      "question_stats_description": "Candidate performance per question",
+      "question_stats_description": "Candidate performance for each question",
       "question_label": "Question {number}",
       "correct_answer": "Correct answer",
       "user_answer": "User answer",
       "answer_correct": "Correct",
       "answer_incorrect": "Incorrect",
-      "error_loading": "Unable to load data"
+      "error_loading": "Unable to load data",
+      "empty_title": "No question results",
+      "empty_description": "This test result does not yet contain any question-level answers.",
+      "points_earned": "{count} points earned"
     },
     "new": {
       "title": "Add New Test",
@@ -97,6 +122,96 @@
     "edit": {
       "title": "Edit Test",
       "subtitle": "Modify a skill test"
+    },
+    "editor": {
+      "create_test": "Create Test",
+      "save_changes": "Save Changes",
+      "creating": "Creating...",
+      "saving": "Saving...",
+      "basic_info_title": "Test Information",
+      "basic_info_description": "Define the core information, assignment and grading rules for this test.",
+      "questions_title": "Question Builder",
+      "questions_description": "Compose and review the question set, scoring logic and answer keys.",
+      "question_search_placeholder": "Search questions by prompt or explanation...",
+      "total_points_badge": "{questions} questions • {count} total points",
+      "fields": {
+        "title": "Test title",
+        "description": "Description",
+        "service": "Service",
+        "level": "Level",
+        "time_limit": "Time limit (minutes)",
+        "passing_score": "Passing score (%)",
+        "status": "Status",
+        "question_type": "Question type",
+        "points": "Points",
+        "question": "Question",
+        "options": "Answer options",
+        "code_template": "Code template",
+        "code_solution": "Code solution",
+        "expected_output": "Expected output",
+        "test_cases": "Test cases",
+        "test_case_description": "Test case description",
+        "correct_answer": "Correct answer",
+        "explanation": "Explanation"
+      },
+      "placeholders": {
+        "title": "Ex: JavaScript Fundamentals Test",
+        "description": "Describe the scope and purpose of this test...",
+        "service": "Select a service",
+        "question": "Write the question prompt here...",
+        "option": "Option {number}",
+        "code_template": "function solve() {\n  // Complete the function\n}",
+        "code_solution": "function solve() {\n  return result;\n}",
+        "expected_output": "Expected result",
+        "test_input": "Test input",
+        "test_output": "Expected output",
+        "test_case_description": "Explain what this test case covers",
+        "correct_answer": "Correct answer",
+        "explanation": "Add a short explanation for reviewers or future edits..."
+      },
+      "help": {
+        "code_template": "Starter code shown to the candidate before they begin.",
+        "code_solution": "Reference solution used by administrators for evaluation."
+      },
+      "tabs": {
+        "add_question": "Add Question",
+        "edit_question": "Edit Question",
+        "question_list": "Question List"
+      },
+      "actions": {
+        "add_option": "Add Option",
+        "mark_correct": "Mark",
+        "marked_correct": "Correct",
+        "add_test_case": "Add Test Case",
+        "add_question": "Add Question",
+        "update_question": "Update Question",
+        "cancel_edit": "Cancel",
+        "remove": "Remove",
+        "cancel": "Back to Tests",
+        "title": "Publish Actions",
+        "description": "Save the test as a draft or publish the latest structure to the admin list."
+      },
+      "overview": {
+        "title": "Test Overview",
+        "description": "Review the selected assignment, scoring and overall question volume.",
+        "service": "Selected service",
+        "level": "Selected level",
+        "questions": "Questions",
+        "total_points": "Total points",
+        "time_limit": "Time limit",
+        "passing_score": "Passing score",
+        "status": "Status",
+        "empty": "Not selected"
+      },
+      "validation": {
+        "question_required": "Please complete the question prompt.",
+        "correct_answer_required": "Select at least one correct answer.",
+        "code_result_required": "Add at least one expected output or test case for the coding question.",
+        "at_least_one_question": "Add at least one question before saving the test."
+      },
+      "empty_title": "No questions yet",
+      "empty_description": "Use the builder tab to add the first question to this test.",
+      "test_case_label": "Test Case {number}"
     }
   }
 }

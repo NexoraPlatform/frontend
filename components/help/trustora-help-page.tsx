@@ -226,8 +226,8 @@ export function TrustoraHelpPage() {
   const defaultTab = filteredCategories[0]?.id ?? faqCategories[0]?.id ?? "general";
 
   return (
-    <div className="project-homepage relative isolate overflow-x-hidden bg-background text-foreground">
-      <TrustoraLandingThemeStyles />
+    <div className="trustora-help-page relative isolate overflow-x-hidden bg-background text-foreground">
+      <TrustoraLandingThemeStyles scopeClassName="trustora-help-page" />
       <TrustoraLandingNavigation />
 
       <main className="relative z-10">

@@ -103,7 +103,7 @@ export default function SelectServicesPage() {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push(getDashboardHomeHref());
+            router.replace(getDashboardHomeHref());
         }
     }, [hasRoleInfo, isProvider, refreshUser, router, user, userLoading]);
 

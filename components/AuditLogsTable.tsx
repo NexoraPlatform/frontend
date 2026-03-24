@@ -1,273 +1,684 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, Fragment } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { addDays, format } from "date-fns";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
-import { format } from 'date-fns';
-import apiClient, { AuditLog, AuditLogFilters } from '@/lib/api';
-import { DateRange } from 'react-day-picker';
-import { addDays } from 'date-fns';
+  ChevronDown,
+  ChevronUp,
+  History,
+  PencilLine,
+  PlusCircle,
+  Search,
+  Trash2,
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+
+import {
+  formatAuditSubjectType,
+  formatAuditValue,
+  getAuditDiffEntries,
+  getAuditEventVisual,
+} from "@/lib/admin-audit-logs";
+import apiClient, { type AuditLog, type AuditLogFilters } from "@/lib/api";
+import { AdminOverviewItem, AdminSidebarCard } from "@/components/admin/admin-sidebar-card";
+import { AdminSearchInput } from "@/components/admin/admin-search-input";
+import { AdminSectionCard } from "@/components/admin/admin-section-card";
+import { AdminSummaryCard } from "@/components/admin/admin-summary-card";
+import {
+  AdminTableEmptyRow,
+  AdminTableLoadingRow,
+} from "@/components/admin/admin-state";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+function formatAuditTimestamp(value: string, locale: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function buildDefaultDateRange() {
+  const today = new Date();
+  return {
+    from: format(addDays(today, -30), "yyyy-MM-dd"),
+    to: format(today, "yyyy-MM-dd"),
+  };
+}
 
 export default function AuditLogsTable() {
-    const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [filters, setFilters] = useState<AuditLogFilters>({
-        page: 1,
-        event: undefined,
-        user_id: undefined,
-        subject_type: undefined,
+  const locale = useLocale();
+  const t = useTranslations();
+  const dateLocale = locale === "ro" ? "ro-RO" : "en-US";
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<AuditLogFilters>({
+    page: 1,
+    event: undefined,
+    user_id: undefined,
+    subject_type: undefined,
+  });
+  const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
+  const [expandedRows, setExpandedRows] = useState<number[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState(buildDefaultDateRange);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const apiFilters: AuditLogFilters = {
+        ...filters,
+        date_from: dateRange.from || undefined,
+        date_to: dateRange.to || undefined,
+      };
+      const response = await apiClient.fetchAuditLogs(apiFilters);
+
+      if (response?.data) {
+        setLogs(response.data);
+        setMeta(response.meta);
+      } else {
+        setLogs([]);
+        setMeta({ current_page: 1, last_page: 1, total: 0 });
+        setError(t("admin.audit_logs.error_message"));
+      }
+    } catch (fetchError) {
+      console.error("Failed to fetch audit logs", fetchError);
+      setLogs([]);
+      setMeta({ current_page: 1, last_page: 1, total: 0 });
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : t("admin.audit_logs.error_message")
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange.from, dateRange.to, filters, t]);
+
+  useEffect(() => {
+    void fetchLogs();
+  }, [fetchLogs]);
+
+  const subjectTypeOptions = useMemo(() => {
+    const values = new Set<string>();
+
+    logs.forEach((log) => {
+      if (log.subject_type) {
+        values.add(log.subject_type);
+      }
     });
-    const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
-    const [expandedRows, setExpandedRows] = useState<number[]>([]);
-    const [search, setSearch] = useState('');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: addDays(new Date(), -30),
-        to: new Date(),
+
+    if (filters.subject_type) {
+      values.add(filters.subject_type);
+    }
+
+    return Array.from(values).sort((left, right) => left.localeCompare(right));
+  }, [filters.subject_type, logs]);
+
+  const filteredLogs = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    return logs.filter((log) => {
+      if (!query) return true;
+
+      return [
+        log.actor_name,
+        log.action,
+        log.event,
+        formatAuditSubjectType(log.subject_type),
+        String(log.subject_id),
+        log.ip,
+        String(log.id),
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
     });
+  }, [logs, searchTerm]);
 
-    const fetchLogs = useCallback(async () => {
-        setLoading(true);
-        try {
-            const apiFilters: AuditLogFilters = {
-                ...filters,
-                date_from: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
-                date_to: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-            };
+  const summaryCards = useMemo(
+    () => [
+      {
+        title: t("admin.audit_logs.summary.cards.total"),
+        value: meta.total,
+        icon: History,
+        color: "bg-gradient-to-br from-primary to-emerald-400",
+      },
+      {
+        title: t("admin.audit_logs.summary.cards.created"),
+        value: filteredLogs.filter((log) => log.event === "created").length,
+        icon: PlusCircle,
+        color: "bg-gradient-to-br from-emerald-500 to-lime-400",
+      },
+      {
+        title: t("admin.audit_logs.summary.cards.updated"),
+        value: filteredLogs.filter((log) => log.event === "updated").length,
+        icon: PencilLine,
+        color: "bg-gradient-to-br from-blue-500 to-cyan-400",
+      },
+      {
+        title: t("admin.audit_logs.summary.cards.deleted"),
+        value: filteredLogs.filter((log) => log.event === "deleted").length,
+        icon: Trash2,
+        color: "bg-gradient-to-br from-rose-500 to-red-400",
+      },
+    ],
+    [filteredLogs, meta.total, t]
+  );
 
-            const response = await apiClient.fetchAuditLogs(apiFilters);
-            if (response && response.data) {
-                setLogs(response.data);
-                setMeta(response.meta);
-            }
-        } catch (error) {
-            console.error("Failed to fetch audit logs", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [filters, dateRange]);
+  const toggleRow = (id: number) => {
+    setExpandedRows((currentRows) =>
+      currentRows.includes(id)
+        ? currentRows.filter((rowId) => rowId !== id)
+        : [...currentRows, id]
+    );
+  };
 
-    useEffect(() => {
-        fetchLogs();
-    }, [fetchLogs]); // Refetch when fetchLogs (dependencies) change
+  const handleSearch = () => {
+    const numericUserId = Number.parseInt(searchTerm.trim(), 10);
 
-    const handleSearch = () => {
-        // Simple logic to try parsing search as user_id or subject_id if needed,
-        // or just pass as a generic search if API supports it.
-        // For now assuming search maps to user_id for demonstration if numeric.
-        const userId = parseInt(search);
-        if (!isNaN(userId)) {
-            setFilters(prev => ({ ...prev, user_id: userId, page: 1 }));
-        } else {
-            // Reset if empty
-            if (search === '') {
-                setFilters(prev => ({ ...prev, user_id: undefined, page: 1 }));
-            }
-        }
-        // Ideally update this to actual search logic
-    };
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      user_id: Number.isNaN(numericUserId) ? undefined : numericUserId,
+      page: 1,
+    }));
+  };
 
-    const toggleRow = (id: number) => {
-        setExpandedRows(prev =>
-            prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
-        );
-    };
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {summaryCards.map((card, index) => (
+          <AdminSummaryCard
+            key={String(card.title)}
+            title={card.title}
+            value={card.value}
+            icon={card.icon}
+            colorClassName={card.color}
+            delay={index * 0.08}
+          />
+        ))}
+      </div>
 
-    const getEventColor = (event: string) => {
-        switch (event) {
-            case 'created': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800';
-            case 'updated': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800';
-            case 'deleted': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800';
-            default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
-        }
-    };
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <AdminSectionCard
+          delay={0.2}
+          title={t("admin.audit_logs.list_title")}
+          description={t("admin.audit_logs.list_description", {
+            count: filteredLogs.length,
+          })}
+        >
+          <div className="mb-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_190px_200px]">
+            <div className="flex flex-col gap-4 lg:col-span-2 xl:col-span-1 xl:flex-row">
+              <AdminSearchInput
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder={t("admin.audit_logs.search_placeholder")}
+                className="relative flex-1"
+              />
+              <Button
+                type="button"
+                onClick={handleSearch}
+                className="h-11 px-5"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                {t("admin.audit_logs.actions.search")}
+              </Button>
+            </div>
 
-    const renderDiff = (oldVals: any, newVals: any) => {
-        if (!oldVals && !newVals) return <div className="text-sm text-gray-500">No changes recorded</div>;
+            <Select
+              value={filters.event ?? "all"}
+              onValueChange={(value) =>
+                setFilters((currentFilters) => ({
+                  ...currentFilters,
+                  event: value === "all" ? undefined : value,
+                  page: 1,
+                }))
+              }
+            >
+              <SelectTrigger className="h-11 border-border bg-transparent">
+                <SelectValue placeholder={t("admin.audit_logs.filters.event_label")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {t("admin.audit_logs.filters.all_events")}
+                </SelectItem>
+                <SelectItem value="created">
+                  {t("admin.audit_logs.events.created")}
+                </SelectItem>
+                <SelectItem value="updated">
+                  {t("admin.audit_logs.events.updated")}
+                </SelectItem>
+                <SelectItem value="deleted">
+                  {t("admin.audit_logs.events.deleted")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
 
-        // Combine keys
-        const allKeys = new Set([...Object.keys(oldVals || {}), ...Object.keys(newVals || {})]);
+            <Select
+              value={filters.subject_type ?? "all"}
+              onValueChange={(value) =>
+                setFilters((currentFilters) => ({
+                  ...currentFilters,
+                  subject_type: value === "all" ? undefined : value,
+                  page: 1,
+                }))
+              }
+            >
+              <SelectTrigger className="h-11 border-border bg-transparent">
+                <SelectValue placeholder={t("admin.audit_logs.filters.subject_label")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {t("admin.audit_logs.filters.all_subjects")}
+                </SelectItem>
+                {subjectTypeOptions.map((subjectType) => (
+                  <SelectItem key={subjectType} value={subjectType}>
+                    {formatAuditSubjectType(subjectType)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        return (
-            <div className="grid grid-cols-1 gap-2 text-sm bg-muted/50 p-4 rounded-md">
-                {Array.from(allKeys).map(key => {
-                    const oldV = oldVals?.[key];
-                    const newV = newVals?.[key];
+          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:max-w-[420px]">
+            <div className="space-y-2">
+              <label className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {t("admin.audit_logs.filters.from_label")}
+              </label>
+              <Input
+                type="date"
+                className="h-11 border-border bg-transparent"
+                value={dateRange.from}
+                onChange={(event) => {
+                  setDateRange((currentRange) => ({
+                    ...currentRange,
+                    from: event.target.value,
+                  }));
+                  setFilters((currentFilters) => ({ ...currentFilters, page: 1 }));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {t("admin.audit_logs.filters.to_label")}
+              </label>
+              <Input
+                type="date"
+                className="h-11 border-border bg-transparent"
+                value={dateRange.to}
+                onChange={(event) => {
+                  setDateRange((currentRange) => ({
+                    ...currentRange,
+                    to: event.target.value,
+                  }));
+                  setFilters((currentFilters) => ({ ...currentFilters, page: 1 }));
+                }}
+              />
+            </div>
+          </div>
 
-                    if (JSON.stringify(oldV) === JSON.stringify(newV)) return null; // Skip unchanged
+          {error ? (
+            <div className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm font-medium text-destructive">
+                {t("admin.audit_logs.error_prefix")}
+                {error}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="w-[56px] px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.audit_logs.table.expand")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.audit_logs.table.recorded")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.audit_logs.table.actor")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.audit_logs.table.action")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.audit_logs.table.event")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.audit_logs.table.subject")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.audit_logs.table.ip")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? <AdminTableLoadingRow colSpan={7} /> : null}
+
+                {!loading &&
+                  filteredLogs.map((log) => {
+                    const visual = getAuditEventVisual(log.event);
+                    const Icon = visual.icon;
+                    const isExpanded = expandedRows.includes(log.id);
+                    const diffEntries = getAuditDiffEntries(log);
 
                     return (
-                        <div key={key} className="grid grid-cols-12 gap-4 border-b border-border/50 pb-2 last:border-0 last:pb-0">
-                            <div className="col-span-3 font-semibold text-muted-foreground">{key}</div>
-                            <div className="col-span-4 text-red-600 dark:text-red-400 line-through break-all">
-                                {JSON.stringify(oldV)}
-                            </div>
-                            <div className="col-span-1 text-center text-muted-foreground">→</div>
-                            <div className="col-span-4 text-green-600 dark:text-green-400 break-all">
-                                {JSON.stringify(newV)}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        );
-    };
-
-    return (
-        <Card className="border border-border/60 bg-card/80 shadow-sm">
-            <CardHeader>
-                <CardTitle>Audit Logs</CardTitle>
-                <div className="flex flex-col md:flex-row gap-4 mt-4">
-                    {/* Simple Date Picker Placeholder - replacing specific component import if issues arise
-                 In real implementation, use the project's standard DatePickerWithRange
-             */}
-                    <div className="flex gap-2">
-                        <Input
-                            type="date"
-                            className="w-[150px]"
-                            value={dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''}
-                            onChange={(e) => setDateRange(prev => ({ to: prev?.to, from: e.target.value ? new Date(e.target.value) : undefined }))}
-                        />
-                        <Input
-                            type="date"
-                            className="w-[150px]"
-                            value={dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''}
-                            onChange={(e) => setDateRange(prev => ({ from: prev?.from, to: e.target.value ? new Date(e.target.value) : undefined }))}
-                        />
-                    </div>
-
-                    <Select
-                        onValueChange={(val) => setFilters(prev => ({ ...prev, event: val === 'all' ? undefined : val, page: 1 }))}
-                    >
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Event Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Events</SelectItem>
-                            <SelectItem value="created">Created</SelectItem>
-                            <SelectItem value="updated">Updated</SelectItem>
-                            <SelectItem value="deleted">Deleted</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <div className="flex w-full max-w-sm items-center space-x-2">
-                        <Input
-                            type="text"
-                            placeholder="Search User ID..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        />
-                        <Button type="button" onClick={handleSearch} size="icon">
-                            <Search className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="rounded-md border border-border/60">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[50px]"></TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Actor</TableHead>
-                                <TableHead>One-line Action</TableHead>
-                                <TableHead>Event</TableHead>
-                                <TableHead>Subject</TableHead>
-                                <TableHead>IP</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="h-24 text-center">
-                                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                                    </TableCell>
-                                </TableRow>
-                            ) : logs.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                                        No audit logs found.
-                                    </TableCell>
-                                </TableRow>
+                      <Fragment key={log.id}>
+                        <tr
+                          className="cursor-pointer border-b border-border/70 transition-colors hover:bg-secondary/20"
+                          onClick={() => toggleRow(log.id)}
+                        >
+                          <td className="px-4 py-4 align-top">
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
                             ) : (
-                                logs.map((log, key) => (
-                                    <Fragment key={log.id}>
-                                        <TableRow
-                                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                            onClick={() => toggleRow(log.id)}
-                                        >
-                                            <TableCell>
-                                                {expandedRows.includes(log.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                            </TableCell>
-                                            <TableCell className="whitespace-nowrap font-medium text-xs text-muted-foreground">
-                                                {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}
-                                            </TableCell>
-                                            <TableCell>{log.actor_name}</TableCell>
-                                            <TableCell>{log.action}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className={`${getEventColor(log.event)} border`}>
-                                                    {log.event}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                                                    {log.subject_type}:{log.subject_id}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">{log.ip}</TableCell>
-                                        </TableRow>
-                                        {expandedRows.includes(log.id) && (
-                                            <TableRow className="bg-muted/10 hover:bg-muted/10">
-                                                <TableCell colSpan={7} className="p-4">
-                                                    {renderDiff(log.old_values, log.new_values)}
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </Fragment>
-                                ))
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             )}
-                        </TableBody>
-                    </Table>
-                </div>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="min-w-[170px] space-y-1">
+                              <p className="text-sm font-medium text-foreground">
+                                {formatAuditTimestamp(log.created_at, dateLocale)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                #{log.id}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="min-w-[160px] space-y-1">
+                              <p className="font-medium text-foreground">{log.actor_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {t("admin.audit_logs.table.log_id", {
+                                  id: log.id,
+                                })}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="min-w-[240px] space-y-2">
+                              <p className="font-medium text-foreground">{log.action}</p>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`flex h-9 w-9 items-center justify-center rounded-xl ${visual.iconBackgroundClassName}`}
+                                >
+                                  <Icon className={`h-4 w-4 ${visual.iconClassName}`} />
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {diffEntries.length
+                                    ? t("admin.audit_logs.table.changes_count", {
+                                        count: diffEntries.length,
+                                      })
+                                    : t("admin.audit_logs.table.no_changes_short")}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <Badge
+                              variant="outline"
+                              className={`border ${visual.badgeClassName}`}
+                            >
+                              {t(`admin.audit_logs.events.${log.event}`)}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="min-w-[180px] space-y-1">
+                              <p className="font-medium text-foreground">
+                                {formatAuditSubjectType(log.subject_type)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {t("admin.audit_logs.table.subject_id", {
+                                  id: log.subject_id,
+                                })}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 align-top text-sm text-muted-foreground">
+                            {log.ip}
+                          </td>
+                        </tr>
+                        {isExpanded ? (
+                          <tr className="border-b border-border/70 bg-secondary/10">
+                            <td colSpan={7} className="px-4 py-4">
+                              {diffEntries.length ? (
+                                <div className="space-y-3">
+                                  <div className="grid gap-3 lg:grid-cols-[180px_minmax(0,1fr)_48px_minmax(0,1fr)]">
+                                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                      {t("admin.audit_logs.diff.field")}
+                                    </p>
+                                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                      {t("admin.audit_logs.diff.before")}
+                                    </p>
+                                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                      {t("admin.audit_logs.diff.arrow")}
+                                    </p>
+                                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                      {t("admin.audit_logs.diff.after")}
+                                    </p>
+                                  </div>
+                                  {diffEntries.map((entry) => (
+                                    <div
+                                      key={`${log.id}-${entry.key}`}
+                                      className="grid gap-3 rounded-2xl border border-border/60 bg-background/70 p-4 lg:grid-cols-[180px_minmax(0,1fr)_48px_minmax(0,1fr)]"
+                                    >
+                                      <p className="text-sm font-medium text-foreground">
+                                        {entry.key}
+                                      </p>
+                                      <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-rose-500/5 p-3 text-xs text-rose-700 dark:text-rose-300">
+                                        {formatAuditValue(entry.oldValue)}
+                                      </pre>
+                                      <div className="flex items-center justify-center text-muted-foreground">
+                                        →
+                                      </div>
+                                      <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-300">
+                                        {formatAuditValue(entry.newValue)}
+                                      </pre>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">
+                                  {t("admin.audit_logs.no_changes")}
+                                </p>
+                              )}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
 
-                {/* Pagination */}
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setFilters(prev => ({ ...prev, page: (prev.page || 1) - 1 }))}
-                        disabled={filters.page === 1 || loading}
+                {!loading && filteredLogs.length === 0 ? (
+                  <AdminTableEmptyRow
+                    colSpan={7}
+                    icon={History}
+                    title={t("admin.audit_logs.empty_title")}
+                    description={t("admin.audit_logs.empty_description")}
+                  />
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+
+          {meta.last_page > 1 ? (
+            <div className="mt-6 border-t border-border pt-6">
+              <div className="mb-4 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                <p>
+                  {t("admin.audit_logs.pagination.page", {
+                    page: meta.current_page,
+                    lastPage: meta.last_page,
+                  })}
+                </p>
+                <p>{t("admin.audit_logs.pagination.total", { total: meta.total })}</p>
+              </div>
+
+              <Pagination className="justify-start">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if ((filters.page ?? 1) > 1 && !loading) {
+                          setFilters((currentFilters) => ({
+                            ...currentFilters,
+                            page: (currentFilters.page ?? 1) - 1,
+                          }));
+                        }
+                      }}
+                      className={
+                        (filters.page ?? 1) === 1 || loading
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if ((filters.page ?? 1) < meta.last_page && !loading) {
+                          setFilters((currentFilters) => ({
+                            ...currentFilters,
+                            page: (currentFilters.page ?? 1) + 1,
+                          }));
+                        }
+                      }}
+                      className={
+                        (filters.page ?? 1) === meta.last_page || loading
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          ) : null}
+        </AdminSectionCard>
+
+        <div className="space-y-6">
+          <AdminSidebarCard
+            icon={History}
+            title={t("admin.audit_logs.sidebar_title")}
+            description={t("admin.audit_logs.sidebar_description")}
+            delay={0.28}
+          >
+            <div className="space-y-4">
+              <AdminOverviewItem
+                label={t("admin.audit_logs.sidebar.current_page")}
+                value={String(meta.current_page)}
+              />
+              <AdminOverviewItem
+                label={t("admin.audit_logs.sidebar.visible_rows")}
+                value={String(filteredLogs.length)}
+              />
+              <AdminOverviewItem
+                label={t("admin.audit_logs.sidebar.total_records")}
+                value={String(meta.total)}
+              />
+              <AdminOverviewItem
+                label={t("admin.audit_logs.sidebar.range")}
+                value={
+                  dateRange.from && dateRange.to
+                    ? `${dateRange.from} → ${dateRange.to}`
+                    : t("admin.audit_logs.sidebar.all_dates")
+                }
+              />
+              <AdminOverviewItem
+                label={t("admin.audit_logs.sidebar.event_filter")}
+                value={
+                  filters.event
+                    ? t(`admin.audit_logs.events.${filters.event}`)
+                    : t("admin.audit_logs.filters.all_events")
+                }
+              />
+              <AdminOverviewItem
+                label={t("admin.audit_logs.sidebar.user_filter")}
+                value={
+                  filters.user_id
+                    ? t("admin.audit_logs.table.user_filter", {
+                        id: filters.user_id,
+                      })
+                    : t("admin.audit_logs.sidebar.all_users")
+                }
+              />
+              <AdminOverviewItem
+                label={t("admin.audit_logs.sidebar.subject_filter")}
+                value={
+                  filters.subject_type
+                    ? formatAuditSubjectType(filters.subject_type)
+                    : t("admin.audit_logs.sidebar.all_subjects")
+                }
+              />
+            </div>
+          </AdminSidebarCard>
+
+          <AdminSidebarCard
+            icon={PencilLine}
+            title={t("admin.audit_logs.legend_title")}
+            description={t("admin.audit_logs.legend_description")}
+            delay={0.34}
+          >
+            <div className="space-y-3">
+              {(["created", "updated", "deleted"] as const).map((eventKey) => {
+                const visual = getAuditEventVisual(eventKey);
+                const Icon = visual.icon;
+
+                return (
+                  <div
+                    key={eventKey}
+                    className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/50 p-3"
+                  >
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl ${visual.iconBackgroundClassName}`}
                     >
-                        <ChevronLeft className="h-4 w-4" />
-                        Previous
-                    </Button>
-                    <div className="text-sm text-muted-foreground">
-                        Page {meta.current_page} of {meta.last_page}
+                      <Icon className={`h-4 w-4 ${visual.iconClassName}`} />
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setFilters(prev => ({ ...prev, page: (prev.page || 1) + 1 }))}
-                        disabled={filters.page === meta.last_page || loading}
-                    >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
-                </div>
-            </CardContent>
-        </Card >
-    );
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {t(`admin.audit_logs.events.${eventKey}`)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t(`admin.audit_logs.legend.${eventKey}`)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-xs leading-6 text-muted-foreground">
+                {t("admin.audit_logs.sidebar.expand_note")}
+              </p>
+            </div>
+          </AdminSidebarCard>
+        </div>
+      </div>
+    </div>
+  );
 }

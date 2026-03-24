@@ -9,6 +9,7 @@ import { TrustoraLandingThemeStyles } from "@/components/homepage/trustora-landi
 type TrustoraAuthShellProps = {
   badge: string;
   children: ReactNode;
+  pageClassName: string;
   subtitle: string;
   title: ReactNode;
 };
@@ -16,12 +17,13 @@ type TrustoraAuthShellProps = {
 export function TrustoraAuthShell({
   badge,
   children,
+  pageClassName,
   subtitle,
   title,
 }: TrustoraAuthShellProps) {
   return (
-    <div className="project-homepage relative isolate overflow-x-hidden bg-background text-foreground">
-      <TrustoraLandingThemeStyles />
+    <div className={`${pageClassName} relative isolate overflow-x-hidden bg-background text-foreground`}>
+      <TrustoraLandingThemeStyles scopeClassName={pageClassName} />
       <TrustoraLandingNavigation />
 
       <main className="relative z-10">

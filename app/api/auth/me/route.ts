@@ -1,44 +1,46 @@
 import { NextResponse } from 'next/server';
-import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/laravel-proxy';
-import { sanitizeAuthResponsePayload } from '@/lib/auth/user';
+import { auth } from '@/auth';
+import { fetchPassportUserProfile } from '@/lib/auth/passport';
+import { normalizeAuthUser, sanitizeAuthResponsePayload } from '@/lib/auth/user';
 
 export async function GET(req: Request) {
-  const headers = buildProxyHeaders(req);
-  const url = new URL(`${API_BASE_URL}/auth/me`);
-  const incomingUrl = new URL(req.url);
+  const session = await auth();
+  const sessionUser = normalizeAuthUser(session?.user ?? null);
+  const hasSessionAccessToken =
+    typeof session?.accessToken === 'string' && session.accessToken.length > 0;
 
-  incomingUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+  if (!hasSessionAccessToken) {
+    if (!sessionUser) {
+      return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
+    }
 
-  if (!url.searchParams.has('include')) {
-    url.searchParams.set('include', 'connected_accounts');
+    return NextResponse.json({ user: sessionUser }, { status: 200 });
   }
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers,
-    cache: 'no-store',
-  });
-
-  const contentType = response.headers.get('content-type') ?? 'application/json';
-  let nextResponse: NextResponse;
-
-  if (contentType.includes('application/json')) {
-    const payload = await response.json().catch(() => null);
-    nextResponse = NextResponse.json(sanitizeAuthResponsePayload(payload), {
-      status: response.status,
+  try {
+    const payload = await fetchPassportUserProfile(session.accessToken!, {
+      origin: req.headers.get('origin'),
+      includeConnectedAccounts: true,
     });
-  } else {
-    const payload = await response.text();
-    nextResponse = new NextResponse(payload, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType,
-      },
-    });
+
+    if (!payload && sessionUser) {
+      return NextResponse.json({ user: sessionUser }, { status: 200 });
+    }
+
+    if (!payload) {
+      return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      sanitizeAuthResponsePayload({
+        user: payload,
+      }),
+      { status: 200 }
+    );
+  } catch {
+    if (sessionUser) {
+      return NextResponse.json({ user: sessionUser }, { status: 200 });
+    }
+    return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
   }
-
-  appendSetCookie(response, nextResponse, req);
-  return nextResponse;
 }

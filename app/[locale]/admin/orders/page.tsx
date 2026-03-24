@@ -1,288 +1,319 @@
 "use client";
 
-import { useMemo, useState } from 'react';
-import { Link } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useMemo, useState } from "react";
 import {
-  TrendingUp,
-  Search,
+  ArrowUpRight,
+  BriefcaseBusiness,
+  CheckCircle2,
   Eye,
-  Loader2,
-  ArrowLeft,
-  Filter,
-  Calendar,
-  DollarSign
-} from 'lucide-react';
-import { getAdminOrdersFallback } from '@/lib/admin-orders-fallback';
-import { useLocale, useTranslations } from 'next-intl';
-import { PriceDisplay } from '@/components/PriceDisplay';
+  MoreHorizontal,
+  ReceiptText,
+  ShieldAlert,
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
-const STATUS_STYLES: Record<string, string> = {
-  COMPLETED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
-  IN_PROGRESS: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200',
-  PENDING: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200',
-  CANCELLED: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200',
-  DISPUTED: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200',
-  ACCEPTED: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200',
-  DELIVERED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
-};
-
-const PAYMENT_STATUS_STYLES: Record<string, string> = {
-  PAID: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
-  PENDING: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200',
-  FAILED: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200',
-  REFUNDED: 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200',
-};
+import { AdminOrderStatusBadge, AdminPaymentStatusBadge } from "@/components/admin/order-badges";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminSearchInput } from "@/components/admin/admin-search-input";
+import { AdminSectionCard } from "@/components/admin/admin-section-card";
+import { AdminSummaryCard } from "@/components/admin/admin-summary-card";
+import {
+  AdminTableEmptyRow,
+  AdminTableLoadingRow,
+} from "@/components/admin/admin-state";
+import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
+import { PriceDisplay } from "@/components/PriceDisplay";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getAdminOrdersFallback,
+  type AdminOrderFallback,
+} from "@/lib/admin-orders-fallback";
+import { Link } from "@/lib/navigation";
 
 export default function AdminOrdersPage() {
   const locale = useLocale();
   const t = useTranslations();
-  const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
-
-  const manageTitle = t('admin.orders.manage_title');
-  const manageSubtitle = t('admin.orders.manage_subtitle');
-  const searchPlaceholder = t('admin.orders.search_placeholder');
-  const statusFilterPlaceholder = t('admin.orders.status_filter_placeholder');
-  const statusAll = t('admin.orders.statuses.all');
-  const statusPending = t('admin.orders.statuses.pending');
-  const statusInProgress = t('admin.orders.statuses.in_progress');
-  const statusCompleted = t('admin.orders.statuses.completed');
-  const statusCancelled = t('admin.orders.statuses.cancelled');
-  const statusDisputed = t('admin.orders.statuses.disputed');
-  const listTitle = t('admin.orders.list_title');
-  const duePrefix = t('admin.orders.due_prefix');
-  const noOrdersTitle = t('admin.orders.no_orders_title');
-  const noOrdersDescription = t('admin.orders.no_orders_description');
-
-  const statusLabels = {
-    COMPLETED: statusCompleted,
-    IN_PROGRESS: statusInProgress,
-    PENDING: statusPending,
-    CANCELLED: statusCancelled,
-    DISPUTED: statusDisputed,
-    ACCEPTED: t('admin.orders.statuses.accepted'),
-    DELIVERED: t('admin.orders.statuses.delivered'),
-  } as const;
-
-  const paymentStatusLabels = {
-    PAID: t('admin.orders.payment_statuses.paid'),
-    PENDING: t('admin.orders.payment_statuses.pending'),
-    FAILED: t('admin.orders.payment_statuses.failed'),
-    REFUNDED: t('admin.orders.payment_statuses.refunded'),
-  } as const;
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const dateLocale = locale === "ro" ? "ro-RO" : "en-US";
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const ordersData = useMemo(() => ({ orders: getAdminOrdersFallback() }), []);
   const ordersLoading = false;
 
+  const statusLabels = {
+    PENDING: t("admin.orders.statuses.pending"),
+    ACCEPTED: t("admin.orders.statuses.accepted"),
+    IN_PROGRESS: t("admin.orders.statuses.in_progress"),
+    DELIVERED: t("admin.orders.statuses.delivered"),
+    COMPLETED: t("admin.orders.statuses.completed"),
+    CANCELLED: t("admin.orders.statuses.cancelled"),
+    DISPUTED: t("admin.orders.statuses.disputed"),
+  } as const;
+
+  const paymentStatusLabels = {
+    PAID: t("admin.orders.payment_statuses.paid"),
+    PENDING: t("admin.orders.payment_statuses.pending"),
+    FAILED: t("admin.orders.payment_statuses.failed"),
+    REFUNDED: t("admin.orders.payment_statuses.refunded"),
+  } as const;
+
+  const orders: AdminOrderFallback[] = useMemo(() => ordersData.orders || [], [ordersData]);
+
   const filteredOrders = useMemo(() => {
-    return (ordersData?.orders || []).filter((order: any) => {
+    const query = searchTerm.trim().toLowerCase();
+
+    return orders.filter((order) => {
       const matchesSearch =
-        order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.service?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.client?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.client?.lastName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFilter = statusFilter === 'all' || order.status === statusFilter;
+        !query ||
+        [
+          order.orderNumber,
+          order.service?.title,
+          order.service?.category?.name,
+          order.client?.firstName,
+          order.client?.lastName,
+          order.client?.email,
+          order.provider?.firstName,
+          order.provider?.lastName,
+          order.provider?.email,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query));
+
+      const matchesFilter = statusFilter === "all" || order.status === statusFilter;
       return matchesSearch && matchesFilter;
     });
-  }, [ordersData, searchTerm, statusFilter]);
+  }, [orders, searchTerm, statusFilter]);
 
-  const getStatusBadge = (status: string) => {
-    const label = statusLabels[status as keyof typeof statusLabels] || status;
-    const className = STATUS_STYLES[status] || 'bg-secondary';
-    return <Badge className={className}>{label}</Badge>;
-  };
+  const summaryCards = useMemo(() => {
+    const totalValue = orders.reduce((sum, order) => sum + Number(order.amount || 0), 0);
 
-  const getPaymentStatusBadge = (status: string) => {
-    const label =
-      paymentStatusLabels[status as keyof typeof paymentStatusLabels] || status;
-    const className = PAYMENT_STATUS_STYLES[status] || 'bg-secondary';
-    return <Badge className={className}>{label}</Badge>;
-  };
+    return [
+      {
+        title: t("admin.orders.summary.cards.total"),
+        value: orders.length,
+        icon: ReceiptText,
+        color: "bg-gradient-to-br from-primary to-emerald-400",
+      },
+      {
+        title: t("admin.orders.summary.cards.active"),
+        value: orders.filter((order) =>
+          ["ACCEPTED", "IN_PROGRESS", "DELIVERED"].includes(order.status)
+        ).length,
+        icon: BriefcaseBusiness,
+        color: "bg-gradient-to-br from-blue-500 to-cyan-400",
+      },
+      {
+        title: t("admin.orders.summary.cards.completed"),
+        value: orders.filter((order) => order.status === "COMPLETED").length,
+        icon: CheckCircle2,
+        color: "bg-gradient-to-br from-emerald-500 to-lime-400",
+      },
+      {
+        title: t("admin.orders.summary.cards.value"),
+        value: <PriceDisplay value={totalValue} currency={orders[0]?.currency || "USD"} />,
+        icon: ArrowUpRight,
+        color: "bg-gradient-to-br from-purple-500 to-pink-400",
+      },
+    ];
+  }, [orders, t]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.16),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
-        <div className="relative flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Trustora Admin
-            </span>
-          </div>
-        </div>
-        <div className="relative mt-4">
-          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{manageTitle}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            {manageSubtitle}
-          </p>
-        </div>
-      </div>
+    <ProjectAdminShell>
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <AdminPageHeader
+          title={t("admin.orders.manage_title")}
+          description={t("admin.orders.manage_subtitle")}
+        />
 
-      {/* Filters */}
-      <Card className="mb-6 border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder={searchPlaceholder}
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryCards.map((card, index) => (
+            <AdminSummaryCard
+              key={String(card.title)}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              colorClassName={card.color}
+              delay={index * 0.08}
+            />
+          ))}
+        </div>
+
+        <AdminSectionCard
+          delay={0.2}
+          title={t("admin.orders.list_title")}
+          description={t("admin.orders.list_description", { count: filteredOrders.length })}
+        >
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center">
+            <AdminSearchInput
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={t("admin.orders.search_placeholder")}
+            />
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder={statusFilterPlaceholder} />
+              <SelectTrigger className="h-11 w-full border-border bg-transparent lg:w-56">
+                <SelectValue placeholder={t("admin.orders.status_filter_placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{statusAll}</SelectItem>
-                <SelectItem value="PENDING">{statusPending}</SelectItem>
-                <SelectItem value="IN_PROGRESS">{statusInProgress}</SelectItem>
-                <SelectItem value="COMPLETED">{statusCompleted}</SelectItem>
-                <SelectItem value="CANCELLED">{statusCancelled}</SelectItem>
-                <SelectItem value="DISPUTED">{statusDisputed}</SelectItem>
+                <SelectItem value="all">{t("admin.orders.statuses.all")}</SelectItem>
+                <SelectItem value="PENDING">{t("admin.orders.statuses.pending")}</SelectItem>
+                <SelectItem value="ACCEPTED">{t("admin.orders.statuses.accepted")}</SelectItem>
+                <SelectItem value="IN_PROGRESS">
+                  {t("admin.orders.statuses.in_progress")}
+                </SelectItem>
+                <SelectItem value="DELIVERED">{t("admin.orders.statuses.delivered")}</SelectItem>
+                <SelectItem value="COMPLETED">
+                  {t("admin.orders.statuses.completed")}
+                </SelectItem>
+                <SelectItem value="CANCELLED">
+                  {t("admin.orders.statuses.cancelled")}
+                </SelectItem>
+                <SelectItem value="DISPUTED">{t("admin.orders.statuses.disputed")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Orders List */}
-      <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <TrendingUp className="w-5 h-5" />
-            <span>{listTitle}</span>
-          </CardTitle>
-          <CardDescription>
-            {t('admin.orders.list_description', { count: filteredOrders.length })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {ordersLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredOrders.map((order: any) => (
-                <div
-                  key={order.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-900/60 dark:hover:border-sky-500/50"
-                >
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="font-semibold text-lg">#{order.orderNumber}</h3>
-                      {getStatusBadge(order.status)}
-                      {getPaymentStatusBadge(order.paymentStatus)}
-                    </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.orders.table.project")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.orders.table.client")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.orders.table.provider")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.orders.table.value")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.orders.table.timeline")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.orders.table.status")}
+                  </th>
+                  <th className="px-4 py-4 text-right text-sm font-medium text-muted-foreground">
+                    {t("admin.orders.table.actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ordersLoading ? <AdminTableLoadingRow colSpan={7} /> : null}
 
-                    <h4 className="font-medium text-sky-700 dark:text-sky-400">
-                      {order.service?.title}
-                    </h4>
-
-                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={order.client?.avatar} />
-                          <AvatarFallback>
-                            {order.client?.firstName?.[0]}{order.client?.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{t('admin.orders.client_label')}</p>
+                {!ordersLoading &&
+                  filteredOrders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="border-b border-border/70 transition-colors hover:bg-secondary/20"
+                    >
+                      <td className="px-4 py-4 align-top">
+                        <div className="min-w-[230px] space-y-1">
+                          <p className="font-semibold text-foreground">
+                            #{order.orderNumber}
+                          </p>
+                          <p className="font-medium text-primary">{order.service.title}</p>
                           <p className="text-sm text-muted-foreground">
-                            {order.client?.firstName} {order.client?.lastName}
+                            {order.service.category.name}
                           </p>
                         </div>
-                      </div>
-
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={order.provider?.avatar} />
-                          <AvatarFallback>
-                            {order.provider?.firstName?.[0]}{order.provider?.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{t('admin.orders.provider_label')}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {order.provider?.firstName} {order.provider?.lastName}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="min-w-[180px] space-y-1">
+                          <p className="font-medium text-foreground">
+                            {order.client.firstName} {order.client.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{order.client.email}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="min-w-[180px] space-y-1">
+                          <p className="font-medium text-foreground">
+                            {order.provider.firstName} {order.provider.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{order.provider.email}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="min-w-[140px] space-y-1">
+                          <p className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            <PriceDisplay value={order.amount} currency={order.currency} />
+                          </p>
+                          <AdminPaymentStatusBadge
+                            status={order.paymentStatus}
+                            label={paymentStatusLabels[order.paymentStatus]}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="min-w-[190px] space-y-1 text-sm">
+                          <p className="text-foreground">
+                            {t("admin.orders.table.created_at", {
+                              date: new Date(order.createdAt).toLocaleDateString(dateLocale),
+                            })}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {t("admin.orders.table.delivery_due", {
+                              date: new Date(order.deliveryDate).toLocaleDateString(dateLocale),
+                            })}
                           </p>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <DollarSign className="w-4 h-4" />
-                        <span className="font-semibold text-emerald-600 text-base dark:text-emerald-400">
-                          <PriceDisplay value={order.amount} currency={order.currency} />
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{new Date(order.createdAt).toLocaleDateString(dateLocale)}</span>
-                      </div>
-                      {order.deliveryDate && (
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {duePrefix} {new Date(order.deliveryDate).toLocaleDateString(dateLocale)}
-                          </span>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="min-w-[150px]">
+                          <AdminOrderStatusBadge
+                            status={order.status}
+                            label={statusLabels[order.status]}
+                          />
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </td>
+                      <td className="px-4 py-4 text-right align-top">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="rounded-full">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/orders/${order.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                {t("admin.orders.view_details")}
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
 
-                  <div className="flex justify-end">
-                    <Link href={`/admin/orders/${order.id}`}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full border border-transparent hover:border-sky-500/30 hover:bg-sky-500/10 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-300"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-
-              {filteredOrders.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-border/70 bg-muted/30 px-6 py-16 text-center dark:border-slate-800/70 dark:bg-slate-900/40">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow-sm dark:bg-slate-950/70 dark:text-slate-200">
-                    <TrendingUp className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{noOrdersTitle}</h3>
-                  <p className="text-sm text-muted-foreground">{noOrdersDescription}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                {!ordersLoading && filteredOrders.length === 0 ? (
+                  <AdminTableEmptyRow
+                    colSpan={7}
+                    icon={ShieldAlert}
+                    title={t("admin.orders.no_orders_title")}
+                    description={t("admin.orders.no_orders_description")}
+                  />
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </AdminSectionCard>
+      </div>
+    </ProjectAdminShell>
   );
 }

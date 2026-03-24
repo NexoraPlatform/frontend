@@ -92,7 +92,7 @@ export default function SelectLevelsPageClient() {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push(getDashboardHomeHref());
+            router.replace(getDashboardHomeHref());
             return;
         }
 

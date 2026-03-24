@@ -2,6 +2,7 @@ import 'server-only';
 
 import { cache } from 'react';
 import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { defaultLocale } from '@/lib/i18n';
 
 const API_BASE_URL =
@@ -26,21 +27,6 @@ const resolveLocale = async (explicit?: string | null) => {
   if (cookieLocale) return cookieLocale;
 
   return normalizeLocale(defaultLocale) ?? null;
-};
-
-const buildCookieHeader = (cookieStore: Awaited<ReturnType<typeof cookies>>) =>
-  cookieStore
-    .getAll()
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
-    .join('; ');
-
-const resolveXsrfToken = (cookieHeader: string) => {
-  const match = cookieHeader
-    .split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith('XSRF-TOKEN='));
-  if (!match) return null;
-  return decodeURIComponent(match.slice('XSRF-TOKEN='.length));
 };
 
 type ServerRequestOptions = {
@@ -182,17 +168,23 @@ export async function serverRequest<T>(
     url.searchParams.set('language', selectedLanguage);
   }
 
-  const cookieStore = await cookies();
-  const cookieHeader = buildCookieHeader(cookieStore);
-  const xsrfToken = resolveXsrfToken(cookieHeader);
-
+  const session = await auth();
+  const accessToken =
+    typeof session?.accessToken === 'string' && session.accessToken.length > 0
+      ? session.accessToken
+      : null;
+  const tokenType =
+    typeof session?.tokenType === 'string' && session.tokenType.length > 0
+      ? session.tokenType
+      : 'Bearer';
   const headers = new Headers({ Accept: 'application/json' });
   if (options.headers) {
     const incoming = new Headers(options.headers);
     incoming.forEach((value, key) => headers.set(key, value));
   }
-  if (cookieHeader) headers.set('Cookie', cookieHeader);
-  if (xsrfToken) headers.set('X-XSRF-TOKEN', xsrfToken);
+  if (accessToken) {
+    headers.set('Authorization', `${tokenType} ${accessToken}`);
+  }
   headers.set('X-Requested-With', 'XMLHttpRequest');
   const appOrigin =
     process.env.NEXT_PUBLIC_APP_URL ||

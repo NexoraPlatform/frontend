@@ -17,34 +17,40 @@
         "transactions_label": "Transactions"
       },
       "panel": {
-        "balance_label": "Total Balance",
-        "balance_value": "$2,847,392.00",
-        "balance_growth": "+12.5%",
-        "income": {
-          "label": "Income",
-          "value": "$842.5K",
-          "trend": "+8.2%"
-        },
-        "expenses": {
-          "label": "Expenses",
-          "value": "$234.1K",
-          "trend": "-2.4%"
-        },
-        "transactions": {
+        "browser_url": "trustora.com/dashboard",
+        "stats": {
           "first": {
-            "name": "Transaction A",
-            "amount": "+$12,400",
-            "time": "2m ago"
+            "label": "Volume",
+            "value": "$2.4M",
+            "change": "+12.5%"
           },
           "second": {
-            "name": "Transaction B",
-            "amount": "+$8,200",
-            "time": "5m ago"
+            "label": "Compliance",
+            "value": "99.8%",
+            "change": "+0.3%"
           },
           "third": {
-            "name": "Transaction C",
-            "amount": "+$5,600",
-            "time": "12m ago"
+            "label": "Active",
+            "value": "1,247",
+            "change": "+89"
+          }
+        },
+        "chart": {
+          "title": "Transaction Volume",
+          "live": "Live"
+        },
+        "checks": {
+          "first": {
+            "name": "KYC Verification",
+            "status": "Passed"
+          },
+          "second": {
+            "name": "AML Screening",
+            "status": "Clear"
+          },
+          "third": {
+            "name": "Risk Assessment",
+            "status": "Low"
           }
         }
       }

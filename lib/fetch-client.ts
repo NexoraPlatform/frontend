@@ -2,13 +2,13 @@ import {
   normalizeAiSearchMatchResponse,
   type AiSearchMatchResponse,
 } from '@/types/ai-search';
+import { getSession } from 'next-auth/react';
 import type {
   AiAssistantMessage,
   AiBriefAvailableService,
   AiBriefBuilderRequestBody,
   AiBriefBuilderResponse,
 } from '@/types/ai';
-import { ensureCsrfCookie } from '@/lib/csrf';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -24,6 +24,7 @@ const SUPPORTED_LOCALES = new Set(['ro', 'en']);
 const BRIEF_BUILDER_TIMEOUT_MS = 15_000;
 const BRIEF_BUILDER_TIMEOUT_RETRIES = 2;
 const BRIEF_BUILDER_RETRY_DELAY_MS = 450;
+const SESSION_AUTH_CACHE_TTL_MS = 30_000;
 
 type ParamPrimitive = string | number | boolean | null | undefined;
 type ParamValue = ParamPrimitive | ParamPrimitive[];
@@ -43,7 +44,6 @@ export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   baseURL?: string;
   parseAs?: 'auto' | 'json' | 'text' | 'response';
   skipAuthHandling?: boolean;
-  skipCsrfRetry?: boolean;
   skipDefaultParams?: boolean;
   skipDefaultHeaders?: boolean;
 }
@@ -54,6 +54,10 @@ export interface ApiFetchConfig {
 }
 
 type UnauthorizedHandler = (error: FetchError) => void;
+type BrowserSessionAuth = {
+  accessToken: string;
+  tokenType: string;
+} | null;
 
 export class FetchError extends Error {
   status: number;
@@ -72,6 +76,9 @@ export class FetchError extends Error {
 }
 
 const isBrowser = typeof window !== 'undefined';
+let browserSessionAuthCache: BrowserSessionAuth | undefined;
+let browserSessionAuthCacheTimestamp = 0;
+let browserSessionAuthPromise: Promise<BrowserSessionAuth> | null = null;
 
 const isAbsoluteUrl = (value: string) =>
   /^https?:\/\//i.test(value) || value.startsWith('//');
@@ -79,7 +86,6 @@ const isAbsoluteUrl = (value: string) =>
 const normalizeApiUrl = (value: string) => {
   if (!value) return value;
   if (isAbsoluteUrl(value)) return value;
-  if (value.startsWith('/sanctum')) return value;
   if (value === '/api' || value.startsWith('/api/')) return value;
   if (value.startsWith('/')) return `/api${value}`;
   return `/api/${value}`;
@@ -89,16 +95,6 @@ const shouldAttachDefaultQueryParams = (urlPath: string) => {
   const normalized = urlPath.toLowerCase();
   if (normalized.includes('/users/active')) return false;
   return true;
-};
-
-const getCookieValue = (name: string) => {
-  if (!isBrowser || typeof document === 'undefined') return null;
-  const match = document.cookie
-    .split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(`${name}=`));
-  if (!match) return null;
-  return match.slice(name.length + 1);
 };
 
 const getSelectedLanguage = (): string | null => {
@@ -363,10 +359,85 @@ const buildUrl = (
   return target.toString();
 };
 
-let csrfRefreshPromise: Promise<void> | null = null;
 const unauthorizedHandlers = new Set<UnauthorizedHandler>();
 
+const normalizeSessionAuth = (session: unknown): BrowserSessionAuth => {
+  const accessToken =
+    typeof (session as { accessToken?: unknown } | null)?.accessToken === 'string' &&
+    (session as { accessToken?: string }).accessToken!.length > 0
+      ? (session as { accessToken?: string }).accessToken!
+      : null;
+
+  if (!accessToken) {
+    return null;
+  }
+
+  const tokenType =
+    typeof (session as { tokenType?: unknown } | null)?.tokenType === 'string' &&
+    (session as { tokenType?: string }).tokenType!.length > 0
+      ? (session as { tokenType?: string }).tokenType!
+      : 'Bearer';
+
+  return { accessToken, tokenType };
+};
+
+export const setBrowserSessionAuthCache = (session: unknown) => {
+  if (!isBrowser) {
+    return null;
+  }
+
+  browserSessionAuthCache = normalizeSessionAuth(session);
+  browserSessionAuthCacheTimestamp = Date.now();
+  browserSessionAuthPromise = null;
+  return browserSessionAuthCache;
+};
+
+export const clearBrowserSessionAuthCache = () => {
+  if (!isBrowser) {
+    return;
+  }
+
+  browserSessionAuthCache = null;
+  browserSessionAuthCacheTimestamp = Date.now();
+  browserSessionAuthPromise = null;
+};
+
+const resolveBrowserAccessToken = async () => {
+  if (!isBrowser) {
+    return null;
+  }
+
+  const hasFreshCache =
+    browserSessionAuthCache !== undefined &&
+    Date.now() - browserSessionAuthCacheTimestamp < SESSION_AUTH_CACHE_TTL_MS;
+
+  if (hasFreshCache) {
+    return browserSessionAuthCache;
+  }
+
+  if (browserSessionAuthPromise) {
+    return browserSessionAuthPromise;
+  }
+
+  browserSessionAuthPromise = getSession()
+    .then((session) => setBrowserSessionAuthCache(session))
+    .catch(() => {
+      clearBrowserSessionAuthCache();
+      return null;
+    })
+    .finally(() => {
+      browserSessionAuthPromise = null;
+    });
+
+  try {
+    return await browserSessionAuthPromise;
+  } catch {
+    return null;
+  }
+};
+
 const dispatchUnauthorized = (error: FetchError, skipAuthHandling?: boolean) => {
+  clearBrowserSessionAuthCache();
   if (!isBrowser || skipAuthHandling) return;
   unauthorizedHandlers.forEach((handler) => handler(error));
   window.dispatchEvent(
@@ -376,34 +447,6 @@ const dispatchUnauthorized = (error: FetchError, skipAuthHandling?: boolean) => 
   );
 };
 
-const refreshCsrfCookie = async (baseURL: string) => {
-  if (!isBrowser) return;
-  const csrfUrl = `${baseURL}/sanctum/csrf-cookie`;
-
-  if (!csrfRefreshPromise) {
-    csrfRefreshPromise = fetch(csrfUrl, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      cache: 'no-store',
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to refresh CSRF cookie (${response.status})`);
-        }
-        return undefined;
-      })
-      .finally(() => {
-        csrfRefreshPromise = null;
-      });
-  }
-
-  await csrfRefreshPromise;
-};
-
 export const onApiUnauthorized = (handler: UnauthorizedHandler) => {
   unauthorizedHandlers.add(handler);
   return () => {
@@ -411,30 +454,18 @@ export const onApiUnauthorized = (handler: UnauthorizedHandler) => {
   };
 };
 
-const requestWithRetry = async (
-  url: string,
-  options: RequestInit,
-  retryOn419: boolean,
-  endpoint: string,
-  baseURL: string
-): Promise<Response> => {
-  const response = await fetch(url, options);
-  if (
-    retryOn419 &&
-    response.status === 419 &&
-    isBrowser &&
-    !endpoint.includes('/sanctum/csrf-cookie')
-  ) {
-    await refreshCsrfCookie(baseURL);
-    const retryHeaders = new Headers(options.headers);
-    const xsrfToken = getCookieValue('XSRF-TOKEN');
-    if (xsrfToken) {
-      const decodedXsrfToken = decodeURIComponent(xsrfToken);
-      retryHeaders.set('X-XSRF-TOKEN', decodedXsrfToken);
-    }
-    return fetch(url, { ...options, headers: retryHeaders });
+const isInternalAppApiUrl = (url: string) => {
+  if (!isBrowser) return false;
+
+  try {
+    const targetUrl = new URL(url, window.location.origin);
+    return (
+      targetUrl.origin === window.location.origin &&
+      targetUrl.pathname.startsWith('/api/')
+    );
+  } catch {
+    return false;
   }
-  return response;
 };
 
 export const createApiFetch = (config: ApiFetchConfig = {}) => {
@@ -461,7 +492,6 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
       withCredentials,
       parseAs = 'auto',
       skipAuthHandling,
-      skipCsrfRetry,
       skipDefaultParams,
       skipDefaultHeaders,
       ...requestInit
@@ -483,32 +513,16 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
       incoming.forEach((value, key) => headers.set(key, value));
     }
 
-    const requestMethod = String(requestInit.method ?? 'GET').toUpperCase();
-    const shouldAttachCsrf =
-      requestMethod !== 'GET' &&
-      requestMethod !== 'HEAD' &&
-      requestMethod !== 'OPTIONS' &&
-      requestMethod !== 'TRACE';
+    const hasExplicitAuthorization = headers.has('Authorization');
+    const sessionAuth =
+      !hasExplicitAuthorization && isBrowser ? await resolveBrowserAccessToken() : null;
+    const hasSessionAccessToken = Boolean(sessionAuth?.accessToken);
 
-    if (isBrowser && shouldAttachCsrf) {
-      try {
-        await ensureCsrfCookie();
-      } catch {
-        // Continue and let backend return a structured error if session/csrf is unavailable.
-      }
+    if (hasSessionAccessToken && !headers.has('Authorization')) {
+      headers.set('Authorization', `${sessionAuth!.tokenType} ${sessionAuth!.accessToken}`);
     }
 
     const parsedBody = parseBodyIfNeeded(body, headers);
-
-    if (isBrowser) {
-      const xsrfToken = getCookieValue('XSRF-TOKEN');
-      const decodedXsrfToken = xsrfToken ? decodeURIComponent(xsrfToken) : null;
-      if (decodedXsrfToken) {
-        if (!headers.has('X-XSRF-TOKEN')) {
-          headers.set('X-XSRF-TOKEN', decodedXsrfToken);
-        }
-      }
-    }
 
     if (parsedBody instanceof FormData) {
       headers.delete('Content-Type');
@@ -516,20 +530,22 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
       headers.set('Content-Type', 'application/json');
     }
 
-    const response = await requestWithRetry(
-      url,
-      {
-        ...requestInit,
-        credentials:
-          requestInit.credentials ??
-          (withCredentials === true ? 'include' : withCredentials === false ? 'omit' : 'include'),
-        headers,
-        body: parsedBody,
-      },
-      !skipCsrfRetry,
-      endpoint,
-      resolvedBaseURL
-    );
+    const response = await fetch(url, {
+      ...requestInit,
+      credentials:
+        requestInit.credentials ??
+        (withCredentials === true
+          ? 'include'
+          : withCredentials === false
+            ? 'omit'
+            : isInternalAppApiUrl(url)
+              ? 'include'
+              : headers.has('Authorization')
+                ? 'omit'
+                : 'include'),
+      headers,
+      body: parsedBody,
+    });
 
     const data = await parseResponsePayload(response, parseAs);
     if (response.ok) {
@@ -607,10 +623,6 @@ const buildBrief = async (
   locale?: string,
   availableServices?: AiBriefAvailableService[]
 ): Promise<AiBriefBuilderResponse> => {
-  if (isBrowser) {
-    await ensureCsrfCookie();
-  }
-
   const normalizedMessages = normalizeBriefMessages(messages);
   if (normalizedMessages.length === 0) {
     throw new Error('At least one valid message is required.');
@@ -628,23 +640,13 @@ const buildBrief = async (
           : {}),
       };
 
-      const xsrfToken = isBrowser ? getCookieValue('XSRF-TOKEN') : null;
-      const briefHeaders: Record<string, string> = {};
-
-      if (xsrfToken) {
-        const decodedXsrfToken = decodeURIComponent(xsrfToken);
-        briefHeaders['X-XSRF-TOKEN'] = decodedXsrfToken;
-      }
-
       return await withTimeout(
         (signal) =>
           apiFetch<AiBriefBuilderResponse>(LARAVEL_AI_BRIEF_BUILDER_ENDPOINT, {
             method: 'POST',
             cache: 'no-store',
             skipDefaultParams: true,
-            credentials: 'include',
             signal,
-            headers: briefHeaders,
             body: requestBody as unknown as Record<string, unknown>,
           }),
         BRIEF_BUILDER_TIMEOUT_MS

@@ -127,8 +127,8 @@ export async function TrustoraAboutPage() {
   ];
 
   return (
-    <div className="project-homepage relative isolate overflow-x-hidden bg-background text-foreground">
-      <TrustoraLandingThemeStyles />
+    <div className="trustora-about-page relative isolate overflow-x-hidden bg-background text-foreground">
+      <TrustoraLandingThemeStyles scopeClassName="trustora-about-page" />
 
       <TrustoraLandingNavigation />
 

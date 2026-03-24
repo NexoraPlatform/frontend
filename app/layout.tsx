@@ -1,7 +1,22 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Manrope, Space_Grotesk } from "next/font/google";
 import { buildRootMetadata } from "@/lib/seo";
 import "./globals.css";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  variable: "--font-space-grotesk",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  variable: "--font-manrope",
+});
 
 export const metadata: Metadata = buildRootMetadata();
 
@@ -21,7 +36,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body>{children}</body>
+      <body className={`${spaceGrotesk.variable} ${manrope.variable}`}>{children}</body>
     </html>
   );
 }

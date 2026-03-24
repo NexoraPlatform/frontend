@@ -1,0 +1,84 @@
+{
+  "audit_logs": {
+    "manage_title": "Gestionare Audit Logs",
+    "manage_subtitle": "Inspectează schimbările din sistem, istoricul de moderare și urmele operaționale din același shell admin.",
+    "summary": {
+      "cards": {
+        "total": "Înregistrări Totale",
+        "created": "Evenimente Create",
+        "updated": "Evenimente Actualizate",
+        "deleted": "Evenimente Șterse"
+      }
+    },
+    "list_title": "Explorer Audit Logs",
+    "list_description": "{count} înregistrări pe această pagină",
+    "search_placeholder": "Caută actor, acțiune, subiect sau user ID...",
+    "actions": {
+      "search": "Caută"
+    },
+    "filters": {
+      "event_label": "Eveniment",
+      "subject_label": "Subiect",
+      "from_label": "De la",
+      "to_label": "Până la",
+      "all_events": "Toate evenimentele",
+      "all_subjects": "Toate subiectele"
+    },
+    "events": {
+      "created": "Creat",
+      "updated": "Actualizat",
+      "deleted": "Șters"
+    },
+    "table": {
+      "expand": "",
+      "recorded": "Înregistrat",
+      "actor": "Actor",
+      "action": "Acțiune",
+      "event": "Eveniment",
+      "subject": "Subiect",
+      "ip": "IP",
+      "log_id": "Log #{id}",
+      "subject_id": "Înregistrarea #{id}",
+      "user_filter": "User #{id}",
+      "changes_count": "{count} modificări",
+      "no_changes_short": "Fără modificări de câmpuri"
+    },
+    "diff": {
+      "field": "Câmp",
+      "before": "Înainte",
+      "arrow": "",
+      "after": "După"
+    },
+    "sidebar_title": "Privire Audit",
+    "sidebar_description": "Filtrele curente și informațiile de paginare pentru fluxul audit încărcat.",
+    "sidebar": {
+      "current_page": "Pagina curentă",
+      "visible_rows": "Rânduri vizibile",
+      "total_records": "Înregistrări totale",
+      "range": "Interval de date",
+      "event_filter": "Filtru eveniment",
+      "user_filter": "Filtru utilizator",
+      "subject_filter": "Filtru subiect",
+      "all_dates": "Toate datele",
+      "all_users": "Toți utilizatorii",
+      "all_subjects": "Toate subiectele",
+      "expand_note": "Deschide orice rând pentru a inspecta valorile înainte și după pentru fiecare schimbare."
+    },
+    "legend_title": "Legendă Evenimente",
+    "legend_description": "Maparea vizuală pentru cele trei tipuri de evenimente audit afișate în tabel.",
+    "legend": {
+      "created": "Înregistrări sau obiecte noi adăugate în sistem.",
+      "updated": "Înregistrări existente modificate prin acțiuni admin sau automate.",
+      "deleted": "Înregistrări șterse sau marcate soft-delete în platformă."
+    },
+    "empty_title": "Nu au fost găsite audit logs",
+    "empty_description": "Încearcă să modifici filtrele, intervalul de date sau căutarea.",
+    "no_changes": "Nu au fost înregistrate modificări pentru acest eveniment.",
+    "error_message": "Nu am putut încărca fluxul de audit.",
+    "error_prefix": "Eroare: ",
+    "pagination": {
+      "page": "Pagina {page} din {lastPage}",
+      "total": "{total} înregistrări în total"
+    }
+  }
+}

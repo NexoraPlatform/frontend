@@ -1,14 +1,21 @@
 import { NextResponse } from 'next/server';
-import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/laravel-proxy';
+import {
+  API_BASE_URL,
+  appendSetCookie,
+  buildAuthenticatedProxyHeaders,
+} from '@/lib/server/laravel-proxy';
 import { sanitizeAuthResponsePayload } from '@/lib/auth/user';
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   let headers: Headers;
   try {
-    headers = buildProxyHeaders(req, {
-      'Content-Type': 'application/json',
-    });
+    headers = await buildAuthenticatedProxyHeaders(
+      req,
+      {
+        'Content-Type': 'application/json',
+      }
+    );
   } catch {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }

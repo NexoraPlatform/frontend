@@ -1,0 +1,84 @@
+{
+  "audit_logs": {
+    "manage_title": "Manage Audit Logs",
+    "manage_subtitle": "Inspect system changes, moderation history, and operational traces from the same admin dashboard shell.",
+    "summary": {
+      "cards": {
+        "total": "Total Records",
+        "created": "Created Events",
+        "updated": "Updated Events",
+        "deleted": "Deleted Events"
+      }
+    },
+    "list_title": "Audit Log Explorer",
+    "list_description": "{count} records on this page",
+    "search_placeholder": "Search actor, action, subject or user ID...",
+    "actions": {
+      "search": "Search"
+    },
+    "filters": {
+      "event_label": "Event",
+      "subject_label": "Subject",
+      "from_label": "From",
+      "to_label": "To",
+      "all_events": "All events",
+      "all_subjects": "All subjects"
+    },
+    "events": {
+      "created": "Created",
+      "updated": "Updated",
+      "deleted": "Deleted"
+    },
+    "table": {
+      "expand": "",
+      "recorded": "Recorded",
+      "actor": "Actor",
+      "action": "Action",
+      "event": "Event",
+      "subject": "Subject",
+      "ip": "IP",
+      "log_id": "Log #{id}",
+      "subject_id": "Record #{id}",
+      "user_filter": "User #{id}",
+      "changes_count": "{count} changes",
+      "no_changes_short": "No field changes"
+    },
+    "diff": {
+      "field": "Field",
+      "before": "Before",
+      "arrow": "",
+      "after": "After"
+    },
+    "sidebar_title": "Audit Overview",
+    "sidebar_description": "Current filters and paging information for the loaded audit stream.",
+    "sidebar": {
+      "current_page": "Current page",
+      "visible_rows": "Visible rows",
+      "total_records": "Total records",
+      "range": "Date range",
+      "event_filter": "Event filter",
+      "user_filter": "User filter",
+      "subject_filter": "Subject filter",
+      "all_dates": "All dates",
+      "all_users": "All users",
+      "all_subjects": "All subjects",
+      "expand_note": "Open any row to inspect field-level before and after values for that change."
+    },
+    "legend_title": "Event Legend",
+    "legend_description": "Visual mapping for the three audit event types shown in the table.",
+    "legend": {
+      "created": "New records or objects added to the system.",
+      "updated": "Existing records changed through admin or automated actions.",
+      "deleted": "Records removed or soft-deleted from the platform."
+    },
+    "empty_title": "No audit logs found",
+    "empty_description": "Try adjusting the filters, date range, or search query.",
+    "no_changes": "No changes were recorded for this event.",
+    "error_message": "We couldn't load the audit log stream.",
+    "error_prefix": "Error: ",
+    "pagination": {
+      "page": "Page {page} of {lastPage}",
+      "total": "{total} total records"
+    }
+  }
+}

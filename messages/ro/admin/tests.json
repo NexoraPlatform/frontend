@@ -19,6 +19,23 @@
       "INACTIVE": "Inactiv",
       "DRAFT": "Draft"
     },
+    "summary": {
+      "cards": {
+        "total": "Total teste",
+        "active": "Teste active",
+        "questions": "Întrebări",
+        "results": "Rezultate"
+      }
+    },
+    "table": {
+      "test": "Test",
+      "service": "Serviciu",
+      "level": "Nivel",
+      "status": "Status",
+      "configuration": "Configurație",
+      "activity": "Activitate",
+      "actions": "Acțiuni"
+    },
     "list_title": "Lista Teste",
     "list_description": "{count} teste găsite",
     "question_count": "{count} întrebări",
@@ -46,31 +63,36 @@
     "detail": {
       "test_details": "Detalii Test",
       "general_info": "Informații Generale",
-      "service_label": "Serviciu:",
-      "category_label": "Categorie:",
-      "level_label": "Nivel:",
-      "status_label": "Status:",
-      "created_label": "Creat la:",
+      "service_label": "Serviciu",
+      "category_label": "Categorie",
+      "level_label": "Nivel",
+      "status_label": "Status",
+      "created_label": "Creat",
       "test_config": "Configurație Test",
-      "time_limit_label": "Timp Limită:",
-      "passing_score_label": "Nota de Trecere:",
-      "questions_label": "Număr Întrebări:",
-      "total_points_label": "Punctaj Total:",
+      "time_limit_label": "Timp Limită",
+      "passing_score_label": "Nota de Trecere",
+      "questions_label": "Întrebări",
+      "total_points_label": "Punctaj Total",
       "description": "Descriere",
       "questions_section": "Întrebări ({count})",
+      "questions_description": "Revizuiește fiecare întrebare, cheia de răspuns și cerințele de codare ale testului.",
       "question_label": "Întrebarea {number}",
-      "code_template": "Template Cod:",
-      "expected_output": "Output Așteptat:",
-      "test_cases": "Test Cases:",
-      "input_label": "Input:",
-      "expected_output_label": "Output așteptat:",
-      "explanation": "Explicație:",
+      "code_template": "Template cod",
+      "expected_output": "Output așteptat",
+      "test_cases": "Test cases",
+      "input_label": "Input",
+      "expected_output_label": "Output așteptat",
+      "explanation": "Explicație",
       "edit_test": "Editează Test",
       "view_statistics": "Vezi Statistici",
       "preview": "Previzualizare",
       "delete_test": "Șterge Test",
       "deactivate": "Dezactivează",
-      "activate": "Activează"
+      "activate": "Activează",
+      "actions_title": "Acțiuni Test",
+      "actions_description": "Gestionează ciclul de viață al testului și deschide rapid paginile aferente.",
+      "correct_option": "Corect",
+      "not_found": "Testul cerut nu a putut fi încărcat."
     },
     "statistics": {
       "subtitle": "Analiză detaliată a performanței testului",
@@ -81,14 +103,17 @@
       "passed_no": "Nu",
       "score_label": "Scor",
       "time_spent_label": "Timp petrecut",
-      "question_stats_title": "Statistici per Întrebare",
-      "question_stats_description": "Performanța candidaților pentru fiecare întrebare",
+      "question_stats_title": "Statistici pe Întrebare",
+      "question_stats_description": "Performanța candidatului pentru fiecare întrebare",
       "question_label": "Întrebarea {number}",
       "correct_answer": "Răspuns corect",
       "user_answer": "Răspuns utilizator",
       "answer_correct": "Corect",
       "answer_incorrect": "Incorect",
-      "error_loading": "Nu s-au putut încărca datele"
+      "error_loading": "Nu s-au putut încărca datele",
+      "empty_title": "Nu există rezultate pe întrebări",
+      "empty_description": "Rezultatul acestui test nu conține încă răspunsuri detaliate pe întrebare.",
+      "points_earned": "{count} puncte obținute"
     },
     "new": {
       "title": "Adaugă Test Nou",
@@ -97,6 +122,96 @@
     "edit": {
       "title": "Editează Test",
       "subtitle": "Modifică un test de competență"
+    },
+    "editor": {
+      "create_test": "Creează Test",
+      "save_changes": "Salvează Modificările",
+      "creating": "Se creează...",
+      "saving": "Se salvează...",
+      "basic_info_title": "Informații Test",
+      "basic_info_description": "Definește informațiile de bază, alocarea și regulile de evaluare pentru acest test.",
+      "questions_title": "Constructor Întrebări",
+      "questions_description": "Compune și revizuiește setul de întrebări, logica de punctaj și cheile de răspuns.",
+      "question_search_placeholder": "Caută întrebări după text sau explicație...",
+      "total_points_badge": "{questions} întrebări • {count} puncte totale",
+      "fields": {
+        "title": "Titlu test",
+        "description": "Descriere",
+        "service": "Serviciu",
+        "level": "Nivel",
+        "time_limit": "Timp limită (minute)",
+        "passing_score": "Nota de trecere (%)",
+        "status": "Status",
+        "question_type": "Tip întrebare",
+        "points": "Puncte",
+        "question": "Întrebarea",
+        "options": "Opțiuni de răspuns",
+        "code_template": "Template cod",
+        "code_solution": "Soluție cod",
+        "expected_output": "Output așteptat",
+        "test_cases": "Test cases",
+        "test_case_description": "Descriere test case",
+        "correct_answer": "Răspuns corect",
+        "explanation": "Explicație"
+      },
+      "placeholders": {
+        "title": "Ex: Test Fundamente JavaScript",
+        "description": "Descrie scopul și aria acoperită de acest test...",
+        "service": "Selectează un serviciu",
+        "question": "Scrie aici întrebarea...",
+        "option": "Opțiunea {number}",
+        "code_template": "function solve() {\n  // Completează funcția\n}",
+        "code_solution": "function solve() {\n  return rezultat;\n}",
+        "expected_output": "Rezultatul așteptat",
+        "test_input": "Input pentru test",
+        "test_output": "Output așteptat",
+        "test_case_description": "Explică ce verifică acest test case",
+        "correct_answer": "Răspunsul corect",
+        "explanation": "Adaugă o explicație scurtă pentru review sau editări viitoare..."
+      },
+      "help": {
+        "code_template": "Codul de start afișat candidatului înainte de rezolvare.",
+        "code_solution": "Soluția de referință folosită de administratori la evaluare."
+      },
+      "tabs": {
+        "add_question": "Adaugă Întrebare",
+        "edit_question": "Editează Întrebare",
+        "question_list": "Lista Întrebări"
+      },
+      "actions": {
+        "add_option": "Adaugă Opțiune",
+        "mark_correct": "Marchează",
+        "marked_correct": "Corect",
+        "add_test_case": "Adaugă Test Case",
+        "add_question": "Adaugă Întrebarea",
+        "update_question": "Actualizează Întrebarea",
+        "cancel_edit": "Anulează",
+        "remove": "Șterge",
+        "cancel": "Înapoi la Teste",
+        "title": "Acțiuni Publicare",
+        "description": "Salvează testul ca draft sau publică structura actualizată în lista de admin."
+      },
+      "overview": {
+        "title": "Rezumat Test",
+        "description": "Verifică rapid alocarea, punctajul și volumul total al întrebărilor.",
+        "service": "Serviciu selectat",
+        "level": "Nivel selectat",
+        "questions": "Întrebări",
+        "total_points": "Puncte totale",
+        "time_limit": "Timp limită",
+        "passing_score": "Nota de trecere",
+        "status": "Status",
+        "empty": "Neselectat"
+      },
+      "validation": {
+        "question_required": "Completează textul întrebării.",
+        "correct_answer_required": "Selectează cel puțin un răspuns corect.",
+        "code_result_required": "Adaugă cel puțin un output așteptat sau un test case pentru întrebarea de cod.",
+        "at_least_one_question": "Adaugă cel puțin o întrebare înainte de a salva testul."
+      },
+      "empty_title": "Nu există încă întrebări",
+      "empty_description": "Folosește tab-ul de builder pentru a adăuga prima întrebare în acest test.",
+      "test_case_label": "Test Case {number}"
     }
   }
 }

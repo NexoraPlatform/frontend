@@ -11,6 +11,9 @@ export type RoleLite = {
 
 export type AuthApiResponse = {
   access_token: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
   user: any;
   roles?: any[];
   permissions?: string[];

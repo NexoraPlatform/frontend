@@ -7,6 +7,15 @@
     "manage_title": "Gestionare Roluri",
     "manage_subtitle": "Administrează rolurile și permisiunile",
     "add_role": "Adaugă Rol",
+    "summary": {
+      "cards": {
+        "roles": "Roluri Totale",
+        "permission_groups": "Grupuri de Permisiuni",
+        "permissions": "Permisiuni",
+        "sync": "Mod Sincronizare",
+        "sync_value": "Live"
+      }
+    },
     "search_placeholder": "Caută roluri după titlu...",
     "search_button": "Caută",
     "saving_order": "Salvăm ordinea...",
@@ -23,6 +32,14 @@
     "confirm_delete": "Ești sigur că vrei să ștergi acest rol?",
     "error_prefix": "Eroare: ",
     "error_occurred": "A apărut o eroare",
+    "table": {
+      "reorder": "",
+      "role": "Rol",
+      "slug": "Slug",
+      "order": "Ordine",
+      "permissions": "Permisiuni",
+      "actions": "Acțiuni"
+    },
     "pagination": {
       "displaying": "Afișezi {from}-{to} din {total}",
       "per_page": "Pe pagină",
@@ -63,6 +80,7 @@
       "description_label": "Descriere Rol *",
       "description_placeholder": "ex: Poate administra utilizatori și setări",
       "permissions_title": "Permisiuni",
+      "permissions_description": "Alege capabilitățile de acces care trebuie acordate prin acest rol.",
       "creating": "Se creează...",
       "create_button": "Creează Rolul",
       "cancel": "Anulează"
@@ -76,6 +94,8 @@
       "name_placeholder": "ex: Administrator",
       "description_label": "Descriere Rol *",
       "description_placeholder": "ex: Poate administra utilizatori și setări",
+      "permissions_title": "Permisiuni",
+      "permissions_description": "Ajustează setul de permisiuni atașat acestui rol.",
       "sort_order_label": "Ordine rol (live)",
       "decrease_order": "Scade ordinea",
       "increase_order": "Crește ordinea",
@@ -86,6 +106,11 @@
       "editing": "Se editează...",
       "cancel": "Anulează",
       "cannot_edit": "Nu poți edita acest rol."
+    },
+    "editor_sidebar": {
+      "selected_permissions": "Permisiuni selectate",
+      "permission_groups": "Grupuri de permisiuni",
+      "role_slug": "Slug generat"
     }
   }
 }

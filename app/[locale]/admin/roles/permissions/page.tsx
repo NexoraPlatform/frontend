@@ -1,10 +1,5 @@
-"use client";
-
-import { useLocale } from 'next-intl';
-import type { Locale } from '@/types/locale';
-import PermissionMatrixTab from '../PermissionMatrixTab';
+import { AdminRolesManagementPage } from "@/components/admin/admin-roles-management-page";
 
 export default function PermissionsPage() {
-    const locale = useLocale() as Locale;
-    return <PermissionMatrixTab locale={locale} />;
+  return <AdminRolesManagementPage initialTab="permissions" />;
 }

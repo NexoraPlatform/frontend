@@ -4,6 +4,14 @@
     "manage_subtitle": "Monitor and manage orders",
     "search_placeholder": "Search orders by number, service or client...",
     "status_filter_placeholder": "Status filter",
+    "summary": {
+      "cards": {
+        "total": "Total Projects",
+        "active": "Active Projects",
+        "completed": "Completed",
+        "value": "Portfolio Value"
+      }
+    },
     "statuses": {
       "all": "All orders",
       "pending": "Pending",
@@ -22,9 +30,21 @@
     },
     "list_title": "Orders List",
     "list_description": "{count} orders found",
+    "table": {
+      "project": "Project",
+      "client": "Client",
+      "provider": "Provider",
+      "value": "Value",
+      "timeline": "Timeline",
+      "status": "Status",
+      "actions": "Actions",
+      "created_at": "Created {date}",
+      "delivery_due": "Due {date}"
+    },
     "client_label": "Client",
     "provider_label": "Provider",
     "due_prefix": "Due:",
+    "view_details": "View details",
     "no_orders_title": "No orders found",
     "no_orders_description": "Try adjusting filters or search terms",
     "order_label": "Order",

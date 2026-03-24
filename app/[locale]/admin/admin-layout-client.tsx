@@ -5,6 +5,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
+import { usePathname } from '@/lib/navigation';
 
 export default function AdminLayoutClient({
   children,
@@ -13,7 +14,9 @@ export default function AdminLayoutClient({
 }) {
   const { user, loading, userLoading } = useAuth();
   const t = useTranslations();
+  const pathname = usePathname();
   const loadingText = t('admin.loading');
+  const isAdminDashboardRoute = pathname === '/admin' || pathname.startsWith('/admin/');
 
   if (loading || userLoading) {
     return (
@@ -28,6 +31,10 @@ export default function AdminLayoutClient({
 
   if (!user) {
     return null;
+  }
+
+  if (isAdminDashboardRoute) {
+    return <div className="min-h-screen bg-background text-foreground">{children}</div>;
   }
 
   return (

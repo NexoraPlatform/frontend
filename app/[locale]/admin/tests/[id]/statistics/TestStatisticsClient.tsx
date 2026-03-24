@@ -1,308 +1,246 @@
 "use client";
 
-import { Link } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-    ArrowLeft,
-    Clock,
-    Target,
-    Users,
-    CheckCircle,
-    Loader2,
-    AlertCircle,
-    BookOpen,
-    Code,
-    Type,
-    CheckSquare,
-    Square
-} from 'lucide-react';
-import { useTestStatistics } from '@/hooks/use-api';
-import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from "react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Target,
+  Users,
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
-interface QuestionStat {
-    id: string;
-    answer: string;
-    points_earned: number;
-    is_correct: boolean;
-    skill_test_question_id: number;
-    test_result_id: number;
-}
+import { AdminEmptyState } from "@/components/admin/admin-state";
+import { AdminSpinner } from "@/components/admin/admin-state";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminSectionCard } from "@/components/admin/admin-section-card";
+import { AdminSummaryCard } from "@/components/admin/admin-summary-card";
+import {
+  AdminTestLevelBadge,
+  AdminTestQuestionTypeBadge,
+} from "@/components/admin/test-badges";
+import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { useTestStatistics } from "@/hooks/use-api";
+import { getLocalizedAdminValue } from "@/lib/admin-format";
+import {
+  type AdminTestQuestion,
+  normalizeAdminTestQuestion,
+  parseAdminTestStringArray,
+} from "@/lib/admin-tests";
 
-export default function TestStatisticsPage({ id }: { id: string; }) {
-    const { data: stats, loading: statsLoading, error: statsError } = useTestStatistics(id);
-    const locale = useLocale();
-    const t = useTranslations();
-    const subtitle = t('admin.tests.statistics.subtitle');
-    const titleSuffix = t('admin.tests.statistics.title_suffix');
-    const userLabel = t('admin.tests.statistics.user_label');
-    const passedLabel = t('admin.tests.statistics.passed_label');
-    const passedYes = t('admin.tests.statistics.passed_yes');
-    const passedNo = t('admin.tests.statistics.passed_no');
-    const scoreLabel = t('admin.tests.statistics.score_label');
-    const timeSpentLabel = t('admin.tests.statistics.time_spent_label');
-    const questionStatsTitle = t('admin.tests.statistics.question_stats_title');
-    const questionStatsDescription = t('admin.tests.statistics.question_stats_description');
-    const levelJunior = t('admin.tests.levels.JUNIOR');
-    const levelMediu = t('admin.tests.levels.MEDIU');
-    const levelSenior = t('admin.tests.levels.SENIOR');
-    const levelExpert = t('admin.tests.levels.EXPERT');
+type QuestionStat = {
+  id: string;
+  answer: string[] | string;
+  points_earned: number;
+  is_correct: boolean;
+  skill_test_question_id: number;
+};
 
-    const getQuestionTypeIcon = (type: string) => {
-        switch (type) {
-            case 'SINGLE_CHOICE': return Square;
-            case 'MULTIPLE_CHOICE': return CheckSquare;
-            case 'CODE_WRITING': return Code;
-            case 'TEXT_INPUT': return Type;
-            default: return BookOpen;
-        }
-    };
+export default function TestStatisticsClient({ id }: { id: string }) {
+  const locale = useLocale();
+  const t = useTranslations();
+  const { data: stats, loading, error } = useTestStatistics(id);
 
-    const getQuestionTypeLabel = (type: string) => {
-        switch (type) {
-            case 'SINGLE_CHOICE': return t('admin.tests.question_types.SINGLE_CHOICE');
-            case 'MULTIPLE_CHOICE': return t('admin.tests.question_types.MULTIPLE_CHOICE');
-            case 'CODE_WRITING': return t('admin.tests.question_types.CODE_WRITING');
-            case 'TEXT_INPUT': return t('admin.tests.question_types.TEXT_INPUT');
-            default: return type;
-        }
-    };
+  const userFullName = `${stats?.test_results?.user?.firstName ?? ""} ${
+    stats?.test_results?.user?.lastName ?? ""
+  }`.trim();
+  const timeSpent = Number(stats?.test_results?.timeSpent ?? 0);
+  const serviceName = getLocalizedAdminValue(
+    stats?.service?.title ?? stats?.service?.name,
+    locale
+  );
 
-    type Level = 'JUNIOR' | 'MEDIU' | 'SENIOR' | 'EXPERT';
+  const questionMap = useMemo<Map<number, AdminTestQuestion>>(() => {
+    const entries: AdminTestQuestion[] = Array.isArray(stats?.questions)
+      ? stats.questions.map((question: any) => normalizeAdminTestQuestion(question))
+      : [];
 
-    const levelBadgeMap = useMemo(() => ({
-        JUNIOR: { label: levelJunior, color: 'bg-green-100 text-green-800' },
-        MEDIU: { label: levelMediu, color: 'bg-blue-100 text-blue-800' },
-        SENIOR: { label: levelSenior, color: 'bg-purple-100 text-purple-800' },
-        EXPERT: { label: levelExpert, color: 'bg-orange-100 text-orange-800' },
-    }), [levelJunior, levelMediu, levelSenior, levelExpert]);
+    return new Map(entries.map((question) => [Number(question.id), question]));
+  }, [stats?.questions]);
 
-    const getLevelBadge = (level: Level) => {
-        const badge = levelBadgeMap[level];
-        return <Badge className={badge?.color || 'bg-gray-100 text-gray-800'}>{badge?.label || level}</Badge>;
-    };
+  const questionResults: QuestionStat[] = Array.isArray(stats?.test_results?.question_results)
+    ? stats.test_results.question_results
+    : [];
 
-    if (statsLoading) {
-        return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                </div>
-            </div>
-        );
-    }
+  const summaryCards = useMemo(
+    () => [
+      {
+        title: t("admin.tests.statistics.user_label"),
+        value: userFullName || "-",
+        icon: Users,
+        color: "bg-gradient-to-br from-primary to-emerald-400",
+      },
+      {
+        title: t("admin.tests.statistics.passed_label"),
+        value:
+          stats?.test_results?.passed === "YES"
+            ? t("admin.tests.statistics.passed_yes")
+            : t("admin.tests.statistics.passed_no"),
+        icon: CheckCircle,
+        color:
+          stats?.test_results?.passed === "YES"
+            ? "bg-gradient-to-br from-blue-500 to-cyan-400"
+            : "bg-gradient-to-br from-red-500 to-pink-400",
+      },
+      {
+        title: t("admin.tests.statistics.score_label"),
+        value: `${Number(stats?.test_results?.score ?? 0)}%`,
+        icon: Target,
+        color: "bg-gradient-to-br from-purple-500 to-pink-400",
+      },
+      {
+        title: t("admin.tests.statistics.time_spent_label"),
+        value: `${timeSpent} ${t("admin.tests.minute_suffix")}`,
+        icon: Clock,
+        color: "bg-gradient-to-br from-orange-500 to-amber-400",
+      },
+    ],
+    [stats?.test_results?.passed, stats?.test_results?.score, t, timeSpent, userFullName]
+  );
 
-    if (statsError) return <div className="p-8 text-center text-red-500">{t('admin.tests.statistics.error_loading')}</div>;
-
-    function formatTime(minutes: number): string {
-        if (minutes < 60) {
-            return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
-        }
-
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-
-        if (mins === 0) {
-            return `${hours} hour${hours !== 1 ? 's' : ''}`;
-        }
-
-        return `${hours} hour${hours !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}`;
-    }
+  if (loading) {
     return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/tests">
-                    <Button variant="outline" size="icon">
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                </Link>
-                <div className="flex-1">
-                    <h1 className="text-3xl font-bold">{stats.title} - {stats.test_results.user.firstName} {stats.test_results.user.lastName} - {titleSuffix}</h1>
-                    <p className="text-muted-foreground">
-                        {subtitle}
-                    </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    {getLevelBadge(stats.level)}
-                    <Badge variant="outline">
-                        {stats.service?.title}
-                    </Badge>
-                </div>
-            </div>
-
-            {/* Overview Stats */}
-            <div className="grid xs:grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-center">
-                            <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                            <div className="text-3xl font-bold">{stats.test_results.user.firstName} {stats.test_results.user.lastName}</div>
-                            <p className="text-sm text-muted-foreground">{userLabel}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-center">
-                            <CheckCircle className={`w-8 h-8 ${stats.test_results.passed === 'YES' ? 'text-green-500' : 'text-red-500'} mx-auto mb-2`} />
-                            <div className="text-3xl font-bold">{stats.test_results.passed === 'YES' ? passedYes : passedNo}</div>
-                            <p className="text-sm text-muted-foreground">{passedLabel}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-center">
-                            <Target className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                            <div className="text-3xl font-bold">{Number(stats.test_results.score)}%</div>
-                            <p className="text-sm text-muted-foreground">{scoreLabel}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-center">
-                            <Clock className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                            <div className="text-3xl font-bold">{formatTime(stats.test_results.timeSpent)}</div>
-                            <p className="text-sm text-muted-foreground">{timeSpentLabel}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/*<Card>*/}
-                {/*    <CardContent className="pt-6">*/}
-                {/*        <div className="text-center">*/}
-                {/*            <Award className="w-8 h-8 text-yellow-500 mx-auto mb-2" />*/}
-                {/*            <div className="text-3xl font-bold">{stats.passRate}%</div>*/}
-                {/*            <p className="text-sm text-muted-foreground">Rată Promovare</p>*/}
-                {/*        </div>*/}
-                {/*    </CardContent>*/}
-                {/*</Card>*/}
-            </div>
-
-            {/* Pass Rate Chart */}
-            {/*<Card className="mb-8">*/}
-            {/*    <CardHeader>*/}
-            {/*        <CardTitle className="flex items-center space-x-2">*/}
-            {/*            <BarChart3 className="w-5 h-5" />*/}
-            {/*            <span>Rata de Promovare</span>*/}
-            {/*        </CardTitle>*/}
-            {/*        <CardDescription>*/}
-            {/*            Procentul de candidați care au trecut testul*/}
-            {/*        </CardDescription>*/}
-            {/*    </CardHeader>*/}
-            {/*    <CardContent>*/}
-            {/*        <div className="flex items-center space-x-4">*/}
-            {/*            <div className="flex-1">*/}
-            {/*                <Progress value={stats.passRate} className="h-8" />*/}
-            {/*            </div>*/}
-            {/*            <div className="text-2xl font-bold">{stats.passRate}%</div>*/}
-            {/*        </div>*/}
-            {/*        <div className="flex justify-between mt-4 text-sm text-muted-foreground">*/}
-            {/*            <div className="flex items-center space-x-2">*/}
-            {/*                <CheckCircle className="w-4 h-4 text-green-500" />*/}
-            {/*                <span>{stats.passedAttempts} trecuți</span>*/}
-            {/*            </div>*/}
-            {/*            <div className="flex items-center space-x-2">*/}
-            {/*                <XCircle className="w-4 h-4 text-red-500" />*/}
-            {/*                <span>{stats.totalAttempts - stats.passedAttempts} respinși</span>*/}
-            {/*            </div>*/}
-            {/*        </div>*/}
-            {/*    </CardContent>*/}
-            {/*</Card>*/}
-
-            {/* Question Stats */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                        <Target className="w-5 h-5" />
-                        <span>{questionStatsTitle}</span>
-                    </CardTitle>
-                    <CardDescription>
-                        {questionStatsDescription}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-6">
-                        {stats.test_results?.question_results?.map((questionStat: QuestionStat, index: number) => {
-                            const question = stats.questions.find((q: any) => q.id === questionStat.skill_test_question_id);
-                            const correctAnswers: string[] =
-                                Array.isArray(question.correct_answers)
-                                    ? question.correct_answers
-                                    : JSON.parse(question.correct_answers as string) || [];
-
-                            const userAnswers: string[] =
-                                Array.isArray(questionStat.answer)
-                                    ? questionStat.answer
-                                    : JSON.parse(questionStat.answer as string) || [];
-
-                            const IconComponent = getQuestionTypeIcon(question.type);
-
-                            return (
-                                <div key={questionStat.id} className="border rounded-lg p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center space-x-2">
-                                            <IconComponent className="w-5 h-5 text-primary" />
-                                            <Badge variant="outline">
-                                                {getQuestionTypeLabel(question.type)}
-                                            </Badge>
-                                            <Badge variant="secondary">
-                                                {t('admin.tests.points_template', { count: question.points })}
-                                            </Badge>
-                                        </div>
-                                        <div className="text-xl font-bold text-blue-500">
-                                            {t('admin.tests.statistics.question_label', { number: (index + 1) })}
-                                        </div>
-                                    </div>
-
-                                    <h4 className="font-medium mb-4">{question.question}</h4>
-
-                                    <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                        <div>
-                                            <div className="flex justify-between text-sm mb-1">
-                                                <span>{questionStat.is_correct ? t('admin.tests.statistics.answer_correct') : t('admin.tests.statistics.answer_incorrect')}</span>
-                                                <span>{t('admin.tests.points_template', { count: questionStat.points_earned })}</span>
-                                            </div>
-                                            <Progress value={100} className="h-2" indicatorClassName={`${questionStat.is_correct ? 'bg-green-500' : 'bg-red-500'}`} />
-                                        </div>
-
-
-                                    </div>
-
-                                    <div className="flex items-center space-x-2 text-sm mb-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                        <span className="text-muted-foreground">{t('admin.tests.statistics.correct_answer')}:</span>
-                                        <span>
-                                            {correctAnswers.map((ans, idx) => (
-                                                <span key={idx} className="font-bold text-green-500">{ans}{idx < correctAnswers.length - 1 ? ', ' : ''}</span>
-                                            ))}
-                                        </span>
-
-                                    </div>
-
-                                    <div className="flex items-center space-x-2 text-sm mb-2">
-                                        <Users className="w-4 h-4 text-blue-500" />
-                                        <span>{t('admin.tests.statistics.user_answer')}:</span>
-                                        <span>
-                                            {userAnswers.map((ans, idx) => (
-                                                <span key={idx} className={`font-bold ${questionStat.is_correct ? 'text-blue-500' : 'text-red-500'}`}>{ans}{idx < userAnswers.length - 1 ? ', ' : ''}</span>
-                                            ))}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
+      <ProjectAdminShell>
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="glass-effect rounded-2xl border border-border p-12">
+            <AdminSpinner className="flex justify-center" />
+          </div>
         </div>
+      </ProjectAdminShell>
     );
+  }
+
+  if (error || !stats) {
+    return (
+      <ProjectAdminShell>
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error || t("admin.tests.statistics.error_loading")}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </ProjectAdminShell>
+    );
+  }
+
+  return (
+    <ProjectAdminShell>
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <AdminPageHeader
+          title={`${stats.title} - ${userFullName} - ${t("admin.tests.statistics.title_suffix")}`}
+          description={t("admin.tests.statistics.subtitle")}
+          backHref={`/admin/tests/${id}`}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <AdminTestLevelBadge level={String(stats.level ?? "JUNIOR")} />
+              <Badge variant="outline">{serviceName || "-"}</Badge>
+            </div>
+          }
+        />
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryCards.map((card, index) => (
+            <AdminSummaryCard
+              key={String(card.title)}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              colorClassName={card.color}
+              delay={index * 0.08}
+            />
+          ))}
+        </div>
+
+        <AdminSectionCard
+          delay={0.2}
+          title={t("admin.tests.statistics.question_stats_title")}
+          description={t("admin.tests.statistics.question_stats_description")}
+        >
+          {questionResults.length === 0 ? (
+            <AdminEmptyState
+              icon={Target}
+              title={t("admin.tests.statistics.empty_title")}
+              description={t("admin.tests.statistics.empty_description")}
+            />
+          ) : (
+            <div className="space-y-4">
+              {questionResults.map((questionStat, index) => {
+                const question = questionMap.get(Number(questionStat.skill_test_question_id));
+                const correctAnswers = question
+                  ? parseAdminTestStringArray(question.correctAnswers)
+                  : [];
+                const userAnswers = parseAdminTestStringArray(questionStat.answer);
+
+                return (
+                  <div
+                    key={questionStat.id}
+                    className="rounded-xl border border-border/60 bg-background/50 p-5"
+                  >
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AdminTestQuestionTypeBadge type={question?.type ?? "SINGLE_CHOICE"} />
+                          <Badge variant="secondary">
+                            {t("admin.tests.points_template", {
+                              count: Number(question?.points ?? 0),
+                            })}
+                          </Badge>
+                          <Badge
+                            className={
+                              questionStat.is_correct
+                                ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                : "bg-red-500/20 text-red-600 dark:text-red-400"
+                            }
+                          >
+                            {questionStat.is_correct
+                              ? t("admin.tests.statistics.answer_correct")
+                              : t("admin.tests.statistics.answer_incorrect")}
+                          </Badge>
+                        </div>
+                        <p className="font-medium">
+                          {t("admin.tests.statistics.question_label", { number: index + 1 })}
+                        </p>
+                      </div>
+
+                      <div className="text-sm font-medium text-primary">
+                        {t("admin.tests.statistics.points_earned", {
+                          count: Number(questionStat.points_earned ?? 0),
+                        })}
+                      </div>
+                    </div>
+
+                    <p className="mb-4 text-sm">{question?.question || "-"}</p>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-xl border border-border/60 bg-background/50 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {t("admin.tests.statistics.correct_answer")}
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {correctAnswers.length > 0 ? correctAnswers.join(", ") : "-"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-border/60 bg-background/50 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {t("admin.tests.statistics.user_answer")}
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {userAnswers.length > 0 ? userAnswers.join(", ") : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </AdminSectionCard>
+      </div>
+    </ProjectAdminShell>
+  );
 }

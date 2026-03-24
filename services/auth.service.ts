@@ -4,7 +4,6 @@
  */
 
 import { http } from '@/lib/fetch-client';
-import { ensureCsrfCookie } from '@/lib/csrf';
 import type { ConnectedAccount } from '@/types/integration';
 
 export type LoginCredentials = {
@@ -30,6 +29,9 @@ export type RegisterData = {
 
 export type AuthResponse = {
     access_token: string;
+    refresh_token?: string;
+    token_type?: string;
+    expires_in?: number;
     user: any;
     roles?: any[];
     permissions?: string[];
@@ -40,7 +42,6 @@ export const authService = {
      * Login with email and password
      */
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        await ensureCsrfCookie();
         return http.post<AuthResponse>('/auth/login', credentials);
     },
 
@@ -48,7 +49,6 @@ export const authService = {
      * Register a new user account
      */
     async register(userData: RegisterData): Promise<AuthResponse> {
-        await ensureCsrfCookie();
         return http.post<AuthResponse>('/auth/register', userData);
     },
 
@@ -79,7 +79,6 @@ export const authService = {
      * Logout current authenticated user
      */
     async logout(): Promise<any> {
-        await ensureCsrfCookie();
         return http.post('/auth/logout');
     },
 

@@ -130,8 +130,8 @@ export async function TrustoraContactPage() {
   ];
 
   return (
-    <div className="project-homepage relative isolate overflow-x-hidden bg-background text-foreground">
-      <TrustoraLandingThemeStyles />
+    <div className="trustora-contact-page relative isolate overflow-x-hidden bg-background text-foreground">
+      <TrustoraLandingThemeStyles scopeClassName="trustora-contact-page" />
 
       <TrustoraLandingNavigation />
 

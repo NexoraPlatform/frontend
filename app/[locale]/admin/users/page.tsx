@@ -1,88 +1,143 @@
 "use client";
 
-import { useMemo, useState } from 'react';
-import { Link } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
-  Users,
-  Search,
-  Plus,
-  MoreHorizontal,
-  UserCheck,
   Ban,
-  Trash2,
-  Star,
   CheckCircle,
-  Loader2,
-  ArrowLeft,
-  Filter, Pencil, UserRound, Eye
-} from 'lucide-react';
-import { useAdminUsers } from '@/hooks/use-api';
-import { apiClient } from '@/lib/api';
-import { useRouter } from '@/lib/navigation';
+  Eye,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+  UserCheck,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+
 import { Can } from "@/components/Can";
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminSearchInput } from "@/components/admin/admin-search-input";
+import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
+import {
+  AdminTableEmptyRow,
+  AdminTableLoadingRow,
+} from "@/components/admin/admin-state";
+import { AdminSectionCard } from "@/components/admin/admin-section-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useAdminUsers } from "@/hooks/use-api";
+import apiClient from "@/lib/api";
+import { Link, useRouter } from "@/lib/navigation";
+
+type AdminUser = {
+  id: string | number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  avatar?: string | null;
+  created_at?: string;
+  isVerified?: boolean;
+  is_superuser?: boolean;
+  profile_url?: string;
+  role?: string;
+  status?: string;
+  rating?: number;
+  reviewCount?: number;
+  roles?: Array<{ slug?: string; name?: string } | string>;
+};
+
+function getRoleSlugs(user: AdminUser): string[] {
+  const roles = Array.isArray(user.roles)
+    ? user.roles
+        .map((role) =>
+          String(typeof role === "string" ? role : role?.slug ?? role?.name ?? "").toUpperCase()
+        )
+        .filter(Boolean)
+    : [];
+
+  if (roles.length > 0) {
+    return roles;
+  }
+
+  return user.role ? [String(user.role).toUpperCase()] : [];
+}
+
+function getUserInitials(user: AdminUser) {
+  const first = user.firstName?.[0] ?? "";
+  const last = user.lastName?.[0] ?? "";
+  return `${first}${last}`.toUpperCase() || "US";
+}
 
 export default function AdminUsersPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [userFilter, setUserFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [userFilter, setUserFilter] = useState("all");
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations();
-  const manageTitle = t('admin.users.manage_title');
-  const manageSubtitle = t('admin.users.manage_subtitle');
-  const addUser = t('admin.users.add_user');
-  const searchPlaceholder = t('admin.users.search_placeholder');
-  const filterRole = t('admin.users.filter_role');
-  const filterAll = t('admin.users.filter_all');
-  const filterClients = t('admin.users.filter_clients');
-  const filterProviders = t('admin.users.filter_providers');
-  const filterAdmins = t('admin.users.filter_admins');
-  const listTitle = t('admin.users.list_title');
-  const confirmDeleteText = t('admin.users.actions.confirm_delete');
-  const errorPrefix = t('admin.users.actions.error_prefix');
-  const modifyProfile = t('admin.users.actions.modify_profile');
-  const viewProfile = t('admin.users.actions.view_profile');
-  const verifyLabel = t('admin.users.actions.verify');
-  const suspendLabel = t('admin.users.actions.suspend');
-  const activateLabel = t('admin.users.actions.activate');
-  const deleteLabel = t('admin.users.actions.delete');
-  const setSuperuser = t('admin.users.actions.set_superuser');
-  const removeSuperuser = t('admin.users.actions.remove_superuser');
-  const noUsersTitle = t('admin.users.no_users_title');
-  const noUsersDescription = t('admin.users.no_users_description');
-  const reviewsTemplate = 'admin.users.reviews_label';
-  const registeredPrefix = 'admin.users.registered_prefix';
-  const superuserBadge = t('admin.users.roles.SUPERUSER');
+
+  const manageTitle = t("admin.users.manage_title");
+  const manageSubtitle = t("admin.users.manage_subtitle");
+  const addUser = t("admin.users.add_user");
+  const searchPlaceholder = t("admin.users.search_placeholder");
+  const filterRole = t("admin.users.filter_role");
+  const filterAll = t("admin.users.filter_all");
+  const filterClients = t("admin.users.filter_clients");
+  const filterProviders = t("admin.users.filter_providers");
+  const filterAdmins = t("admin.users.filter_admins");
+  const listTitle = t("admin.users.list_title");
+  const confirmDeleteText = t("admin.users.actions.confirm_delete");
+  const errorPrefix = t("admin.users.actions.error_prefix");
+  const modifyProfile = t("admin.users.actions.modify_profile");
+  const viewProfile = t("admin.users.actions.view_profile");
+  const verifyLabel = t("admin.users.actions.verify");
+  const suspendLabel = t("admin.users.actions.suspend");
+  const activateLabel = t("admin.users.actions.activate");
+  const deleteLabel = t("admin.users.actions.delete");
+  const setSuperuser = t("admin.users.actions.set_superuser");
+  const removeSuperuser = t("admin.users.actions.remove_superuser");
+  const noUsersTitle = t("admin.users.no_users_title");
+  const noUsersDescription = t("admin.users.no_users_description");
+  const superuserBadge = t("admin.users.roles.SUPERUSER");
 
   const statusLabels = {
-    ACTIVE: t('admin.users.statuses.ACTIVE'),
-    SUSPENDED: t('admin.users.statuses.SUSPENDED'),
-    PENDING_VERIFICATION: t('admin.users.statuses.PENDING_VERIFICATION'),
+    ACTIVE: t("admin.users.statuses.ACTIVE"),
+    SUSPENDED: t("admin.users.statuses.SUSPENDED"),
+    PENDING_VERIFICATION: t("admin.users.statuses.PENDING_VERIFICATION"),
   } as const;
 
   const roleLabels = {
-    ADMIN: t('admin.users.roles.ADMIN'),
-    PROVIDER: t('admin.users.roles.PROVIDER'),
-    CLIENT: t('admin.users.roles.CLIENT'),
+    ADMIN: t("admin.users.roles.ADMIN"),
+    PROVIDER: t("admin.users.roles.PROVIDER"),
+    CLIENT: t("admin.users.roles.CLIENT"),
   } as const;
 
-  const handleUserAction = async (userId: string, action: string, isSuperuser?: boolean) => {
+  const users: AdminUser[] = Array.isArray(usersData?.users) ? usersData.users : [];
+
+  const handleUserAction = async (userId: string | number, action: string, isSuperuser?: boolean) => {
     try {
-      if (action === 'delete') {
+      if (action === "delete") {
         if (confirm(confirmDeleteText)) {
-          await apiClient.deleteUser(userId);
+          await apiClient.deleteUser(String(userId));
           refetchUsers();
         }
-      } else if (action === 'superuser') {
+      } else if (action === "superuser") {
         if (isSuperuser === false) {
           await apiClient.setSuperadmin(userId);
         } else {
@@ -90,7 +145,7 @@ export default function AdminUsersPage() {
         }
         refetchUsers();
       } else {
-        await apiClient.updateUserStatus(userId, action);
+        await apiClient.updateUserStatus(String(userId), action);
         refetchUsers();
       }
     } catch (error: any) {
@@ -99,241 +154,243 @@ export default function AdminUsersPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    return (usersData?.users || []).filter((user: any) => {
-      const matchesSearch =
-        user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFilter = userFilter === 'all' || user?.roles?.some((r: any) => r.slug?.toLowerCase() === filterRole);
+    return users.filter((user) => {
+      const matchesSearch = [user.firstName, user.lastName, user.email]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const roles = getRoleSlugs(user);
+      const matchesFilter = userFilter === "all" || roles.includes(userFilter);
+
       return matchesSearch && matchesFilter;
     });
-  }, [usersData?.users, searchTerm, userFilter, filterRole]);
+  }, [users, searchTerm, userFilter]);
 
-  const STATUS_STYLES: Record<string, string> = {
-    ACTIVE: 'border border-emerald-200/60 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200',
-    SUSPENDED: 'border border-red-200/60 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-200',
-    PENDING_VERIFICATION: 'border border-amber-200/60 bg-amber-100 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200',
-  };
+  const getStatusBadge = (status?: string) => {
+    const safeStatus = String(status ?? "ACTIVE").toUpperCase();
+    const label = statusLabels[safeStatus as keyof typeof statusLabels] || safeStatus;
+    const className =
+      safeStatus === "ACTIVE"
+        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+        : safeStatus === "SUSPENDED"
+          ? "bg-destructive/20 text-destructive"
+          : "bg-amber-500/20 text-amber-600 dark:text-amber-400";
 
-  const ROLE_STYLES: Record<string, string> = {
-    ADMIN: 'border border-purple-200/60 bg-purple-100 text-purple-800 dark:border-purple-400/40 dark:bg-purple-500/20 dark:text-purple-200',
-    PROVIDER: 'border border-blue-200/60 bg-blue-100 text-blue-800 dark:border-blue-400/40 dark:bg-blue-500/20 dark:text-blue-200',
-    CLIENT: 'border border-slate-200/70 bg-slate-100 text-slate-700 dark:border-slate-600/50 dark:bg-slate-800/70 dark:text-slate-200',
-  };
-
-  const getStatusBadge = (status: string) => {
-    const label = statusLabels[status as keyof typeof statusLabels] || status;
-    return <Badge className={STATUS_STYLES[status] || 'bg-secondary'}>{label}</Badge>;
+    return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${className}`}>{label}</span>;
   };
 
   const getRoleBadge = (role: string) => {
     const label = roleLabels[role as keyof typeof roleLabels] || role;
-    return <Badge className={ROLE_STYLES[role] || 'bg-secondary'}>{label}</Badge>;
+    const className =
+      role === "ADMIN"
+        ? "bg-purple-500/20 text-purple-600 dark:text-purple-400"
+        : role === "PROVIDER"
+          ? "bg-blue-500/20 text-blue-600 dark:text-blue-400"
+          : "bg-muted text-muted-foreground";
+
+    return <Badge className={className}>{label}</Badge>;
   };
 
   return (
-    <>
-      <TrustoraThemeStyles />
-      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
-        <div className="container mx-auto px-4 py-10">
-          {/* Header */}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <Link href="/admin">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{manageTitle}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {manageSubtitle}
-                </p>
-              </div>
-            </div>
+    <ProjectAdminShell>
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <AdminPageHeader
+          title={manageTitle}
+          description={manageSubtitle}
+          action={
             <Link href="/admin/users/new">
-              <Button className="btn-primary">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button className="bg-primary text-white hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
                 {addUser}
               </Button>
             </Link>
+          }
+        />
+
+        <AdminSectionCard
+          delay={0.2}
+          title={listTitle}
+          description={t("admin.users.list_description", { count: filteredUsers.length })}
+        >
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <AdminSearchInput
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={searchPlaceholder}
+            />
+
+            <Select value={userFilter} onValueChange={setUserFilter}>
+              <SelectTrigger className="h-11 w-full border-border bg-transparent lg:w-56">
+                <SelectValue placeholder={filterRole} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{filterAll}</SelectItem>
+                <SelectItem value="CLIENT">{filterClients}</SelectItem>
+                <SelectItem value="PROVIDER">{filterProviders}</SelectItem>
+                <SelectItem value="ADMIN">{filterAdmins}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Filters */}
-          <Card className="mb-6 glass-card shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder={searchPlaceholder}
-                      className="pl-10 bg-white/80 dark:bg-slate-900/60"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <Select value={userFilter} onValueChange={setUserFilter}>
-                  <SelectTrigger className="w-full md:w-48 bg-white/80 dark:bg-slate-900/60">
-                    <Filter className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder={filterRole} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{filterAll}</SelectItem>
-                    <SelectItem value="CLIENT">{filterClients}</SelectItem>
-                    <SelectItem value="PROVIDER">{filterProviders}</SelectItem>
-                    <SelectItem value="ADMIN">{filterAdmins}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.users.table.user")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.users.table.email")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.users.table.role")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.users.table.status")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.users.table.registered")}
+                  </th>
+                  <th className="px-4 py-4 text-center text-sm font-medium text-muted-foreground">
+                    {t("admin.users.table.actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {usersLoading ? (
+                  <AdminTableLoadingRow colSpan={6} />
+                ) : filteredUsers.length === 0 ? (
+                  <AdminTableEmptyRow
+                    colSpan={6}
+                    icon={Users}
+                    title={noUsersTitle}
+                    description={noUsersDescription}
+                  />
+                ) : (
+                  filteredUsers.map((user, index) => {
+                    const roles = getRoleSlugs(user);
+                    const registeredAt = user.created_at
+                      ? new Date(user.created_at).toLocaleDateString(locale.startsWith("ro") ? "ro-RO" : "en-US")
+                      : "-";
 
-          {/* Users List */}
-          <Card className="glass-card shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                <Users className="w-5 h-5" />
-                <span>{listTitle}</span>
-              </CardTitle>
-              <CardDescription>
-                {t('admin.users.list_description', { count: filteredUsers.length })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {usersLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredUsers.map((user: any) => (
-                    <div
-                      key={user.id}
-                      className="flex flex-col gap-4 rounded-xl border border-slate-200/60 bg-white/80 p-5 transition-colors hover:border-emerald-200/70 hover:bg-white/90 dark:border-slate-700/60 dark:bg-slate-900/50 dark:hover:border-emerald-500/40"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex items-center space-x-4">
-                          <Avatar className="w-12 h-12">
-                            <AvatarImage src={user.avatar ?? undefined} />
-                            <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h3 className="font-semibold text-slate-900 dark:text-white">{user.firstName} {user.lastName}</h3>
-                              {user.isVerified && (
-                                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-2">{user.email}</p>
-                            <div className="flex flex-wrap gap-2">
-                              {getRoleBadge(user.role)}
-                              {getStatusBadge(user.status)}
-                              {user.is_superuser && (
-                                <Badge className="border border-red-200/60 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-200">
-                                  {superuserBadge}
-                                </Badge>
-                              )}
+                    return (
+                      <motion.tr
+                        key={String(user.id)}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 + index * 0.05, duration: 0.4 }}
+                        className="group border-b border-border/50 transition-colors hover:bg-secondary/30"
+                      >
+                        <td className="px-4 py-4">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={user.avatar ?? undefined} />
+                              <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium">
+                                  {`${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email}
+                                </p>
+                                {user.isVerified ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : null}
+                              </div>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {t("admin.users.reviews_label", { count: user.reviewCount || 0 })}
+                              </p>
                             </div>
                           </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 lg:justify-end">
-                          <div className="text-right text-sm">
-                            <div className="flex items-center justify-end space-x-1 mb-1">
-                              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                              <span className="font-medium">{user.rating || 0}</span>
-                            </div>
-                            <p className="text-muted-foreground text-left">{
-                              t(reviewsTemplate, { count: user.reviewCount || 0 })
-                            }</p>
-                            <p className="text-xs text-muted-foreground">
-                              {t(registeredPrefix, { date: new Date(user.created_at).toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-US') })}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-muted-foreground">{user.email}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            {roles.length > 0 ? roles.map((role) => (
+                              <span key={`${user.id}-${role}`}>{getRoleBadge(role)}</span>
+                            )) : <Badge className="bg-muted text-muted-foreground">-</Badge>}
+                            {user.is_superuser ? (
+                              <Badge className="bg-red-500/15 text-red-600 dark:text-red-400">{superuserBadge}</Badge>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">{getStatusBadge(user.status)}</td>
+                        <td className="px-4 py-4 text-sm text-muted-foreground">
+                          <div>
+                            <p>{registeredAt}</p>
+                            <p className="mt-1 text-xs">
+                              {typeof user.rating === "number" ? `${user.rating.toFixed(1)} / 5` : "0 / 5"}
                             </p>
                           </div>
-
+                        </td>
+                        <td className="px-4 py-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                                className="opacity-70 transition-opacity group-hover:opacity-100"
                               >
-                                <MoreHorizontal className="w-4 h-4" />
+                                <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {user.id !== 1 && (
+                            <DropdownMenuContent align="end" className="w-56">
+                              {String(user.id) !== "1" ? (
                                 <Can superuser>
                                   <DropdownMenuItem
-                                    className={`${user.is_superuser ? 'bg-red-500' : 'bg-emerald-500'} text-white cursor-pointer`}
                                     onClick={() => handleUserAction(user.id, "superuser", user.is_superuser)}
                                   >
-                                    <UserRound className="w-4 h-4 mr-2" />
+                                    <UserRound className="mr-2 h-4 w-4" />
                                     {user.is_superuser ? removeSuperuser : setSuperuser}
                                   </DropdownMenuItem>
                                 </Can>
-                              )}
+                              ) : null}
 
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/admin/users/${user.id}`)}>
-                                <Pencil className="w-4 h-4 mr-2" />
+                              <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}`)}>
+                                <Pencil className="mr-2 h-4 w-4" />
                                 {modifyProfile}
                               </DropdownMenuItem>
-                              {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') && (
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/provider/${user.profile_url}`)}>
-                                  <Eye className="w-4 h-4 mr-2" />
+
+                              {roles.includes("PROVIDER") && user.profile_url ? (
+                                <DropdownMenuItem onClick={() => router.push(`/provider/${user.profile_url}`)}>
+                                  <Eye className="mr-2 h-4 w-4" />
                                   {viewProfile}
                                 </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'verify')}>
-                                <UserCheck className="w-4 h-4 mr-2" />
+                              ) : null}
+
+                              <DropdownMenuItem onClick={() => handleUserAction(user.id, "verify")}>
+                                <UserCheck className="mr-2 h-4 w-4" />
                                 {verifyLabel}
                               </DropdownMenuItem>
-                              {user.status === 'ACTIVE' ? (
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'suspend')}>
-                                  <Ban className="w-4 h-4 mr-2" />
+
+                              {String(user.status).toUpperCase() === "ACTIVE" ? (
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, "suspend")}>
+                                  <Ban className="mr-2 h-4 w-4" />
                                   {suspendLabel}
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'activate')}>
-                                  <UserCheck className="w-4 h-4 mr-2" />
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, "activate")}>
+                                  <UserCheck className="mr-2 h-4 w-4" />
                                   {activateLabel}
                                 </DropdownMenuItem>
                               )}
+
                               <DropdownMenuItem
-                                onClick={() => handleUserAction(user.id, 'delete')}
-                                className="text-red-600"
+                                onClick={() => handleUserAction(user.id, "delete")}
+                                className="text-destructive focus:text-destructive"
                               >
-                                <Trash2 className="w-4 h-4 mr-2" />
+                                <Trash2 className="mr-2 h-4 w-4" />
                                 {deleteLabel}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {filteredUsers.length === 0 && (
-                    <div className="text-center py-12">
-                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">{noUsersTitle}</h3>
-                      <p className="text-muted-foreground">
-                        {noUsersDescription}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </AdminSectionCard>
       </div>
-    </>
+    </ProjectAdminShell>
   );
 }

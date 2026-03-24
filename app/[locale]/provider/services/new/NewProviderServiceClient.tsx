@@ -79,7 +79,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push(getDashboardHomeHref());
+            router.replace(getDashboardHomeHref());
             return;
         }
 

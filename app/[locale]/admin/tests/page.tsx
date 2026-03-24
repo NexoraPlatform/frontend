@@ -1,368 +1,427 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { Link } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
-  BookOpen,
-  Search,
-  MoreHorizontal,
-  Eye,
-  Trash2,
-  Plus,
-  Loader2,
-  ArrowLeft,
-  Filter,
-  Clock,
-  Target,
   BarChart3,
+  BookOpen,
   CheckCircle,
+  Eye,
+  MoreHorizontal,
+  Plus,
+  Target,
+  Trash2,
   XCircle,
-  AlertCircle
-} from 'lucide-react';
-import { useAdminTests } from '@/hooks/use-api';
-import { apiClient } from '@/lib/api';
-import { useLocale, useTranslations } from 'next-intl';
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminSearchInput } from "@/components/admin/admin-search-input";
+import { AdminSectionCard } from "@/components/admin/admin-section-card";
+import { AdminSummaryCard } from "@/components/admin/admin-summary-card";
+import {
+  AdminTableEmptyRow,
+  AdminTableLoadingRow,
+} from "@/components/admin/admin-state";
+import {
+  AdminTestLevelBadge,
+  AdminTestStatusBadge,
+} from "@/components/admin/test-badges";
+import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useAdminTests } from "@/hooks/use-api";
+import { getLocalizedAdminValue } from "@/lib/admin-format";
+import apiClient from "@/lib/api";
+import { Link } from "@/lib/navigation";
+
+type AdminTestListItem = {
+  id: string | number;
+  title?: string;
+  description?: string;
+  level?: string;
+  status?: string;
+  timeLimit?: number;
+  time_limit?: number;
+  passingScore?: number;
+  passing_score?: number;
+  totalQuestions?: number;
+  total_questions?: number;
+  created_at?: string;
+  results?: any[];
+  service?: {
+    id?: string | number;
+    title?: unknown;
+    name?: unknown;
+    category?: {
+      name?: unknown;
+    };
+  };
+};
 
 export default function AdminTestsPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [serviceFilter] = useState('all');
-  const [levelFilter, setLevelFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const { data: testsData, loading: testsLoading, refetch: refetchTests } = useAdminTests();
   const locale = useLocale();
   const t = useTranslations();
-  const manageTitle = t('admin.tests.manage_title');
-  const manageSubtitle = t('admin.tests.manage_subtitle');
-  const addTest = t('admin.tests.add_test');
-  const searchPlaceholder = t('admin.tests.search_placeholder');
-  const levelFilterPlaceholder = t('admin.tests.level_filter_placeholder');
-  const statusFilterPlaceholder = t('admin.tests.status_filter_placeholder');
-  const levelAll = t('admin.tests.levels.all');
-  const levelJunior = t('admin.tests.levels.JUNIOR');
-  const levelMediu = t('admin.tests.levels.MEDIU');
-  const levelSenior = t('admin.tests.levels.SENIOR');
-  const levelExpert = t('admin.tests.levels.EXPERT');
-  const statusAll = t('admin.tests.statuses.all');
-  const statusActive = t('admin.tests.statuses.ACTIVE');
-  const statusInactive = t('admin.tests.statuses.INACTIVE');
-  const statusDraft = t('admin.tests.statuses.DRAFT');
-  const listTitle = t('admin.tests.list_title');
-  const questionCountLabel = 'admin.tests.question_count';
-  const passingScoreLabel = 'admin.tests.passing_score';
-  const resultsCountLabel = 'admin.tests.results_count';
-  const viewDetails = t('admin.tests.view_details');
-  const statisticsLabel = t('admin.tests.statistics.title_suffix');
-  const deactivateLabel = t('admin.tests.deactivate');
-  const activateLabel = t('admin.tests.activate');
-  const deleteLabel = t('admin.tests.delete');
-  const confirmDeleteText = t('admin.tests.confirm_delete');
-  const errorPrefix = t('admin.tests.error_prefix');
-  const noTestsTitle = t('admin.tests.no_tests_title');
-  const noTestsDescription = t('admin.tests.no_tests_description');
-  const addFirstTest = t('admin.tests.add_first_test');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const { data: testsData, loading: testsLoading, refetch: refetchTests } = useAdminTests();
 
-  const handleTestAction = async (testId: string, action: string) => {
+  const tests: AdminTestListItem[] = Array.isArray(testsData?.tests)
+    ? testsData.tests
+    : Array.isArray(testsData)
+      ? testsData
+      : [];
+
+  const filteredTests = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    return tests.filter((test) => {
+      const title = String(test.title ?? "").toLowerCase();
+      const description = String(test.description ?? "").toLowerCase();
+      const serviceName = getLocalizedAdminValue(
+        test.service?.title ?? test.service?.name,
+        locale
+      ).toLowerCase();
+
+      const matchesSearch =
+        !query ||
+        title.includes(query) ||
+        description.includes(query) ||
+        serviceName.includes(query);
+      const matchesLevel =
+        levelFilter === "all" || String(test.level ?? "").toUpperCase() === levelFilter;
+      const matchesStatus =
+        statusFilter === "all" || String(test.status ?? "").toUpperCase() === statusFilter;
+
+      return matchesSearch && matchesLevel && matchesStatus;
+    });
+  }, [levelFilter, locale, searchTerm, statusFilter, tests]);
+
+  const summaryCards = useMemo(() => {
+    const totalQuestions = tests.reduce(
+      (sum, test) => sum + Number(test.totalQuestions ?? test.total_questions ?? 0),
+      0
+    );
+    const totalResults = tests.reduce(
+      (sum, test) => sum + (Array.isArray(test.results) ? test.results.length : 0),
+      0
+    );
+
+    return [
+      {
+        title: t("admin.tests.summary.cards.total"),
+        value: tests.length,
+        icon: BookOpen,
+        color: "bg-gradient-to-br from-primary to-emerald-400",
+      },
+      {
+        title: t("admin.tests.summary.cards.active"),
+        value: tests.filter((test) => String(test.status).toUpperCase() === "ACTIVE").length,
+        icon: CheckCircle,
+        color: "bg-gradient-to-br from-blue-500 to-cyan-400",
+      },
+      {
+        title: t("admin.tests.summary.cards.questions"),
+        value: totalQuestions,
+        icon: Target,
+        color: "bg-gradient-to-br from-purple-500 to-pink-400",
+      },
+      {
+        title: t("admin.tests.summary.cards.results"),
+        value: totalResults,
+        icon: BarChart3,
+        color: "bg-gradient-to-br from-orange-500 to-amber-400",
+      },
+    ];
+  }, [t, tests]);
+
+  const handleTestAction = async (
+    testId: string,
+    action: "delete" | "activate" | "deactivate"
+  ) => {
     try {
-      if (action === 'delete') {
-        if (confirm(confirmDeleteText)) {
-          await apiClient.deleteTest(testId);
-          refetchTests();
+      if (action === "delete") {
+        if (!confirm(t("admin.tests.confirm_delete"))) {
+          return;
         }
-      } else if (action === 'activate') {
-        await apiClient.updateTestStatus(testId, 'ACTIVE');
-        refetchTests();
-      } else if (action === 'deactivate') {
-        await apiClient.updateTestStatus(testId, 'INACTIVE');
-        refetchTests();
+
+        await apiClient.deleteTest(testId);
+      } else {
+        await apiClient.updateTestStatus(
+          testId,
+          action === "activate" ? "ACTIVE" : "INACTIVE"
+        );
       }
+
+      await refetchTests();
     } catch (error: any) {
-      alert(errorPrefix + error.message);
+      alert(t("admin.tests.error_prefix") + error.message);
     }
   };
 
-  const filteredTests = useMemo(() => {
-    return (testsData?.tests || []).filter((test: any) => {
-      const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.service?.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesService = serviceFilter === 'all' || test.serviceId === serviceFilter;
-      const matchesLevel = levelFilter === 'all' || test.level === levelFilter;
-      const matchesStatus = statusFilter === 'all' || test.status === statusFilter;
-      return matchesSearch && matchesService && matchesLevel && matchesStatus;
-    });
-  }, [testsData?.tests, searchTerm, serviceFilter, levelFilter, statusFilter]);
-
-  const statusBadgeMap = useMemo(() => ({
-    ACTIVE: (
-      <Badge className="border border-emerald-200/60 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200">
-        <CheckCircle className="w-3 h-3 mr-1" />
-        {statusActive}
-      </Badge>
-    ),
-    INACTIVE: (
-      <Badge className="border border-slate-200/70 bg-slate-100 text-slate-700 dark:border-slate-600/50 dark:bg-slate-800/70 dark:text-slate-200">
-        <XCircle className="w-3 h-3 mr-1" />
-        {statusInactive}
-      </Badge>
-    ),
-    DRAFT: (
-      <Badge className="border border-amber-200/60 bg-amber-100 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200">
-        <AlertCircle className="w-3 h-3 mr-1" />
-        {statusDraft}
-      </Badge>
-    ),
-  }), [statusActive, statusInactive, statusDraft]);
-
-  const getStatusBadge = (status: string) => {
-    return statusBadgeMap[status as keyof typeof statusBadgeMap] || <Badge variant="secondary">{status}</Badge>;
-  };
-
-  type Level = 'JUNIOR' | 'MEDIU' | 'SENIOR' | 'EXPERT';
-
-  const levelBadgeMap = useMemo(() => ({
-    JUNIOR: {
-      label: levelJunior,
-      color:
-        'border border-emerald-200/60 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200',
-    },
-    MEDIU: {
-      label: levelMediu,
-      color:
-        'border border-blue-200/60 bg-blue-100 text-blue-800 dark:border-blue-400/40 dark:bg-blue-500/20 dark:text-blue-200',
-    },
-    SENIOR: {
-      label: levelSenior,
-      color:
-        'border border-purple-200/60 bg-purple-100 text-purple-800 dark:border-purple-400/40 dark:bg-purple-500/20 dark:text-purple-200',
-    },
-    EXPERT: {
-      label: levelExpert,
-      color:
-        'border border-orange-200/60 bg-orange-100 text-orange-800 dark:border-orange-400/40 dark:bg-orange-500/20 dark:text-orange-200',
-    },
-  }), [levelJunior, levelMediu, levelSenior, levelExpert]);
-
-  const getLevelBadge = (level: Level) => {
-    const badge = levelBadgeMap[level];
-    return <Badge className={badge?.color || 'bg-gray-100 text-gray-800'}>{badge?.label || level}</Badge>;
-  };
-
   return (
-    <>
-      <TrustoraThemeStyles />
-      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
-        <div className="container mx-auto px-4 py-10">
-          {/* Header */}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <Link href="/admin">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{manageTitle}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {manageSubtitle}
-                </p>
-              </div>
-            </div>
+    <ProjectAdminShell>
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <AdminPageHeader
+          title={t("admin.tests.manage_title")}
+          description={t("admin.tests.manage_subtitle")}
+          action={
             <Link href="/admin/tests/new">
-              <Button className="btn-primary">
-                <Plus className="w-4 h-4 mr-2" />
-                {addTest}
+              <Button className="bg-primary text-white hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                {t("admin.tests.add_test")}
               </Button>
             </Link>
+          }
+        />
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryCards.map((card, index) => (
+            <AdminSummaryCard
+              key={String(card.title)}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              colorClassName={card.color}
+              delay={index * 0.08}
+            />
+          ))}
+        </div>
+
+        <AdminSectionCard
+          delay={0.2}
+          title={t("admin.tests.list_title")}
+          description={t("admin.tests.list_description", { count: filteredTests.length })}
+        >
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center">
+            <AdminSearchInput
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={t("admin.tests.search_placeholder")}
+            />
+
+            <Select value={levelFilter} onValueChange={setLevelFilter}>
+              <SelectTrigger className="h-11 w-full border-border bg-transparent lg:w-52">
+                <SelectValue placeholder={t("admin.tests.level_filter_placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("admin.tests.levels.all")}</SelectItem>
+                <SelectItem value="JUNIOR">{t("admin.tests.levels.JUNIOR")}</SelectItem>
+                <SelectItem value="MEDIU">{t("admin.tests.levels.MEDIU")}</SelectItem>
+                <SelectItem value="SENIOR">{t("admin.tests.levels.SENIOR")}</SelectItem>
+                <SelectItem value="EXPERT">{t("admin.tests.levels.EXPERT")}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-11 w-full border-border bg-transparent lg:w-52">
+                <SelectValue placeholder={t("admin.tests.status_filter_placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("admin.tests.statuses.all")}</SelectItem>
+                <SelectItem value="ACTIVE">{t("admin.tests.statuses.ACTIVE")}</SelectItem>
+                <SelectItem value="INACTIVE">{t("admin.tests.statuses.INACTIVE")}</SelectItem>
+                <SelectItem value="DRAFT">{t("admin.tests.statuses.DRAFT")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Filters */}
-          <Card className="mb-6 glass-card shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder={searchPlaceholder}
-                      className="pl-10 bg-white/80 dark:bg-slate-900/60"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <Select value={levelFilter} onValueChange={setLevelFilter}>
-                  <SelectTrigger className="w-full md:w-48 bg-white/80 dark:bg-slate-900/60">
-                    <SelectValue placeholder={levelFilterPlaceholder} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{levelAll}</SelectItem>
-                    <SelectItem value="JUNIOR">{levelJunior}</SelectItem>
-                    <SelectItem value="MEDIU">{levelMediu}</SelectItem>
-                    <SelectItem value="SENIOR">{levelSenior}</SelectItem>
-                    <SelectItem value="EXPERT">{levelExpert}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-48 bg-white/80 dark:bg-slate-900/60">
-                    <Filter className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder={statusFilterPlaceholder} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{statusAll}</SelectItem>
-                    <SelectItem value="ACTIVE">{statusActive}</SelectItem>
-                    <SelectItem value="INACTIVE">{statusInactive}</SelectItem>
-                    <SelectItem value="DRAFT">{statusDraft}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tests List */}
-          <Card className="glass-card shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                <BookOpen className="w-5 h-5" />
-                <span>{listTitle}</span>
-              </CardTitle>
-              <CardDescription>
-                {t('admin.tests.list_description', { count: filteredTests.length })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {testsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredTests.map((test: any) => (
-                    <div
-                      key={test.id}
-                      className="flex flex-col gap-4 rounded-xl border border-slate-200/60 bg-white/80 p-5 transition-colors hover:border-emerald-200/70 hover:bg-white/90 dark:border-slate-700/60 dark:bg-slate-900/50 dark:hover:border-emerald-500/40"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-lg text-slate-900 dark:text-white">{test.title}</h3>
-                            {getLevelBadge(test.level)}
-                            {getStatusBadge(test.status)}
-                          </div>
-
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                            {test.description}
-                          </p>
-
-                          <div className="flex flex-wrap items-center gap-4 text-sm mb-3">
-                            <div className="flex items-center space-x-1">
-                              <BookOpen className="w-4 h-4 text-blue-500" />
-                              <span className="font-medium">{test.service?.title}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Target className="w-4 h-4 text-emerald-500" />
-                              <span>{t(questionCountLabel, { count: test.totalQuestions })}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Clock className="w-4 h-4 text-orange-500" />
-                              <span>{`${test.timeLimit} ${t('admin.tests.minute_suffix')}`}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <BarChart3 className="w-4 h-4 text-purple-500" />
-                              <span>{t(passingScoreLabel, { score: test.passingScore })}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                            <span>{t('admin.tests.category_prefix')}{test.service?.category?.name?.[locale]}</span>
-                            <span>
-                              {t('admin.tests.created_prefix')}
-                              {new Date(test.created_at).toLocaleDateString(locale)}
-                            </span>
-                            {test.results && (
-                              <span>{t(resultsCountLabel, { count: test.results.length })}</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="self-start text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/tests/${test.id}`}>
-                                <Eye className="w-4 h-4 mr-2" />
-                                {viewDetails}
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/tests/${test.id}/statistics`}>
-                                <BarChart3 className="w-4 h-4 mr-2" />
-                                {statisticsLabel}
-                              </Link>
-                            </DropdownMenuItem>
-                            {test.status === 'ACTIVE' ? (
-                              <DropdownMenuItem onClick={() => handleTestAction(test.id, 'deactivate')}>
-                                <XCircle className="w-4 h-4 mr-2" />
-                                {deactivateLabel}
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => handleTestAction(test.id, 'activate')}>
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                {activateLabel}
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() => handleTestAction(test.id, 'delete')}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              {deleteLabel}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  ))}
-
-                  {filteredTests.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">{noTestsTitle}</h3>
-                      <p className="text-muted-foreground mb-4">
-                        {noTestsDescription}
-                      </p>
-                      <Link href="/admin/tests/new">
-                        <Button className="btn-primary">
-                          <Plus className="w-4 h-4 mr-2" />
-                          {addFirstTest}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.tests.table.test")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.tests.table.service")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.tests.table.level")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.tests.table.status")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.tests.table.configuration")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.tests.table.activity")}
+                  </th>
+                  <th className="px-4 py-4 text-center text-sm font-medium text-muted-foreground">
+                    {t("admin.tests.table.actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {testsLoading ? (
+                  <AdminTableLoadingRow colSpan={7} />
+                ) : filteredTests.length === 0 ? (
+                  <AdminTableEmptyRow
+                    colSpan={7}
+                    icon={BookOpen}
+                    title={t("admin.tests.no_tests_title")}
+                    description={t("admin.tests.no_tests_description")}
+                    action={
+                      <Link href="/admin/tests/new" className="inline-flex">
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          {t("admin.tests.add_first_test")}
                         </Button>
                       </Link>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    }
+                  />
+                ) : (
+                  filteredTests.map((test, index) => {
+                    const serviceName =
+                      getLocalizedAdminValue(
+                        test.service?.title ?? test.service?.name,
+                        locale
+                      ) || "-";
+                    const categoryName =
+                      getLocalizedAdminValue(test.service?.category?.name, locale) || "-";
+                    const questionCount = Number(
+                      test.totalQuestions ?? test.total_questions ?? 0
+                    );
+                    const timeLimit = Number(test.timeLimit ?? test.time_limit ?? 0);
+                    const passingScore = Number(
+                      test.passingScore ?? test.passing_score ?? 0
+                    );
+                    const resultsCount = Array.isArray(test.results) ? test.results.length : 0;
+                    const createdAt = test.created_at
+                      ? new Date(test.created_at).toLocaleDateString(
+                          locale.startsWith("ro") ? "ro-RO" : "en-US"
+                        )
+                      : "-";
+
+                    return (
+                      <motion.tr
+                        key={String(test.id)}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.25 + index * 0.04, duration: 0.35 }}
+                        className="group border-b border-border/50 transition-colors hover:bg-secondary/30"
+                      >
+                        <td className="px-4 py-4">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{test.title || "-"}</p>
+                            <p className="max-w-md text-xs text-muted-foreground line-clamp-2">
+                              {test.description || "-"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t("admin.tests.category_prefix")}
+                              {categoryName}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4 text-sm text-muted-foreground">
+                          {serviceName}
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <AdminTestLevelBadge level={String(test.level ?? "JUNIOR")} />
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <AdminTestStatusBadge status={String(test.status ?? "DRAFT")} />
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>{t("admin.tests.question_count", { count: questionCount })}</p>
+                            <p>
+                              {timeLimit} {t("admin.tests.minute_suffix")}
+                            </p>
+                            <p>{t("admin.tests.passing_score", { score: passingScore })}</p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>{t("admin.tests.results_count", { count: resultsCount })}</p>
+                            <p>
+                              {t("admin.tests.created_prefix")}
+                              {createdAt}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4 text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="opacity-70 transition-opacity group-hover:opacity-100"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/tests/${test.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  {t("admin.tests.view_details")}
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/tests/${test.id}/statistics`}>
+                                  <BarChart3 className="mr-2 h-4 w-4" />
+                                  {t("admin.tests.detail.view_statistics")}
+                                </Link>
+                              </DropdownMenuItem>
+                              {String(test.status).toUpperCase() === "ACTIVE" ? (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleTestAction(String(test.id), "deactivate")
+                                  }
+                                >
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  {t("admin.tests.deactivate")}
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleTestAction(String(test.id), "activate")
+                                  }
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  {t("admin.tests.activate")}
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleTestAction(String(test.id), "delete")}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {t("admin.tests.delete")}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </motion.tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </AdminSectionCard>
       </div>
-    </>
+    </ProjectAdminShell>
   );
 }

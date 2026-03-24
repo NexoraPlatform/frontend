@@ -11,41 +11,26 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/compo
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
-import {Tabs, TabsContent} from '@/components/ui/tabs';
-import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
 import {Alert, AlertDescription} from '@/components/ui/alert';
 import {
-  Activity,
   AlertCircle,
   ArrowDown,
-  ArrowRight,
   ArrowUp,
-  Bell,
   Briefcase,
   CheckCircle,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   DollarSign,
-  FileText,
   Filter,
-  History,
   Layers,
-  LayoutDashboard,
   Loader2,
-  Lock,
   MessageSquare,
-  Moon,
-  MoreHorizontal,
   Plus,
   Search,
-  Settings,
   Shield,
   Star,
-  Sun,
   Target,
-  Users,
-  Wallet,
   X
 } from 'lucide-react';
 import {useAuth} from '@/contexts/auth-context';
@@ -54,27 +39,15 @@ import {apiClient, DashboardStatsResponse, ProviderServiceRecord, RecentActivity
 import {ensureEcho} from '@/lib/echo';
 import {toast} from 'sonner';
 import {sanitizeExternalRedirectUrl} from '@/lib/navigation-security';
-import {
-  getAvailableDashboardTabs,
-  getDefaultDashboardTab,
-  buildDashboardSearchParams,
-  hasProjectScopedDashboardParams,
-  resolveDashboardTab,
-} from '@/lib/dashboard-tabs';
-import {
-  getNewProjectHref,
-  getProviderProfileHref,
-} from '@/lib/dashboard-navigation';
+import { getDashboardHomeHref, getDashboardTabHref } from '@/lib/dashboard-navigation';
 import {
   getProviderServicesSelectHref,
   getProviderServicesTestsHref,
 } from '@/lib/provider-services-wizard';
-import {NotificationBell} from '@/components/notification-bell';
-import {LocaleSwitcher} from '@/components/LocaleSwitcher';
-import {CurrencySwitcher} from '@/components/CurrencySwitcher';
-import {ChatButton} from '@/components/chat/chat-button';
 import ChatLauncher from '@/components/chat/chat-launcher';
-import { useAppTheme } from '@/hooks/use-app-theme';
+import { DashboardOverview } from '@/components/dashboard/dashboard-overview';
+import { DashboardSectionHeader } from '@/components/dashboard/dashboard-section-header';
+import { TrustoraDashboardShell } from '@/components/dashboard/trustora-dashboard-shell';
 
 const RAPYD_REDIRECT_ALLOWED_HOSTS = (
   process.env.NEXT_PUBLIC_RAPYD_REDIRECT_ALLOWED_HOSTS || 'rapyd.net'
@@ -88,57 +61,6 @@ const theme = {
   success: '#21D19F',
   warning: '#F5A623',
   error: '#E5484D',
-};
-
-type DashboardThemeVars = {
-  '--bg-main': string;
-  '--bg-card': string;
-  '--text-main': string;
-  '--text-muted': string;
-  '--border-color': string;
-  '--header-bg': string;
-  '--input-bg': string;
-  '--stat-bg': string;
-};
-
-const themes: Record<'light' | 'dark', DashboardThemeVars> = {
-  light: {
-    '--bg-main': '#F5F7FA',
-    '--bg-card': '#FFFFFF',
-    '--text-main': '#0B1C2D',
-    '--text-muted': '#64748B',
-    '--border-color': 'rgba(226, 232, 240, 0.8)',
-    '--header-bg': 'rgba(255, 255, 255, 0.8)',
-    '--input-bg': '#F5F7FA',
-    '--stat-bg': '#F5F7FA',
-  },
-  dark: {
-    '--bg-main': '#06111A',
-    '--bg-card': '#0D1F30',
-    '--text-main': '#F8FAFC',
-    '--text-muted': '#94A3B8',
-    '--border-color': 'rgba(255, 255, 255, 0.08)',
-    '--header-bg': 'rgba(13, 31, 48, 0.8)',
-    '--input-bg': '#06111A',
-    '--stat-bg': '#152A40',
-  },
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
-  },
 };
 
 const ClientProjectRequests = dynamic(
@@ -172,26 +94,6 @@ const CompanyInformationsSettingsDialog = dynamic(
   }
 );
 
-const ACTIVITY_ACTION_LABELS: Record<string, string> = {
-  'project.created': 'Project created',
-  'project.provider.invited': 'Provider invited',
-  'project.provider.response.submitted': 'Provider response',
-  'project.client.response.submitted': 'Client response',
-  'project.budget.updated': 'Budget updated',
-  'project.budget.accepted_by_provider': 'Budget accepted',
-  'project.budget.rejected_by_provider': 'Budget rejected',
-  'project.budget.proposed_by_provider': 'Budget proposed',
-  'project.budget.accepted_by_client': 'Budget accepted',
-  'project.budget.rejected_by_client': 'Budget rejected',
-  'project.status.accepted': 'Project accepted',
-  'project.milestone.status.updated': 'Milestone updated',
-  'project.milestones.reassigned': 'Milestones reassigned',
-  'project.deliverable.submitted': 'Deliverable submitted',
-  'project.deliverable.rejected': 'Deliverable rejected',
-  'project.payment.escrow.blocked': 'Escrow funded',
-  'project.payment.funds.released': 'Funds released',
-};
-
 interface WalletData {
   id: string;
   currency: string;
@@ -200,10 +102,23 @@ interface WalletData {
   on_hold_balance: number | null;
 }
 
-export default function DashboardClient() {
+export type DashboardSection =
+  | 'overview'
+  | 'projects'
+  | 'services'
+  | 'messages'
+  | 'finance'
+  | 'settings';
+
+type DashboardClientProps = {
+  section?: DashboardSection;
+};
+
+export default function DashboardClient({ section = 'overview' }: DashboardClientProps) {
   const { user, loading, userLoading, updateUser, refreshUser } = useAuth();
   const t = useTranslations();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const roleRefreshAttemptedRef = useRef(false);
+  const [isRefreshingRole, setIsRefreshingRole] = useState(false);
   const [openCompanyInformationsDialog, setOpenCompanyInformationsDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
@@ -234,14 +149,13 @@ export default function DashboardClient() {
     );
   }, [user?.roles, user?.role_slugs, user?.role]);
 
+  const hasRoleInfo = roleSlugs.length > 0;
   const isProvider = roleSlugs.includes('provider');
   const isClient = roleSlugs.includes('client');
-  const hasRoleInfo = roleSlugs.length > 0;
-  const availableTabs = useMemo(
-    () => getAvailableDashboardTabs({ hasRoleInfo, isProvider }),
-    [hasRoleInfo, isProvider]
+  const activeTab = useMemo<DashboardSection>(
+    () => (section === 'finance' && hasRoleInfo && !isProvider ? 'overview' : section),
+    [hasRoleInfo, isProvider, section]
   );
-  const defaultTab = getDefaultDashboardTab(availableTabs);
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -256,14 +170,8 @@ export default function DashboardClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const tabParam = searchParams.get('tab');
   const focusedProjectId = searchParams.get('projectId');
   const focusedMilestoneId = searchParams.get('activeMilestoneId');
-  const hasProjectScopedQuery = hasProjectScopedDashboardParams(searchParams);
-  const resolvedTabFromUrl = resolveDashboardTab(tabParam, availableTabs, defaultTab);
-  const [activeTab, setActiveTab] = useState(() =>
-    resolveDashboardTab(tabParam, availableTabs, defaultTab)
-  );
   const [wallets, setWallets] = useState<WalletData[]>([]);
   const [balance, setBalance] = useState<WalletData | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -299,6 +207,16 @@ export default function DashboardClient() {
   useEffect(() => {
     document.title = 'Trustora | Escrow Dashboard';
   }, []);
+
+  useEffect(() => {
+    if (userLoading || !user || hasRoleInfo || roleRefreshAttemptedRef.current) return;
+
+    roleRefreshAttemptedRef.current = true;
+    setIsRefreshingRole(true);
+    void refreshUser().finally(() => {
+      setIsRefreshingRole(false);
+    });
+  }, [hasRoleInfo, refreshUser, user, userLoading]);
 
   useEffect(() => {
     projectCollectionRef.current = [];
@@ -557,63 +475,10 @@ export default function DashboardClient() {
     fetchBalance();
   }, [fetchBalance, isProvider, user?.rapyd_wallet_id]);
 
-  const updateTabQuery = useCallback((value: string) => {
-    const params = buildDashboardSearchParams(searchParams, value, defaultTab);
-    const query = params.toString();
-    const basePath = pathname || '/dashboard';
-    const nextUrl = query ? `${basePath}?${query}` : basePath;
-    const currentUrl = searchParams.toString() ? `${basePath}?${searchParams.toString()}` : basePath;
-
-    if (nextUrl === currentUrl) {
-      return;
-    }
-
-    router.replace(nextUrl, { scroll: false });
-  }, [defaultTab, pathname, router, searchParams]);
-
   useEffect(() => {
     if (activeTab !== 'finance' || !isProvider || !user?.rapyd_wallet_id) return;
     fetchBalance();
   }, [activeTab, fetchBalance, isProvider, user?.rapyd_wallet_id]);
-
-  useEffect(() => {
-    if (userLoading || !user) return;
-
-    if (tabParam) {
-      if (resolvedTabFromUrl === tabParam) {
-        setActiveTab((current) => (current === resolvedTabFromUrl ? current : resolvedTabFromUrl));
-        return;
-      }
-
-      setActiveTab(resolvedTabFromUrl);
-      updateTabQuery(resolvedTabFromUrl);
-      return;
-    }
-
-    setActiveTab((current) => (
-      current === resolvedTabFromUrl ? current : resolvedTabFromUrl
-    ));
-  }, [resolvedTabFromUrl, tabParam, updateTabQuery, userLoading, user]);
-
-  useEffect(() => {
-    if (userLoading || !user) return;
-    if (!availableTabs.includes(activeTab)) return;
-
-    const needsProjectScopedCleanup = activeTab !== 'projects' && hasProjectScopedQuery;
-
-    if (activeTab === defaultTab) {
-      if (needsProjectScopedCleanup) {
-        updateTabQuery(activeTab);
-      }
-      return;
-    }
-
-    if (tabParam === activeTab && !needsProjectScopedCleanup) {
-      return;
-    }
-
-    updateTabQuery(activeTab);
-  }, [activeTab, availableTabs, defaultTab, hasProjectScopedQuery, tabParam, updateTabQuery, user, userLoading]);
 
   useEffect(() => {
     if (activeTab !== 'projects') return;
@@ -680,15 +545,24 @@ export default function DashboardClient() {
     }
   }, [locale, pathname, router, searchParamsString, user, userLoading]);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    updateTabQuery(value);
-  };
+  useEffect(() => {
+    if (!user || userLoading || isRefreshingRole) return;
+    if (section === 'finance' && hasRoleInfo && !isProvider) {
+      router.replace(getDashboardHomeHref(), { scroll: false });
+    }
+  }, [hasRoleInfo, isProvider, isRefreshingRole, router, section, user, userLoading]);
+
+  const handleTabChange = useCallback((value: DashboardSection) => {
+    router.push(getDashboardTabHref(value), { scroll: false });
+  }, [router]);
 
   const handleOpenCompanyInformationsDialog = useCallback(() => {
-    handleTabChange('settings');
+    if (activeTab !== 'settings') {
+      handleTabChange('settings');
+      return;
+    }
     setOpenCompanyInformationsDialog(true);
-  }, [handleTabChange]);
+  }, [activeTab, handleTabChange]);
 
   const handleStartLevelUpgradeTest = useCallback((providerService: ProviderServiceRecord) => {
     const service = providerService.service;
@@ -711,6 +585,15 @@ export default function DashboardClient() {
 
     router.push(getProviderServicesTestsHref(payload));
   }, [getNextProviderLevel, normalizeProviderLevelKey, router]);
+
+  const handleOverviewProjectOpen = useCallback((projectId: string | number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('tab');
+    params.set('projectId', String(projectId));
+    const query = params.toString();
+    const basePath = getDashboardTabHref('projects');
+    router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
+  }, [router, searchParams]);
 
   const handleWalletChange = (walletId: string) => {
     setSelectedWalletId(walletId);
@@ -1321,7 +1204,7 @@ export default function DashboardClient() {
     { value: 'title', label: t('dashboard.filters.sort.title') }
   ];
 
-  if (loading || userLoading) {
+  if (loading || userLoading || isRefreshingRole) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -1343,133 +1226,6 @@ export default function DashboardClient() {
     );
   }
 
-  // Data for overview stats
-  const getOverviewStats = () => {
-    if (isProvider) {
-      const providerStats = stats?.role === 'provider' ? stats.stats : null;
-      return [
-        {
-          title: t('dashboard.overview.provider.active_projects.title'),
-          value: providerStats?.active_projects.value ?? t('dashboard.overview.provider.active_projects.value'),
-          change: providerStats ?
-            `${providerStats.active_projects.change > 0 ? '+' : ''}${providerStats.active_projects.change} ${providerStats.active_projects.change_type}`
-            : t('dashboard.overview.provider.active_projects.change'),
-          icon: Briefcase,
-          color: 'text-blue-600'
-        },
-        {
-          title: t('dashboard.overview.provider.monthly_revenue.title'),
-          value: providerStats
-            ? `${providerStats.monthly_revenue.value} ${providerStats.monthly_revenue.currency}`
-            : t('dashboard.overview.provider.monthly_revenue.value'),
-          change: providerStats
-            ? `${providerStats.monthly_revenue.change_percentage}%`
-            : t('dashboard.overview.provider.monthly_revenue.change'),
-          icon: DollarSign,
-          color: 'text-green-600'
-        },
-        {
-          title: t('dashboard.overview.provider.average_rating.title'),
-          value: providerStats?.average_rating.value ?? t('dashboard.overview.provider.average_rating.value'),
-          change: providerStats ?
-            `${providerStats.average_rating.change > 0 ? '+' : ''}${providerStats.average_rating.change}`
-            : t('dashboard.overview.provider.average_rating.change'),
-          icon: Star,
-          color: 'text-yellow-600'
-        },
-        {
-          title: t('dashboard.overview.provider.new_requests.title'),
-          value: providerStats?.new_requests.value ?? t('dashboard.overview.provider.new_requests.value'),
-          change: providerStats ?
-            `${providerStats.new_requests.change > 0 ? '+' : ''}${providerStats.new_requests.change}`
-            : t('dashboard.overview.provider.new_requests.change'),
-          icon: Bell,
-          color: 'text-purple-600'
-        }
-      ];
-    } else {
-      const clientStats = stats?.role === 'client' ? stats.stats : null;
-      return [
-        {
-          title: t('dashboard.overview.client.projects_posted.title'),
-          value: clientStats?.projects_posted.value ?? t('dashboard.overview.client.projects_posted.value'),
-          change: clientStats ?
-            `${clientStats.projects_posted.change > 0 ? '+' : ''}${clientStats.projects_posted.change}`
-            : t('dashboard.overview.client.projects_posted.change'),
-          icon: FileText,
-          color: 'text-blue-600'
-        },
-        {
-          title: t('dashboard.overview.client.budget_spent.title'),
-          value: clientStats
-            ? `${clientStats.budget_spent.value} ${clientStats.budget_spent.currency}`
-            : t('dashboard.overview.client.budget_spent.value'),
-          change: clientStats
-            ? `${clientStats.budget_spent.change_percentage}%`
-            : t('dashboard.overview.client.budget_spent.change'),
-          icon: DollarSign,
-          color: 'text-green-600'
-        },
-        {
-          title: t('dashboard.overview.client.projects_completed.title'),
-          value: clientStats?.projects_completed.value ?? t('dashboard.overview.client.projects_completed.value'),
-          change: clientStats ?
-            `${clientStats.projects_completed.change > 0 ? '+' : ''}${clientStats.projects_completed.change}`
-            : t('dashboard.overview.client.projects_completed.change'),
-          icon: CheckCircle,
-          color: 'text-green-600'
-        },
-        {
-          title: t('dashboard.overview.client.active_providers.title'),
-          value: clientStats?.active_providers.value ?? t('dashboard.overview.client.active_providers.value'),
-          change: clientStats ?
-            `${clientStats.active_providers.change > 0 ? '+' : ''}${clientStats.active_providers.change}`
-            : t('dashboard.overview.client.active_providers.change'),
-          icon: Users,
-          color: 'text-purple-600'
-        }
-      ];
-    }
-  };
-
-  const overviewStats = getOverviewStats();
-  const currentTheme = isDarkMode ? themes.dark : themes.light;
-  const dashboardHeaderUtilityButtonClass = isDarkMode
-    ? '!border-white/50 !bg-[#0B1220] !text-white hover:!bg-white/10 hover:!text-white'
-    : '!border-slate-200/80 !bg-white !text-[#0B1C2D] hover:!bg-slate-100 hover:!text-[#0B1C2D]';
-  const dashboardHeaderUtilityIconClass = isDarkMode ? '!text-white' : '!text-[#0B1C2D]';
-  const dashboardHeaderSelectButtonClass = isDarkMode
-    ? '!text-white hover:!text-white'
-    : '!text-[#0B1C2D] hover:!text-[#0B1C2D]';
-  const sidebarItemClass = (tab: string) => `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors w-full text-left ${
-    activeTab === tab
-      ? 'bg-[#1BC47D]/10 text-[#1BC47D] border border-[#1BC47D]/20'
-      : 'text-slate-400 hover:text-white hover:bg-white/5'
-  }`;
-  const projectsTitle = isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client');
-  const servicesTitle = isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client');
-  const activityItems = recentActivities.slice(0, 3);
-  const activityLabels = [
-    t('dashboard.filters.status.accepted'),
-    t('dashboard.filters.status.in_progress'),
-    t('dashboard.filters.status.completed'),
-  ];
-  const emptyActivityText = locale === 'ro' ? 'Nu există activitate recentă.' : 'No recent activity.';
-  const getActivityBadgeLabel = (activity: RecentActivityQuick, fallbackLabel: string) => {
-    const actionKey = activity.action ?? activity.type;
-    if (!actionKey) return fallbackLabel;
-    const mappedLabel = ACTIVITY_ACTION_LABELS[actionKey];
-    if (mappedLabel) return mappedLabel;
-    return actionKey.replace(/[._]/g, ' ');
-  };
-  const getActivityMeta = (activity: RecentActivityQuick) => {
-    const actorName = activity.actor?.name?.trim();
-    const actorRole = activity.actor?.role?.trim();
-    if (actorName && actorRole) return `${actorName} • ${actorRole}`;
-    if (actorName) return actorName;
-    if (actorRole) return actorRole;
-    return activity.time_ago;
-  };
   const walletAvailableByCurrency = Array.from(
     wallets.reduce((accumulator, wallet) => {
       const currency = wallet.currency;
@@ -1479,472 +1235,100 @@ export default function DashboardClient() {
       return accumulator;
     }, new Map<string, number>())
   ).map(([currency, amount]) => ({ currency, amount }));
-  const hasManyWalletCurrencies = walletAvailableByCurrency.length > 2;
-  const userInitials = `${(user.firstName?.[0] ?? '')}${(user.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
   const userDisplayName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email;
-  const userAvatarSrc = user.avatar ?? user.profile_photo_url ?? user.avatar_url ?? undefined;
-  // const hasOnHoldBalance = balance?.on_hold_balance !== null && balance?.on_hold_balance !== undefined;
-  // const hasReceivedBalance = balance?.received_balance !== null && balance?.received_balance !== undefined;
 
   return (
-    <Tabs
-      value={activeTab}
-      className="flex h-screen w-full overflow-hidden font-sans transition-colors duration-300"
-      style={{ ...(currentTheme as React.CSSProperties), backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' } as React.CSSProperties}
+    <TrustoraDashboardShell
+      activeMenu={activeTab === 'finance' ? 'finance' : (activeTab as 'overview' | 'projects' | 'services' | 'messages' | 'settings')}
+      isProvider={isProvider}
+      isClient={isClient}
+      onMenuSelect={handleTabChange}
     >
-      <aside className="w-64 bg-[#0B1C2D] border-r border-[#152B42] flex flex-col justify-between hidden md:flex shrink-0 z-20">
-        <div>
-          <div className="h-20 flex items-center px-6 border-b border-white/5">
-            <div className="flex items-center gap-3">
-              <img src="/trustora-logo2.png" alt="Trustora Logo" className="w-8 h-8 object-contain" />
-              <div className="flex flex-col">
-                <span className="font-bold text-lg tracking-tight text-white leading-none">TRUSTORA</span>
-                <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-[#1BC47D] mt-0.5">{t('dashboard.hero.badge')}</span>
-              </div>
-            </div>
-          </div>
+      <div className="space-y-6">
+        {activeTab === 'overview' ? (
+          <DashboardOverview
+            isProvider={isProvider}
+            userDisplayName={userDisplayName}
+            stats={stats}
+            loadingStats={loadingStats}
+            overviewProjects={overviewProjects}
+            loadingOverviewProjects={loadingOverviewProjects}
+            overviewProjectsError={overviewProjectsError}
+            recentActivities={recentActivities}
+            loadingRecentActivities={loadingRecentActivities}
+            recentActivitiesError={recentActivitiesError}
+            providerServicesCount={providerServicesSummary.total}
+            financeSlotCount={walletAvailableByCurrency.length}
+            onTabChange={handleTabChange}
+            onOpenProject={handleOverviewProjectOpen}
+          />
+        ) : null}
 
-          <nav className="p-4 space-y-1">
-            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{t('dashboard.quick_actions.title')}</p>
-
-            <button type="button" onClick={() => handleTabChange('overview')} className={sidebarItemClass('overview')}>
-              <LayoutDashboard size={18} />
-              {t('dashboard.tabs.overview')}
-            </button>
-            {isClient && !isProvider ? (
-              <button
-                type="button"
-                onClick={() => router.push(getNewProjectHref())}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
-              >
-                <Plus size={18} />
-                {t('dashboard.projects.new_project')}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => handleTabChange(isProvider ? 'finance' : 'projects')}
-              className={sidebarItemClass(isProvider ? 'finance' : 'projects')}
-            >
-              <Lock size={18} />
-              {isProvider ? t('dashboard.tabs.finance') : t('dashboard.tabs.projects')}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTabChange(isProvider ? 'projects' : 'services')}
-              className={sidebarItemClass(isProvider ? 'projects' : 'services')}
-            >
-              <Layers size={18} />
-              {isProvider ? t('dashboard.tabs.projects') : t('dashboard.tabs.services')}
-            </button>
-            <button type="button" onClick={() => handleTabChange('messages')} className={sidebarItemClass('messages')}>
-              <History size={18} />
-              {t('dashboard.tabs.messages')}
-            </button>
-            {isProvider ? (
-              <button
-                type="button"
-                onClick={() => router.push(getProviderProfileHref())}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
-              >
-                <FileText size={18} />
-                {t('navigation.edit_profile')}
-              </button>
-            ) : null}
-
-            {isProvider && (
-              <>
-                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">{servicesTitle}</p>
-                <button type="button" onClick={() => handleTabChange('services')} className={sidebarItemClass('services')}>
-                  <Users size={18} />
-                  {t('dashboard.tabs.services')}
-                </button>
-              </>
-            )}
-          </nav>
-        </div>
-
-        <div className="p-4 border-t border-white/5">
-          <button type="button" onClick={() => handleTabChange('settings')} className={`${sidebarItemClass('settings')} mb-2`}>
-            <Settings size={18} />
-            {t('dashboard.tabs.settings')}
-          </button>
-          {isProvider ? (
-            <div className="mt-3 px-3 py-3 bg-[#152B42] rounded-xl border border-white/5">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300">
-                  {t('dashboard.tabs.finance')}
-                </p>
-              </div>
-
-              {!hasRapydConnected ? (
-                <div className="space-y-2">
-                  <p className="text-xs text-slate-400">{t('dashboard.hero.balance.error')}</p>
-                  {!canConnectRapyd ? (
-                    <p className="text-xs text-amber-300">
-                      {t('dashboard.finance.requirements.missing', { items: rapydRequirementsLabel })}
-                    </p>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={getRapydOnboardingUrl}
-                    disabled={rapydConnecting || !canConnectRapyd}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#1BC47D] px-3 py-2 text-xs font-semibold text-[#06111A] transition-colors hover:bg-[#17b672] disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {rapydConnecting ? <Loader2 size={14} className="animate-spin" /> : null}
-                    {t('dashboard.hero.rapyd.connect')}
-                  </button>
-                </div>
-              ) : balanceLoading ? (
-                <p className="text-xs text-slate-400">{t('dashboard.hero.balance.loading')}</p>
-              ) : balanceError ? (
-                <p className="text-xs text-red-300">{balanceError}</p>
-              ) : walletAvailableByCurrency.length === 0 ? (
-                <p className="text-xs text-slate-400">{t('dashboard.hero.balance.error')}</p>
-              ) : (
-                <div className={`space-y-2 ${hasManyWalletCurrencies ? 'max-h-40 overflow-y-auto pr-1' : ''}`}>
-                  {walletAvailableByCurrency.map(({ currency, amount }) => (
-                    <div key={currency} className="rounded-lg border border-white/5 bg-[#0F2236] px-2.5 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1BC47D] mb-1">{currency}</p>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400">{t('dashboard.hero.balance.available')}</span>
-                        <span className="font-semibold text-white">{formatBalanceAmount(amount, currency)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : null}
-          <div className="flex items-center gap-3 px-3 py-2 mt-2 bg-[#152B42] rounded-xl border border-white/5">
-            <div className="relative">
-              <Avatar className="w-8 h-8 border border-white/10">
-                <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
-                <AvatarFallback className="bg-gradient-to-tr from-[#1BC47D] to-[#0B1C2D] text-white text-xs font-bold">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1BC47D] rounded-full border-2 border-[#152B42]" />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-bold text-white truncate">{userDisplayName}</p>
-              <p className="text-[10px] text-[#1BC47D] uppercase font-bold flex items-center gap-1">
-                <CheckCircle2 size={10} /> {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative transition-colors duration-300">
-        <header
-          className="backdrop-blur-md border-b px-4 py-4 sm:px-6 lg:px-8 z-10 shrink-0 transition-colors duration-300"
-          style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
-        >
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex w-full items-center gap-4 xl:max-w-md">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--text-muted)' }} />
-                  <input
-                    type="text"
-                    placeholder={t('dashboard.filters.search_placeholder')}
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none transition-colors border"
-                    style={{
-                      backgroundColor: 'var(--input-bg)',
-                      borderColor: 'var(--border-color)',
-                      color: 'var(--text-main)'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                <div className="hidden sm:flex items-center gap-2">
-                  <div
-                    className="rounded-lg border"
-                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
-                  >
-                    <LocaleSwitcher className={`h-9 px-2 rounded-lg ${dashboardHeaderSelectButtonClass}`} />
-                  </div>
-                  <div
-                    className="rounded-lg border"
-                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
-                  >
-                    <CurrencySwitcher
-                      className={`h-9 px-2 rounded-lg text-sm font-semibold ${dashboardHeaderSelectButtonClass}`}
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={toggleTheme}
-                  className="relative transition-colors hover:text-[var(--text-main)]"
-                  style={{ color: 'var(--text-muted)' }}
-                  title="Toggle Light/Dark Mode"
-                >
-                  {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-
-                <div className="relative">
-                  <NotificationBell
-                    triggerClassName={dashboardHeaderUtilityButtonClass}
-                    iconClassName={dashboardHeaderUtilityIconClass}
-                  />
-                </div>
-                <div className="relative">
-                  <ChatButton triggerClassName={dashboardHeaderUtilityButtonClass} />
-                </div>
-
-                <div className="hidden h-6 w-px transition-colors duration-300 md:block" style={{ backgroundColor: 'var(--border-color)' }} />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isProvider) {
-                      handleTabChange('finance');
-                    } else {
-                      router.push(getNewProjectHref());
-                    }
-                  }}
-                  className="bg-[#1BC47D] hover:bg-[#18A96B] text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all shadow-md shadow-[#1BC47D]/20 flex items-center gap-2"
-                >
-                  <Wallet size={16} /> {isProvider ? t('dashboard.tabs.finance') : t('dashboard.projects.new_project')}
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-8 relative">
-          <div className="absolute inset-0 pointer-events-none opacity-[0.02] z-0" style={{ backgroundImage: 'radial-gradient(var(--text-main) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-
-          <motion.div
-            className="max-w-6xl mx-auto relative z-10"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="show"
-          >
-            <motion.div variants={fadeUp} className="mb-8 md:hidden">
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => handleTabChange('overview')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'overview' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'overview' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.overview')}</button>
-                {isClient && !isProvider ? (
-                  <button
-                    type="button"
-                    onClick={() => router.push(getNewProjectHref())}
-                    className="px-3 py-2 rounded-lg text-xs font-semibold border"
-                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-main)' }}
-                  >
+        {activeTab === 'projects' ? (
+          <div className="space-y-6">
+            <DashboardSectionHeader
+              title={isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client')}
+              description={loadingProjects ? t('dashboard.loading.projects') : t('dashboard.projects.found', { count: projects.length })}
+              icon={Briefcase}
+              action={isClient && !isProvider ? (
+                <Button asChild className="btn-primary">
+                  <Link href="/projects/new">
+                    <Plus className="mr-2 h-4 w-4" />
                     {t('dashboard.projects.new_project')}
-                  </button>
-                ) : null}
-                <button type="button" onClick={() => handleTabChange('projects')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'projects' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'projects' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.projects')}</button>
-                <button type="button" onClick={() => handleTabChange('services')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'services' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'services' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.services')}</button>
-                <button type="button" onClick={() => handleTabChange('messages')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'messages' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'messages' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.messages')}</button>
-                {isProvider && <button type="button" onClick={() => handleTabChange('finance')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'finance' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'finance' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.finance')}</button>}
-                <button type="button" onClick={() => handleTabChange('settings')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'settings' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'settings' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.settings')}</button>
-              </div>
-            </motion.div>
+                  </Link>
+                </Button>
+              ) : undefined}
+            />
 
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6 m-0">
-              <motion.div variants={fadeUp} className="mb-8">
-                <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>{t('dashboard.tabs.overview')}</h1>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {isProvider ? t('dashboard.hero.subtitle.provider') : t('dashboard.hero.subtitle.client')}
-                </p>
-              </motion.div>
-
-              <motion.div variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                {overviewStats.slice(0, 3).map((stat, index) => {
-                  const Icon = index === 0 ? Lock : index === 1 ? AlertCircle : CheckCircle2;
-                  const leftColor = index === 0 ? theme.trustAccent : index === 1 ? theme.warning : '#64748B';
-                  return (
-                    <div
-                      key={index}
-                      className="p-6 rounded-2xl border shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] relative overflow-hidden transition-colors duration-300"
-                      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
-                    >
-                      <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: leftColor }} />
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>{stat.title}</p>
-                          <p className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-main)' }}>
-                            {stat.value}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${leftColor}20`, color: leftColor }}>
-                          <Icon size={20} />
-                        </div>
-                      </div>
-                      <div
-                        className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-300"
-                        style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
-                      >
-                        <Shield size={14} style={{ color: theme.trustAccent }} /> {stat.change}
-                      </div>
-                    </div>
-                  );
-                })}
-              </motion.div>
-
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <motion.div variants={fadeUp} className="xl:col-span-2 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-main)' }}>
-                      <Layers size={18} style={{ color: theme.trustAccent }} /> {projectsTitle}
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('projects')}
-                      className="text-sm font-semibold transition-colors flex items-center gap-1"
-                      style={{ color: theme.trustAccent }}
-                    >
-                      {t('dashboard.tabs.projects')} <ArrowRight size={14} />
-                    </button>
-                  </div>
-
-                  <div
-                    className="border rounded-2xl shadow-sm overflow-hidden transition-colors duration-300"
-                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
-                  >
-                    {loadingOverviewProjects ? (
-                      <div className="flex items-center justify-center py-14">
-                        <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
-                      </div>
-                    ) : overviewProjectsError ? (
-                      <div className="p-4">
-                        <Alert variant="destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>{overviewProjectsError}</AlertDescription>
-                        </Alert>
-                      </div>
-                    ) : overviewProjects.length === 0 ? (
-                      <div className="p-10 text-center">
-                        <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-main)' }}>
-                          {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
-                        </p>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          {isProvider ? t('dashboard.projects.empty.description.provider') : t('dashboard.projects.empty.description.client')}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="p-4 md:p-6 space-y-4">
-                        {overviewProjects.map((project) => (
-                          <ProjectRequestCard
-                            key={project.id}
-                            project={project}
-                            onResponse={handleProjectResponse}
-                            onRefresh={loadOverviewProjects}
+            {isClient && !isProvider ? (
+              <ClientProjectRequests withLayout={false} />
+            ) : (
+              <>
+                <Card className="glass-card">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            placeholder={t('dashboard.filters.search_placeholder')}
+                            value={searchTerm}
+                            onChange={(e) => {
+                              setSearchTerm(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                            className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
                           />
-                        ))}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </motion.div>
 
-                <motion.div variants={fadeUp} className="xl:col-span-1 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-main)' }}>
-                      <Activity size={18} style={{ color: theme.trustAccent }} /> {t('dashboard.activity.title')}
-                    </h2>
-                    <button className="transition-colors hover:text-[#1BC47D]" style={{ color: 'var(--text-muted)' }}><MoreHorizontal size={18} /></button>
-                  </div>
+                      <Select value={statusFilter} onValueChange={(value) => {
+                        setStatusFilter(value);
+                        setCurrentPage(1);
+                      }}>
+                        <SelectTrigger className="w-full lg:w-64 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                          <Filter className="mr-2 h-4 w-4" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(isProvider ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-                  <div
-                    className="border rounded-2xl shadow-sm p-6 transition-colors duration-300"
-                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
-                  >
-                    <div className="space-y-4">
-                      {loadingRecentActivities ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-muted)' }} />
-                        </div>
-                      ) : activityItems.length === 0 ? (
-                        <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
-                          {emptyActivityText}
-                        </p>
-                      ) : (
-                        activityItems.map((item, index) => {
-                          const labelColor = index === 0 ? theme.trustAccent : 'var(--text-muted)';
-                          return (
-                            <div key={`${item.title}-${index}`} className="p-3 rounded-xl border" style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)' }}>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold uppercase" style={{ color: labelColor }}>
-                                  {getActivityBadgeLabel(item, activityLabels[index] ?? t('dashboard.activity.title'))}
-                                </span>
-                                <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{item.time_ago}</span>
-                              </div>
-                              <p className="text-sm font-bold mb-1" style={{ color: 'var(--text-main)' }}>{item.title}</p>
-                              <p className="text-xs font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>
-                                {getActivityMeta(item)}
-                              </p>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                    {recentActivitiesError ? (
-                      <p className="mt-3 text-xs" style={{ color: '#F5A623' }}>
-                        {recentActivitiesError}
-                      </p>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('messages')}
-                      className="w-full mt-6 py-2.5 border rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 hover:opacity-80"
-                      style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
-                    >
-                      {t('dashboard.tabs.messages')} <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            </TabsContent>
-
-            {/* Projects Tab */}
-            <TabsContent value="projects" className="space-y-6">
-              {isClient && !isProvider ? (
-                activeTab === 'projects' ? <ClientProjectRequests withLayout={false} /> : null
-              ) : (
-                <>
-                  {/* Filters and Search */}
-                  <Card className="glass-card">
-                    <CardContent className="p-6">
-                      <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search Bar */}
-                        <div className="flex-1">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                            <Input
-                              placeholder={t('dashboard.filters.search_placeholder')}
-                              value={searchTerm}
-                              onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setCurrentPage(1);
-                              }}
-                              className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Status Filter */}
-                        <Select value={statusFilter} onValueChange={(value) => {
-                          setStatusFilter(value);
+                      <div className="flex space-x-2">
+                        <Select value={sortBy} onValueChange={(value) => {
+                          setSortBy(value);
                           setCurrentPage(1);
                         }}>
-                          <SelectTrigger className="w-full lg:w-64 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
-                            <Filter className="w-4 h-4 mr-2" />
+                          <SelectTrigger className="w-full lg:w-48 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {(isProvider ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
+                            {getSortOptions().map(option => (
                               <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                               </SelectItem>
@@ -1952,649 +1336,606 @@ export default function DashboardClient() {
                           </SelectContent>
                         </Select>
 
-                        {/* Sort Options */}
-                        <div className="flex space-x-2">
-                          <Select value={sortBy} onValueChange={(value) => {
-                            setSortBy(value);
-                            setCurrentPage(1);
-                          }}>
-                            <SelectTrigger className="w-full lg:w-48 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
-                              <SelectValue />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={toggleSortOrder}
+                          className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
+                        >
+                          {sortOrder === 'asc' ? (
+                            <ArrowUp className="h-4 w-4" />
+                          ) : (
+                            <ArrowDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
+                      <div className="mt-4 flex items-center space-x-2 border-t border-slate-100 pt-4 dark:border-[#1E2A3D]">
+                        <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
+
+                        {searchTerm && (
+                          <Badge variant="secondary" className="flex items-center space-x-1">
+                            <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
+                            <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        )}
+
+                        {statusFilter !== 'all' && (
+                          <Badge variant="secondary" className="flex items-center space-x-1">
+                            <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label ?? '' })}</span>
+                            <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        )}
+
+                        {(sortBy !== 'newest' || sortOrder !== 'desc') && (
+                          <Badge variant="secondary" className="flex items-center space-x-1">
+                            <span>{t('dashboard.filters.sort_label', {
+                              label: getSortOptions().find(o => o.value === sortBy)?.label ?? '',
+                              order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
+                            })}</span>
+                            <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        )}
+
+                        <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
+                          {t('dashboard.filters.reset_all')}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {loadingProjects ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : projectsError ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{projectsError}</AlertDescription>
+                  </Alert>
+                ) : projects.length === 0 ? (
+                  <Card className="glass-card">
+                    <CardContent className="py-20 text-center">
+                      <Briefcase className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+                      <h3 className="mb-2 text-xl font-semibold">
+                        {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
+                      </h3>
+                      <p className="mb-6 text-slate-500 dark:text-[#A3ADC2]">
+                        {isProvider
+                          ? t('dashboard.projects.empty.description.provider')
+                          : t('dashboard.projects.empty.description.client')
+                        }
+                      </p>
+                      {isClient && !isProvider ? (
+                        <Button asChild className="btn-primary">
+                          <Link href="/projects/new">
+                            <Plus className="mr-2 h-4 w-4" />
+                            {t('dashboard.projects.empty.cta')}
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-6">
+                    {projects.map((project) => (
+                      <ProjectRequestCard
+                        key={project.id}
+                        project={project}
+                        onResponse={handleProjectResponse}
+                        onRefresh={loadProjects}
+                      />
+                    ))}
+
+                    {renderPagination()}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {activeTab === 'services' ? (
+          <div className="space-y-6">
+            <DashboardSectionHeader
+              title={isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client')}
+              description={isProvider
+                ? t('dashboard.services.description.provider')
+                : t('dashboard.services.description.client')}
+              icon={Target}
+              action={isProvider ? (
+                <Button asChild variant="outline">
+                  <Link href={getProviderServicesSelectHref({ reset: true })}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t('dashboard.services.manage_cta')}
+                  </Link>
+                </Button>
+              ) : undefined}
+            />
+
+            <Card className="glass-card">
+              <CardContent className="p-6">
+                {isProvider ? (
+                  loadingProviderServices ? (
+                    <div className="flex flex-col items-center justify-center py-14 text-center">
+                      <div
+                        className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border"
+                        style={{
+                          borderColor: 'var(--border-color)',
+                          background: 'linear-gradient(135deg, rgba(27, 196, 125, 0.14), rgba(33, 209, 159, 0.04))',
+                        }}
+                      >
+                        <Loader2 className="h-7 w-7 animate-spin" style={{ color: theme.trustAccent }} />
+                      </div>
+                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                        {t('dashboard.services.loading')}
+                      </h3>
+                      <p className="mt-2 max-w-md text-sm" style={{ color: 'var(--text-muted)' }}>
+                        {t('dashboard.services.description.provider')}
+                      </p>
+                    </div>
+                  ) : providerServicesError ? (
+                    <div className="space-y-4">
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{providerServicesError}</AlertDescription>
+                      </Alert>
+                      <Button variant="outline" onClick={() => void loadProviderServices()}>
+                        {t('dashboard.services.retry')}
+                      </Button>
+                    </div>
+                  ) : providerServices.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <Target className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                      <h3 className="mb-2 text-lg font-medium">
+                        {t('dashboard.services.empty.title.provider')}
+                      </h3>
+                      <p className="mb-4 text-muted-foreground">
+                        {t('dashboard.services.empty.description.provider')}
+                      </p>
+                      <Button asChild>
+                        <Link href={getProviderServicesSelectHref({ reset: true })}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          {t('dashboard.services.empty.cta')}
+                        </Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div
+                          className="rounded-2xl border p-4"
+                          style={{
+                            borderColor: 'var(--border-color)',
+                            background: 'linear-gradient(135deg, rgba(27, 196, 125, 0.12), rgba(27, 196, 125, 0.02))',
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                {t('dashboard.services.summary.total')}
+                              </p>
+                              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                {formatCompactNumber(providerServicesSummary.total)}
+                              </p>
+                            </div>
+                            <Briefcase className="h-5 w-5" style={{ color: theme.trustAccent }} />
+                          </div>
+                        </div>
+                        <div
+                          className="rounded-2xl border p-4"
+                          style={{
+                            borderColor: 'var(--border-color)',
+                            background: 'linear-gradient(135deg, rgba(33, 209, 159, 0.12), rgba(33, 209, 159, 0.02))',
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                {t('dashboard.services.summary.verified')}
+                              </p>
+                              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                {formatCompactNumber(providerServicesSummary.verified)}
+                              </p>
+                            </div>
+                            <Shield className="h-5 w-5" style={{ color: theme.success }} />
+                          </div>
+                        </div>
+                        <div
+                          className="rounded-2xl border p-4"
+                          style={{
+                            borderColor: 'var(--border-color)',
+                            background: 'linear-gradient(135deg, rgba(245, 166, 35, 0.12), rgba(245, 166, 35, 0.02))',
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                {t('dashboard.services.summary.categories')}
+                              </p>
+                              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                {formatCompactNumber(providerServicesSummary.categories)}
+                              </p>
+                            </div>
+                            <Layers className="h-5 w-5" style={{ color: theme.warning }} />
+                          </div>
+                        </div>
+                        <div
+                          className="rounded-2xl border p-4"
+                          style={{
+                            borderColor: 'var(--border-color)',
+                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.02))',
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                {t('dashboard.services.summary.average_rating')}
+                              </p>
+                              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                {formatRatingValue(providerServicesSummary.averageRating)}
+                              </p>
+                            </div>
+                            <Star className="h-5 w-5" style={{ color: '#6366F1' }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 xl:grid-cols-2">
+                        {providerServices.map((providerService) => {
+                          const service = providerService.service;
+                          const categoryName =
+                            service?.category?.name || t('dashboard.services.labels.category_fallback');
+                          const deliveryProviderLabel = service?.delivery_provider
+                            ? formatDeliveryProvider(service.delivery_provider)
+                            : '';
+                          const nextLevel = getNextProviderLevel(providerService.level);
+
+                          return (
+                            <div
+                              key={providerService.id ?? `${providerService.service_id}-${service?.slug ?? service?.name ?? 'service'}`}
+                              className="rounded-3xl border p-5"
+                              style={{
+                                borderColor: 'var(--border-color)',
+                                background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                              }}
+                            >
+                              <div className="flex flex-col gap-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div className="space-y-1">
+                                    <h3 className="text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                      {service?.name || t('dashboard.services.labels.service_fallback')}
+                                    </h3>
+                                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                                      {categoryName}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap justify-end gap-2">
+                                    {providerService.verified ? (
+                                      <Badge
+                                        className="border-0"
+                                        style={{ backgroundColor: 'rgba(33, 209, 159, 0.14)', color: theme.success }}
+                                      >
+                                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                        {t('dashboard.services.labels.verified')}
+                                      </Badge>
+                                    ) : null}
+                                    <Badge
+                                      variant="secondary"
+                                      className="border-0"
+                                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-main)' }}
+                                    >
+                                      {formatProviderLevel(providerService.level)}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                {service?.description ? (
+                                  <p className="text-sm leading-6" style={{ color: 'var(--text-muted)' }}>
+                                    {service.description}
+                                  </p>
+                                ) : null}
+
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                  <div
+                                    className="rounded-2xl border p-3"
+                                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                  >
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                      <Star className="h-3.5 w-3.5" />
+                                      {t('dashboard.services.labels.rating')}
+                                    </div>
+                                    <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                      {formatRatingValue(providerService.rating)}
+                                    </p>
+                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                      {providerService.reviewCount > 0
+                                        ? `${formatCompactNumber(providerService.reviewCount)} ${t('dashboard.services.labels.reviews')}`
+                                        : t('dashboard.services.labels.not_rated')}
+                                    </p>
+                                  </div>
+                                  <div
+                                    className="rounded-2xl border p-3"
+                                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                  >
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                      <Briefcase className="h-3.5 w-3.5" />
+                                      {t('dashboard.services.labels.projects')}
+                                    </div>
+                                    <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                      {formatCompactNumber(providerService.provider_project_count)}
+                                    </p>
+                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                      {t('dashboard.services.labels.projects')}
+                                    </p>
+                                  </div>
+                                  <div
+                                    className="rounded-2xl border p-3"
+                                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                  >
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                      <Layers className="h-3.5 w-3.5" />
+                                      {t('dashboard.services.labels.delivery_provider')}
+                                    </div>
+                                    <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                      {deliveryProviderLabel || '--'}
+                                    </p>
+                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                      {formatProviderLevel(providerService.level)}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {service?.tags?.length ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {service.tags.map((tag) => (
+                                      <Badge
+                                        key={`${providerService.id}-${tag}`}
+                                        variant="outline"
+                                        className="rounded-full px-3 py-1"
+                                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                                      >
+                                        #{tag}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : null}
+
+                                {nextLevel ? (
+                                  <div
+                                    className="flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
+                                    style={{
+                                      borderColor: 'var(--border-color)',
+                                      backgroundColor: 'rgba(27, 196, 125, 0.05)',
+                                    }}
+                                  >
+                                    <div className="space-y-1">
+                                      <p className="text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                        {t('dashboard.services.upgrade.label')}
+                                      </p>
+                                      <p className="text-sm font-semibold" style={{ color: 'var(--text-main)' }}>
+                                        {t('dashboard.services.upgrade.description', {
+                                          current: formatProviderLevel(providerService.level),
+                                          target: formatProviderLevel(nextLevel),
+                                        })}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => handleStartLevelUpgradeTest(providerService)}
+                                    >
+                                      <ArrowUp className="mr-2 h-4 w-4" />
+                                      {t('dashboard.services.upgrade.cta', {
+                                        level: formatProviderLevel(nextLevel),
+                                      })}
+                                    </Button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="py-12 text-center">
+                    <Target className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-medium">
+                      {t('dashboard.services.empty.title.client')}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {t('dashboard.services.empty.description.client')}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        {activeTab === 'messages' ? (
+          <div className="space-y-6">
+            <DashboardSectionHeader
+              title={t('dashboard.messages.title')}
+              description={t('dashboard.messages.description')}
+              icon={MessageSquare}
+            />
+
+            <Card className="glass-card">
+              <CardContent className="p-10">
+                <div className="py-12 text-center">
+                  <MessageSquare className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-lg font-medium">{t('dashboard.messages.empty.title')}</h3>
+                  <p className="text-muted-foreground">{t('dashboard.messages.empty.description')}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        {activeTab === 'finance' && isProvider ? (
+          <div className="space-y-6">
+            <DashboardSectionHeader
+              title={t('dashboard.finance.title')}
+              description={hasRapydConnected
+                ? `${t('dashboard.finance.wallet_balance')}: ${formatBalanceAmount(balance?.balance, balance?.currency)}`
+                : t('dashboard.hero.rapyd.connect')}
+              icon={DollarSign}
+            />
+
+            <Card className="glass-card">
+              <CardContent className="p-6">
+                {!hasRapydConnected ? (
+                  <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
+                    <p className="mb-4 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                      {t('dashboard.hero.balance.error')}
+                    </p>
+                    {!canConnectRapyd ? (
+                      <p className="mb-4 text-sm text-amber-600 dark:text-amber-300">
+                        {t('dashboard.finance.requirements.missing', { items: rapydRequirementsLabel })}
+                      </p>
+                    ) : null}
+                    <Button
+                      type="button"
+                      className="bg-[#1BC47D] text-[#06111A] hover:bg-[#159c63]"
+                      onClick={getRapydOnboardingUrl}
+                      disabled={rapydConnecting || !canConnectRapyd}
+                    >
+                      {rapydConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      {t('dashboard.hero.rapyd.connect')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
+                      <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                        {t('dashboard.finance.wallet_balance')}
+                      </div>
+                      {balanceLoading ? (
+                        <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {t('dashboard.hero.balance.loading')}
+                        </div>
+                      ) : balanceError ? (
+                        <div className="mt-3 text-sm text-red-500">{balanceError}</div>
+                      ) : (
+                        wallets.map((item) => (
+                          <div key={item.id} className="mt-3 text-2xl font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            {formatBalanceAmount(item.balance, item.currency)}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {wallets.length > 1 ? (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                            {t('dashboard.finance.wallet_currency')}
+                          </div>
+                          <Select
+                            value={balance?.id ?? ''}
+                            onValueChange={handleWalletChange}
+                            disabled={balanceLoading || wallets.length === 0}
+                          >
+                            <SelectTrigger className="w-full bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                              <SelectValue placeholder={t('dashboard.finance.select_wallet')} />
                             </SelectTrigger>
                             <SelectContent>
-                              {getSortOptions().map(option => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
+                              {wallets.map((wallet) => (
+                                <SelectItem key={wallet.id} value={wallet.id}>
+                                  {wallet.currency} • {formatBalanceAmount(wallet.balance, wallet.currency)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={toggleSortOrder}
-                            className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
-                          >
-                            {sortOrder === 'asc' ? (
-                              <ArrowUp className="w-4 h-4" />
-                            ) : (
-                              <ArrowDown className="w-4 h-4" />
-                            )}
-                          </Button>
                         </div>
+                      ) : null}
+
+                      <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                        {t('dashboard.finance.transfer_amount')}
                       </div>
-
-                      {/* Active Filters */}
-                      {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
-                        <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                          <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
-
-                          {searchTerm && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
-                              <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                          )}
-
-                          {statusFilter !== 'all' && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label ?? '' })}</span>
-                              <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                          )}
-
-                          {(sortBy !== 'newest' || sortOrder !== 'desc') && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>{t('dashboard.filters.sort_label', {
-                                label: getSortOptions().find(o => o.value === sortBy)?.label ?? '',
-                                order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
-                              })}</span>
-                              <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                          )}
-
-                          <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
-                            {t('dashboard.filters.reset_all')}
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Projects Header */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                        {isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client')}
-                      </h2>
-                      <p className="text-slate-500 dark:text-[#A3ADC2]">
-                        {loadingProjects ? t('dashboard.loading.projects') : t('dashboard.projects.found', { count: projects.length })}
-                      </p>
-                    </div>
-
-                    {isClient && !isProvider && (
-                      <Button asChild className="btn-primary">
-                        <Link href="/projects/new">
-                          <Plus className="w-4 h-4 mr-2" />
-                          {t('dashboard.projects.new_project')}
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Projects List */}
-                  {loadingProjects ? (
-                    <div className="flex justify-center items-center py-20">
-                      <Loader2 className="w-8 h-8 animate-spin" />
-                    </div>
-                  ) : projectsError ? (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{projectsError}</AlertDescription>
-                    </Alert>
-                  ) : projects.length === 0 ? (
-                    <Card className="glass-card">
-                      <CardContent className="text-center py-20">
-                        <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold mb-2">
-                          {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
-                        </h3>
-                        <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
-                          {isProvider
-                            ? t('dashboard.projects.empty.description.provider')
-                            : t('dashboard.projects.empty.description.client')
-                          }
-                        </p>
-                        {isClient && !isProvider && (
-                          <Button asChild className="btn-primary">
-                            <Link href="/projects/new">
-                              <Plus className="w-4 h-4 mr-2" />
-                              {t('dashboard.projects.empty.cta')}
-                            </Link>
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-6">
-                      {projects.map((project) => (
-                        <ProjectRequestCard
-                          key={project.id}
-                          project={project}
-                          onResponse={handleProjectResponse}
-                          onRefresh={loadProjects}
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          value={transferAmount}
+                          onChange={(e) => handleTransferAmountChange(e.target.value)}
+                          placeholder="0.00"
+                          className="pr-16 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
+                          disabled={balanceLoading || balance?.balance == null}
                         />
-                      ))}
-
-                      {renderPagination()}
-                    </div>
-                  )}
-                </>
-              )}
-            </TabsContent>
-
-            {/* Services Tab */}
-            <TabsContent value="services" className="space-y-6">
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Target className="w-5 h-5" />
-                    <span>{isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client')}</span>
-                  </CardTitle>
-                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
-                    {isProvider
-                      ? t('dashboard.services.description.provider')
-                      : t('dashboard.services.description.client')
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isProvider ? (
-                    loadingProviderServices ? (
-                      <div className="flex flex-col items-center justify-center py-14 text-center">
-                        <div
-                          className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border"
-                          style={{
-                            borderColor: 'var(--border-color)',
-                            background: 'linear-gradient(135deg, rgba(27, 196, 125, 0.14), rgba(33, 209, 159, 0.04))',
-                          }}
-                        >
-                          <Loader2 className="h-7 w-7 animate-spin" style={{ color: theme.trustAccent }} />
-                        </div>
-                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
-                          {t('dashboard.services.loading')}
-                        </h3>
-                        <p className="mt-2 max-w-md text-sm" style={{ color: 'var(--text-muted)' }}>
-                          {t('dashboard.services.description.provider')}
-                        </p>
-                      </div>
-                    ) : providerServicesError ? (
-                      <div className="space-y-4">
-                        <Alert variant="destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>{providerServicesError}</AlertDescription>
-                        </Alert>
-                        <Button variant="outline" onClick={() => void loadProviderServices()}>
-                          {t('dashboard.services.retry')}
-                        </Button>
-                      </div>
-                    ) : providerServices.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">
-                          {t('dashboard.services.empty.title.provider')}
-                        </h3>
-                        <p className="text-muted-foreground mb-4">
-                          {t('dashboard.services.empty.description.provider')}
-                        </p>
-                        <Button asChild>
-                          <Link href={getProviderServicesSelectHref({ reset: true })}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            {t('dashboard.services.empty.cta')}
-                          </Link>
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                          <div
-                            className="rounded-2xl border p-4"
-                            style={{
-                              borderColor: 'var(--border-color)',
-                              background: 'linear-gradient(135deg, rgba(27, 196, 125, 0.12), rgba(27, 196, 125, 0.02))',
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
-                                  {t('dashboard.services.summary.total')}
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
-                                  {formatCompactNumber(providerServicesSummary.total)}
-                                </p>
-                              </div>
-                              <Briefcase className="h-5 w-5" style={{ color: theme.trustAccent }} />
-                            </div>
-                          </div>
-                          <div
-                            className="rounded-2xl border p-4"
-                            style={{
-                              borderColor: 'var(--border-color)',
-                              background: 'linear-gradient(135deg, rgba(33, 209, 159, 0.12), rgba(33, 209, 159, 0.02))',
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
-                                  {t('dashboard.services.summary.verified')}
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
-                                  {formatCompactNumber(providerServicesSummary.verified)}
-                                </p>
-                              </div>
-                              <Shield className="h-5 w-5" style={{ color: theme.success }} />
-                            </div>
-                          </div>
-                          <div
-                            className="rounded-2xl border p-4"
-                            style={{
-                              borderColor: 'var(--border-color)',
-                              background: 'linear-gradient(135deg, rgba(245, 166, 35, 0.12), rgba(245, 166, 35, 0.02))',
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
-                                  {t('dashboard.services.summary.categories')}
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
-                                  {formatCompactNumber(providerServicesSummary.categories)}
-                                </p>
-                              </div>
-                              <Layers className="h-5 w-5" style={{ color: theme.warning }} />
-                            </div>
-                          </div>
-                          <div
-                            className="rounded-2xl border p-4"
-                            style={{
-                              borderColor: 'var(--border-color)',
-                              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.02))',
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
-                                  {t('dashboard.services.summary.average_rating')}
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
-                                  {formatRatingValue(providerServicesSummary.averageRating)}
-                                </p>
-                              </div>
-                              <Star className="h-5 w-5" style={{ color: '#6366F1' }} />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 xl:grid-cols-2">
-                          {providerServices.map((providerService) => {
-                            const service = providerService.service;
-                            const categoryName =
-                              service?.category?.name || t('dashboard.services.labels.category_fallback');
-                            const deliveryProviderLabel = service?.delivery_provider
-                              ? formatDeliveryProvider(service.delivery_provider)
-                              : '';
-                            const nextLevel = getNextProviderLevel(providerService.level);
-
-                            return (
-                              <div
-                                key={providerService.id ?? `${providerService.service_id}-${service?.slug ?? service?.name ?? 'service'}`}
-                                className="rounded-3xl border p-5"
-                                style={{
-                                  borderColor: 'var(--border-color)',
-                                  background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                                }}
-                              >
-                                <div className="flex flex-col gap-4">
-                                  <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div className="space-y-1">
-                                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
-                                        {service?.name || t('dashboard.services.labels.service_fallback')}
-                                      </h3>
-                                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                                        {categoryName}
-                                      </p>
-                                    </div>
-                                    <div className="flex flex-wrap justify-end gap-2">
-                                      {providerService.verified ? (
-                                        <Badge
-                                          className="border-0"
-                                          style={{ backgroundColor: 'rgba(33, 209, 159, 0.14)', color: theme.success }}
-                                        >
-                                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                                          {t('dashboard.services.labels.verified')}
-                                        </Badge>
-                                      ) : null}
-                                      <Badge
-                                        variant="secondary"
-                                        className="border-0"
-                                        style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-main)' }}
-                                      >
-                                        {formatProviderLevel(providerService.level)}
-                                      </Badge>
-                                    </div>
-                                  </div>
-
-                                  {service?.description ? (
-                                    <p className="text-sm leading-6" style={{ color: 'var(--text-muted)' }}>
-                                      {service.description}
-                                    </p>
-                                  ) : null}
-
-                                  <div className="grid gap-3 sm:grid-cols-3">
-                                    <div
-                                      className="rounded-2xl border p-3"
-                                      style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-                                    >
-                                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                                        <Star className="h-3.5 w-3.5" />
-                                        {t('dashboard.services.labels.rating')}
-                                      </div>
-                                      <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
-                                        {formatRatingValue(providerService.rating)}
-                                      </p>
-                                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                        {providerService.reviewCount > 0
-                                          ? `${formatCompactNumber(providerService.reviewCount)} ${t('dashboard.services.labels.reviews')}`
-                                          : t('dashboard.services.labels.not_rated')}
-                                      </p>
-                                    </div>
-                                    <div
-                                      className="rounded-2xl border p-3"
-                                      style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-                                    >
-                                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                                        <Briefcase className="h-3.5 w-3.5" />
-                                        {t('dashboard.services.labels.projects')}
-                                      </div>
-                                      <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
-                                        {formatCompactNumber(providerService.provider_project_count)}
-                                      </p>
-                                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                        {t('dashboard.services.labels.projects')}
-                                      </p>
-                                    </div>
-                                    <div
-                                      className="rounded-2xl border p-3"
-                                      style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-                                    >
-                                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                                        <Layers className="h-3.5 w-3.5" />
-                                        {t('dashboard.services.labels.delivery_provider')}
-                                      </div>
-                                      <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
-                                        {deliveryProviderLabel || '--'}
-                                      </p>
-                                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                        {formatProviderLevel(providerService.level)}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  {service?.tags?.length ? (
-                                    <div className="flex flex-wrap gap-2">
-                                      {service.tags.map((tag) => (
-                                        <Badge
-                                          key={`${providerService.id}-${tag}`}
-                                          variant="outline"
-                                          className="rounded-full px-3 py-1"
-                                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
-                                        >
-                                          #{tag}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  ) : null}
-
-                                  {nextLevel ? (
-                                    <div
-                                      className="flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-                                      style={{
-                                        borderColor: 'var(--border-color)',
-                                        backgroundColor: 'rgba(27, 196, 125, 0.05)',
-                                      }}
-                                    >
-                                      <div className="space-y-1">
-                                        <p className="text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                                          {t('dashboard.services.upgrade.label')}
-                                        </p>
-                                        <p className="text-sm font-semibold" style={{ color: 'var(--text-main)' }}>
-                                          {t('dashboard.services.upgrade.description', {
-                                            current: formatProviderLevel(providerService.level),
-                                            target: formatProviderLevel(nextLevel),
-                                          })}
-                                        </p>
-                                      </div>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => handleStartLevelUpgradeTest(providerService)}
-                                      >
-                                        <ArrowUp className="mr-2 h-4 w-4" />
-                                        {t('dashboard.services.upgrade.cta', {
-                                          level: formatProviderLevel(nextLevel),
-                                        })}
-                                      </Button>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="flex justify-end">
-                          <Button asChild variant="outline">
-                            <Link href={getProviderServicesSelectHref({ reset: true })}>
-                              <Plus className="w-4 h-4 mr-2" />
-                              {t('dashboard.services.manage_cta')}
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  ) : (
-                    <div className="text-center py-12">
-                      <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        {t('dashboard.services.empty.title.client')}
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        {t('dashboard.services.empty.description.client')}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Messages Tab */}
-            <TabsContent value="messages" className="space-y-6">
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <MessageSquare className="w-5 h-5" />
-                    <span>{t('dashboard.messages.title')}</span>
-                  </CardTitle>
-                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
-                    {t('dashboard.messages.description')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">{t('dashboard.messages.empty.title')}</h3>
-                    <p className="text-muted-foreground">{t('dashboard.messages.empty.description')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Finance Tab */}
-            {isProvider && (
-              <TabsContent value="finance" className="space-y-6">
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <DollarSign className="w-5 h-5" />
-                      <span>{t('dashboard.finance.title')}</span>
-                    </CardTitle>
-                    <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
-                      {hasRapydConnected
-                        ? `${t('dashboard.finance.wallet_balance')}: ${formatBalanceAmount(balance?.balance, balance?.currency)}`
-                        : t('dashboard.hero.rapyd.connect')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {!hasRapydConnected ? (
-                      <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
-                        <p className="text-sm text-slate-500 dark:text-[#A3ADC2] mb-4">
-                          {t('dashboard.hero.balance.error')}
-                        </p>
-                        {!canConnectRapyd ? (
-                          <p className="text-sm text-amber-600 dark:text-amber-300 mb-4">
-                            {t('dashboard.finance.requirements.missing', { items: rapydRequirementsLabel })}
-                          </p>
-                        ) : null}
                         <Button
                           type="button"
-                          className="bg-[#1BC47D] hover:bg-[#159c63] text-[#06111A]"
-                          onClick={getRapydOnboardingUrl}
-                          disabled={rapydConnecting || !canConnectRapyd}
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 h-8 -translate-y-1/2 px-2 text-xs font-semibold"
+                          onClick={() => {
+                            const maxValue = balance?.balance ?? 0;
+                            setTransferAmount(maxValue ? maxValue.toString() : '0');
+                            setTransferError(null);
+                          }}
+                          disabled={balanceLoading || balance?.balance == null}
                         >
-                          {rapydConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                          {t('dashboard.hero.rapyd.connect')}
+                          {t('dashboard.finance.max')}
                         </Button>
                       </div>
-                    ) : (
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
-                        <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
-                          {t('dashboard.finance.wallet_balance')}
-                        </div>
-                        {balanceLoading ? (
-                          <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2]">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            {t('dashboard.hero.balance.loading')}
-                          </div>
-                        ) : balanceError ? (
-                          <div className="mt-3 text-sm text-red-500">{balanceError}</div>
-                        ) : (
-                          wallets.map((item) => (
-                            <div key={item.id} className="mt-3 text-2xl font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                              {formatBalanceAmount(item.balance, item.currency)}
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      <div className="space-y-3">
-                        {wallets.length > 1 && (
-                          <div className="space-y-2">
-                            <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
-                              {t('dashboard.finance.wallet_currency')}
-                            </div>
-                            <Select
-                              value={balance?.id ?? ''}
-                              onValueChange={handleWalletChange}
-                              disabled={balanceLoading || wallets.length === 0}
-                            >
-                              <SelectTrigger className="w-full bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
-                                <SelectValue placeholder={t('dashboard.finance.select_wallet')} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {wallets.map((wallet) => (
-                                  <SelectItem key={wallet.id} value={wallet.id}>
-                                    {wallet.currency} • {formatBalanceAmount(wallet.balance, wallet.currency)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                        <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
-                          {t('dashboard.finance.transfer_amount')}
-                        </div>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="0.01"
-                            value={transferAmount}
-                            onChange={(e) => handleTransferAmountChange(e.target.value)}
-                            placeholder="0.00"
-                            className="pr-16 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
-                            disabled={balanceLoading || balance?.balance == null}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-2 top-1/2 h-8 -translate-y-1/2 px-2 text-xs font-semibold"
-                            onClick={() => {
-                              const maxValue = balance?.balance ?? 0;
-                              setTransferAmount(maxValue ? maxValue.toString() : '0');
-                              setTransferError(null);
-                            }}
-                            disabled={balanceLoading || balance?.balance == null}
-                          >
-                            {t('dashboard.finance.max')}
-                          </Button>
-                        </div>
-                        {transferError && (
-                          <p className="text-xs text-red-500">{transferError}</p>
-                        )}
-                        <Button
-                          variant="default"
-                          className="w-full bg-[#1BC47D] hover:bg-[#159c63]"
-                          onClick={handleTransfer}
-                          disabled={
-                            transferLoading ||
-                            balanceLoading ||
-                            balance?.balance == null ||
-                            !transferAmount ||
-                            Number(normalizeAmountInput(transferAmount)) <= 0 ||
-                            Number(normalizeAmountInput(transferAmount)) > (balance?.balance ?? 0)
-                          }
-                        >
-                          {transferLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          {t('dashboard.finance.transfer')}
-                        </Button>
-                      </div>
+                      {transferError ? (
+                        <p className="text-xs text-red-500">{transferError}</p>
+                      ) : null}
+                      <Button
+                        variant="default"
+                        className="w-full bg-[#1BC47D] hover:bg-[#159c63]"
+                        onClick={handleTransfer}
+                        disabled={
+                          transferLoading ||
+                          balanceLoading ||
+                          balance?.balance == null ||
+                          !transferAmount ||
+                          Number(normalizeAmountInput(transferAmount)) <= 0 ||
+                          Number(normalizeAmountInput(transferAmount)) > (balance?.balance ?? 0)
+                        }
+                      >
+                        {transferLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {t('dashboard.finance.transfer')}
+                      </Button>
                     </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
 
-            {/* Settings Tab */}
+        {activeTab === 'settings' ? (
+          <div className="space-y-6">
+            <DashboardSectionHeader
+              title={t('dashboard.tabs.settings')}
+              description={t('dashboard.settings.page_description')}
+              icon={Layers}
+            />
             <SettingsComponent onOpenCompanyInformationsDialog={handleOpenCompanyInformationsDialog} />
-          </motion.div>
-        </div>
-      </main>
+          </div>
+        ) : null}
+      </div>
       <CompanyInformationsSettingsDialog
         openCompanyInformationsDialog={openCompanyInformationsDialog}
         setOpenCompanyInformationsDialog={setOpenCompanyInformationsDialog}
       />
       {user ? <ChatLauncher /> : null}
-    </Tabs>
+    </TrustoraDashboardShell>
   );
 }

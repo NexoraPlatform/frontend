@@ -1,29 +1,65 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Link } from '@/lib/navigation';
-import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Mail,
+  MailCheck,
+  Send,
+  TriangleAlert,
+  Users,
+} from "lucide-react";
+import Editor from "react-simple-wysiwyg";
+import { useLocale, useTranslations } from "next-intl";
 
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import {
+  AdminOverviewItem,
+  AdminSidebarCard,
+} from "@/components/admin/admin-sidebar-card";
+import { AdminSearchInput } from "@/components/admin/admin-search-input";
+import { AdminSectionCard } from "@/components/admin/admin-section-card";
+import { AdminSummaryCard } from "@/components/admin/admin-summary-card";
+import {
+  AdminEmptyState,
+  AdminSpinner,
+  AdminTableEmptyRow,
+  AdminTableLoadingRow,
+} from "@/components/admin/admin-state";
+import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { useLocale, useTranslations } from "next-intl";
-import apiClient from "@/lib/api";
-import {Textarea} from "@/components/ui/textarea";
-import Editor from 'react-simple-wysiwyg';
-import { Locale } from "@/types/locale";
+import { apiClient } from "@/lib/api";
+import type { Locale } from "@/types/locale";
 
 const parseRecipients = (value: string) =>
   value
     .split(/[\n,]+/)
     .map((entry) => entry.trim())
     .filter(Boolean);
+
+type NewsletterSubscriber = {
+  id: number;
+  email: string;
+  name: string | null;
+  user_type: "client" | "provider";
+  company: string | null;
+  language: "ro" | "en";
+  subscribed_at: string;
+  unsubscribed_at: string | null;
+};
 
 export default function AdminNewsletterPage() {
   const locale = useLocale() as Locale;
@@ -34,18 +70,10 @@ export default function AdminNewsletterPage() {
   const [templateContent, setTemplateContent] = useState("");
   const [templateContentLoading, setTemplateContentLoading] = useState(false);
   const [templateContentError, setTemplateContentError] = useState<string | null>(null);
-  const [subscribers, setSubscribers] = useState<{
-    id: number;
-    email: string;
-    name: string | null;
-    user_type: "client" | "provider";
-    company: string | null;
-    language: "ro" | "en";
-    subscribed_at: string;
-    unsubscribed_at: string | null;
-  }[]>([]);
+  const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [subscribersLoading, setSubscribersLoading] = useState(true);
   const [subscribersError, setSubscribersError] = useState<string | null>(null);
+  const [subscriberSearch, setSubscriberSearch] = useState("");
   const [perPage, setPerPage] = useState("50");
   const [onlyActive, setOnlyActive] = useState(true);
   const [template, setTemplate] = useState("");
@@ -57,51 +85,8 @@ export default function AdminNewsletterPage() {
   const [isSending, setIsSending] = useState(false);
   const [sendCount, setSendCount] = useState<number | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
-  const isCustomTemplate = template === "custom";
 
-  const titleText = t("admin.newsletter.title");
-  const subtitleText = t("admin.newsletter.subtitle");
-  const templateLabel = t("admin.newsletter.template_label");
-  const templatePlaceholder = t("admin.newsletter.template_placeholder");
-  const templateLoadingText = t("admin.newsletter.template_loading");
-  const templateEmptyText = t("admin.newsletter.template_empty");
-  const dataMessageLabel = t("admin.newsletter.data_message_label");
-  const dataMessagePlaceholder = t("admin.newsletter.data_message_placeholder");
-  const userTypeLabel = t("admin.newsletter.user_type_label");
-  const userTypeAll = t("admin.newsletter.user_type_all");
-  const userTypeClient = t("admin.newsletter.user_type_client");
-  const userTypeProvider = t("admin.newsletter.user_type_provider");
-  const languageLabel = t("admin.newsletter.language_label");
-  const languageRo = t("admin.newsletter.language_ro");
-  const languageEn = t("admin.newsletter.language_en");
-  const previewTitle = t("admin.newsletter.preview_title");
-  const previewLoading = t("admin.newsletter.preview_loading");
-  const previewEmpty = t("admin.newsletter.preview_empty");
-  const previewError = t("admin.newsletter.preview_error");
-  const previewNote = t("admin.newsletter.preview_note");
-  const customOnlyNote = t("admin.newsletter.custom_only_note");
-  const recipientsLabel = t("admin.newsletter.recipients_label");
-  const recipientsPlaceholder = t("admin.newsletter.recipients_placeholder");
-  const sendButton = t("admin.newsletter.send_button");
-  const sendingButton = t("admin.newsletter.sending_button");
-  const successMessage = t("admin.newsletter.success_message");
-  const errorMessage = t("admin.newsletter.error_message");
-  const listTitle = t("admin.newsletter.list_title");
-  const listDescription = t("admin.newsletter.list_description");
-  const listLoading = t("admin.newsletter.list_loading");
-  const listEmpty = t("admin.newsletter.list_empty");
-  const listError = t("admin.newsletter.list_error");
-  const perPageLabel = t("admin.newsletter.per_page_label");
-  const onlyActiveLabel = t("admin.newsletter.only_active_label");
-  const columnEmail = t("admin.newsletter.columns.email");
-  const columnName = t("admin.newsletter.columns.name");
-  const columnUserType = t("admin.newsletter.columns.user_type");
-  const columnCompany = t("admin.newsletter.columns.company");
-  const columnLanguage = t("admin.newsletter.columns.language");
-  const columnSubscribedAt = t("admin.newsletter.columns.subscribed_at");
-  const columnStatus = t("admin.newsletter.columns.status");
-  const statusActive = t("admin.newsletter.status_active");
-  const statusInactive = t("admin.newsletter.status_inactive");
+  const isCustomTemplate = template === "custom";
 
   useEffect(() => {
     let active = true;
@@ -109,6 +94,7 @@ export default function AdminNewsletterPage() {
     const fetchTemplates = async () => {
       setTemplatesLoading(true);
       setTemplatesError(null);
+
       try {
         const response = await apiClient.getNewsletterTemplates();
         if (!active) return;
@@ -119,18 +105,20 @@ export default function AdminNewsletterPage() {
         }
       } catch (error) {
         if (!active) return;
-        setTemplatesError(error instanceof Error ? error.message : templateEmptyText);
+        setTemplatesError(
+          error instanceof Error ? error.message : t("admin.newsletter.template_empty")
+        );
       } finally {
         if (active) setTemplatesLoading(false);
       }
     };
 
-    fetchTemplates();
+    void fetchTemplates();
 
     return () => {
       active = false;
     };
-  }, [templateEmptyText]);
+  }, [t]);
 
   useEffect(() => {
     let active = true;
@@ -138,6 +126,7 @@ export default function AdminNewsletterPage() {
     const fetchSubscribers = async () => {
       setSubscribersLoading(true);
       setSubscribersError(null);
+
       try {
         const response = await apiClient.getNewsletterSubscribers({
           per_page: Number(perPage),
@@ -147,20 +136,57 @@ export default function AdminNewsletterPage() {
         setSubscribers(response?.data ?? []);
       } catch (error) {
         if (!active) return;
-        setSubscribersError(error instanceof Error ? error.message : listError);
+        setSubscribersError(
+          error instanceof Error ? error.message : t("admin.newsletter.list_error")
+        );
       } finally {
         if (active) setSubscribersLoading(false);
       }
     };
 
-    fetchSubscribers();
+    void fetchSubscribers();
 
     return () => {
       active = false;
     };
-  }, [perPage, onlyActive, listError]);
+  }, [onlyActive, perPage, t]);
 
-  const canSend = useMemo(() => template && subject && !isSending, [template, subject, isSending]);
+  useEffect(() => {
+    if (!template) {
+      setTemplateContent("");
+      setTemplateContentError(null);
+      return;
+    }
+
+    let active = true;
+
+    const fetchTemplateContent = async () => {
+      setTemplateContentLoading(true);
+      setTemplateContentError(null);
+      try {
+        const response = await apiClient.getNewsletterTemplateContent(template);
+        if (!active) return;
+        setTemplateContent(response?.content ?? "");
+      } catch (error) {
+        if (!active) return;
+        setTemplateContentError(
+          error instanceof Error ? error.message : t("admin.newsletter.preview_error")
+        );
+      } finally {
+        if (active) setTemplateContentLoading(false);
+      }
+    };
+
+    void fetchTemplateContent();
+
+    return () => {
+      active = false;
+    };
+  }, [template, t]);
+
+  useEffect(() => {
+    setSubject(template || "Newsletter");
+  }, [template]);
 
   const previewHtml = useMemo(() => {
     if (!templateContent) {
@@ -172,13 +198,13 @@ export default function AdminNewsletterPage() {
         .replace(/@php[\s\S]*?@endphp/g, "")
         .replace(/@php[\s\S]*?(?:\n|$)/g, "");
 
-    const defaultVariables: Record<string, string> = {
+    const previewData: Record<string, string> = {
       "$subscriber->company": "Trustora SRL",
       "$unsubscribeUrl": "https://trustora.ro/unsubscribe",
       "$language": language,
       "$payload['title']": subject || "Newsletter",
       "$subscriber->name": "Ion Popescu",
-      "$payload['message']": dataMessage || "Acesta este mesajul scris de mine.",
+      "$payload['message']": dataMessage || t("admin.newsletter.preview_default_message"),
     };
 
     const replaceBladeVariable = (html: string, key: string, value: string) => {
@@ -188,45 +214,66 @@ export default function AdminNewsletterPage() {
       return html.replace(regexBlade, value).replace(regexBladeRaw, value);
     };
 
-    return Object.entries(defaultVariables).reduce(
+    return Object.entries(previewData).reduce(
       (current, [key, value]) => replaceBladeVariable(current, key, value),
-      stripBladePhp(templateContent),
+      stripBladePhp(templateContent)
     );
-  }, [templateContent, subject, dataMessage, language]);
+  }, [dataMessage, language, subject, t, templateContent]);
 
-  useEffect(() => {
-    if (!template) {
-      setTemplateContent("");
-      setTemplateContentError(null);
-      return;
-    }
+  const canSend = useMemo(() => Boolean(template && subject && !isSending), [
+    isSending,
+    subject,
+    template,
+  ]);
 
-    let active = true;
-    const fetchTemplateContent = async () => {
-      setTemplateContentLoading(true);
-      setTemplateContentError(null);
-      try {
-        const response = await apiClient.getNewsletterTemplateContent(template);
-        if (!active) return;
-        setTemplateContent(response?.content ?? "");
-      } catch (error) {
-        if (!active) return;
-        setTemplateContentError(error instanceof Error ? error.message : previewError);
-      } finally {
-        if (active) setTemplateContentLoading(false);
-      }
-    };
+  const recipientList = useMemo(() => parseRecipients(recipients), [recipients]);
 
-    fetchTemplateContent();
+  const filteredSubscribers = useMemo(() => {
+    const query = subscriberSearch.trim().toLowerCase();
+    if (!query) return subscribers;
 
-    return () => {
-      active = false;
-    };
-  }, [template, previewError]);
+    return subscribers.filter((subscriber) =>
+      [
+        subscriber.email,
+        subscriber.name,
+        subscriber.company,
+        subscriber.user_type,
+        subscriber.language,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [subscriberSearch, subscribers]);
 
-  useEffect(() => {
-    setSubject(template || "Newsletter");
-  }, [template]);
+  const summaryCards = useMemo(
+    () => [
+      {
+        title: t("admin.newsletter.summary.cards.templates"),
+        value: templates.length,
+        icon: Mail,
+        color: "bg-gradient-to-br from-primary to-emerald-400",
+      },
+      {
+        title: t("admin.newsletter.summary.cards.active_subscribers"),
+        value: subscribers.filter((subscriber) => !subscriber.unsubscribed_at).length,
+        icon: MailCheck,
+        color: "bg-gradient-to-br from-blue-500 to-cyan-400",
+      },
+      {
+        title: t("admin.newsletter.summary.cards.clients"),
+        value: subscribers.filter((subscriber) => subscriber.user_type === "client").length,
+        icon: Users,
+        color: "bg-gradient-to-br from-purple-500 to-pink-400",
+      },
+      {
+        title: t("admin.newsletter.summary.cards.recipients"),
+        value: recipientList.length,
+        icon: Send,
+        color: "bg-gradient-to-br from-orange-500 to-amber-400",
+      },
+    ],
+    [recipientList.length, subscribers, t, templates.length]
+  );
 
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -236,11 +283,16 @@ export default function AdminNewsletterPage() {
     setSendError(null);
     setSendCount(null);
 
-    const recipientList = parseRecipients(recipients);
     const payload: Parameters<typeof apiClient.sendNewsletter>[0] = {
       template,
       subject,
-      data: dataMessage ? { message: dataMessage } : undefined,
+      data:
+        subject || dataMessage
+          ? {
+              title: subject,
+              message: dataMessage,
+            }
+          : undefined,
       user_type: userType === "all" ? undefined : userType,
       recipients: recipientList.length > 0 ? recipientList : undefined,
       language,
@@ -250,246 +302,381 @@ export default function AdminNewsletterPage() {
       const response = await apiClient.sendNewsletter(payload);
       setSendCount(response?.sent ?? 0);
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : errorMessage);
+      setSendError(error instanceof Error ? error.message : t("admin.newsletter.error_message"));
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <>
-      <TrustoraThemeStyles />
-      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
-        <div className="container mx-auto px-4 py-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <Link href="/admin">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{titleText}</h1>
-                <p className="text-sm text-muted-foreground">{subtitleText}</p>
-              </div>
-            </div>
-          </div>
+    <ProjectAdminShell>
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <AdminPageHeader
+          title={t("admin.newsletter.title")}
+          description={t("admin.newsletter.subtitle")}
+        />
 
-          <Card className="glass-card shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
-                <Send className="w-5 h-5" />
-                <span>{titleText}</span>
-              </CardTitle>
-              <CardDescription>{subtitleText}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-6" onSubmit={handleSend}>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{templateLabel}</Label>
-                    {templatesLoading ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>{templateLoadingText}</span>
-                      </div>
-                    ) : templatesError ? (
-                      <p className="text-sm text-red-500">{templatesError}</p>
-                    ) : templates.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">{templateEmptyText}</p>
-                    ) : (
-                      <Select value={template} onValueChange={setTemplate}>
-                        <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
-                          <SelectValue placeholder={templatePlaceholder} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {templates.map((item) => (
-                            <SelectItem key={item} value={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryCards.map((card, index) => (
+            <AdminSummaryCard
+              key={String(card.title)}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              colorClassName={card.color}
+              delay={index * 0.08}
+            />
+          ))}
+        </div>
 
-                  <div className="space-y-2">
-                    <Label>{userTypeLabel}</Label>
-                    <Select value={userType} onValueChange={(value) => setUserType(value as typeof userType)}>
-                      <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{userTypeAll}</SelectItem>
-                        <SelectItem value="client">{userTypeClient}</SelectItem>
-                        <SelectItem value="provider">{userTypeProvider}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{languageLabel}</Label>
-                    <Select value={language} onValueChange={(value) => setLanguage(value as typeof language)}>
-                      <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ro">{languageRo}</SelectItem>
-                        <SelectItem value="en">{languageEn}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
+          <AdminSectionCard
+            delay={0.15}
+            title={t("admin.newsletter.composer_title")}
+            description={t("admin.newsletter.composer_description")}
+          >
+            <form className="space-y-6" onSubmit={handleSend}>
+              <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>{dataMessageLabel}</Label>
-                  <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
-
-                    <Editor value={dataMessage} onChange={(e) => setDataMessage(e.target.value)} />
-
-                  </div>
-                  {!isCustomTemplate && (
-                    <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{recipientsLabel}</Label>
-                  <Input
-                    value={recipients}
-                    onChange={(event) => setRecipients(event.target.value)}
-                    placeholder={recipientsPlaceholder}
-                    className="bg-white/80 dark:bg-slate-900/60"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label>{previewTitle}</Label>
-                  {templateContentLoading ? (
+                  <Label>{t("admin.newsletter.template_label")}</Label>
+                  {templatesLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>{previewLoading}</span>
+                      <span>{t("admin.newsletter.template_loading")}</span>
                     </div>
-                  ) : templateContentError ? (
-                    <p className="text-sm text-red-500">{templateContentError}</p>
-                  ) : !templateContent ? (
-                    <p className="text-sm text-muted-foreground">{previewEmpty}</p>
+                  ) : templatesError ? (
+                    <p className="text-sm text-red-500">{templatesError}</p>
+                  ) : templates.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t("admin.newsletter.template_empty")}
+                    </p>
                   ) : (
-                    <div className="rounded-xl border border-border/60 bg-white/80 p-2 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/70">
-                      <iframe
-                        srcDoc={previewHtml}
-                        className="h-[480px] w-full rounded-lg bg-white"
-                        title="Newsletter preview"
-                      />
-                    </div>
+                    <Select value={template} onValueChange={setTemplate}>
+                      <SelectTrigger className="border-border bg-transparent">
+                        <SelectValue
+                          placeholder={t("admin.newsletter.template_placeholder")}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templates.map((item) => (
+                          <SelectItem key={item} value={item}>
+                            {item}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
-                  <p className="text-xs text-muted-foreground">{previewNote}</p>
                 </div>
 
-                {sendCount !== null && (
-                  <Alert className="border-emerald-200/60 bg-emerald-50/70 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertTitle>{successMessage.replace("{count}", sendCount.toString())}</AlertTitle>
-                  </Alert>
-                )}
-
-                {sendError && (
-                  <Alert variant="destructive">
-                    <TriangleAlert className="h-4 w-4" />
-                    <AlertTitle>{errorMessage}</AlertTitle>
-                    <AlertDescription>{sendError}</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button type="submit" disabled={!canSend} className="gap-2">
-                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {isSending ? sendingButton : sendButton}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-sm mt-10">
-            <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="text-slate-900 dark:text-white">{listTitle}</CardTitle>
-                <CardDescription>{listDescription}</CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-4">
-                <div className="space-y-1">
-                  <Label>{perPageLabel}</Label>
-                  <Select value={perPage} onValueChange={setPerPage}>
-                    <SelectTrigger className="w-32 bg-white/80 dark:bg-slate-900/60">
+                <div className="space-y-2">
+                  <Label>{t("admin.newsletter.user_type_label")}</Label>
+                  <Select
+                    value={userType}
+                    onValueChange={(value) => setUserType(value as typeof userType)}
+                  >
+                    <SelectTrigger className="border-border bg-transparent">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="all">
+                        {t("admin.newsletter.user_type_all")}
+                      </SelectItem>
+                      <SelectItem value="client">
+                        {t("admin.newsletter.user_type_client")}
+                      </SelectItem>
+                      <SelectItem value="provider">
+                        {t("admin.newsletter.user_type_provider")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-2 pt-6">
-                  <Switch checked={onlyActive} onCheckedChange={setOnlyActive} />
-                  <span className="text-sm text-muted-foreground">{onlyActiveLabel}</span>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>{t("admin.newsletter.language_label")}</Label>
+                  <Select
+                    value={language}
+                    onValueChange={(value) => setLanguage(value as typeof language)}
+                  >
+                    <SelectTrigger className="border-border bg-transparent">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ro">{t("admin.newsletter.language_ro")}</SelectItem>
+                      <SelectItem value="en">{t("admin.newsletter.language_en")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("admin.newsletter.subject_label")}</Label>
+                  <Input
+                    value={subject}
+                    onChange={(event) => setSubject(event.target.value)}
+                    placeholder={t("admin.newsletter.subject_placeholder")}
+                    disabled={!isCustomTemplate}
+                    className="border-border bg-transparent"
+                  />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              {subscribersLoading ? (
+
+              <div className="space-y-2">
+                <Label>{t("admin.newsletter.data_message_label")}</Label>
+                <div className="rounded-xl border border-border bg-background/40">
+                  <Editor value={dataMessage} onChange={(event) => setDataMessage(event.target.value)} />
+                </div>
+                {!isCustomTemplate ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t("admin.newsletter.custom_only_note")}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("admin.newsletter.recipients_label")}</Label>
+                <Input
+                  value={recipients}
+                  onChange={(event) => setRecipients(event.target.value)}
+                  placeholder={t("admin.newsletter.recipients_placeholder")}
+                  className="border-border bg-transparent"
+                />
+              </div>
+
+              {sendCount !== null ? (
+                <Alert className="border-emerald-200/60 bg-emerald-50/70 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertTitle>
+                    {t("admin.newsletter.success_message", { count: sendCount })}
+                  </AlertTitle>
+                </Alert>
+              ) : null}
+
+              {sendError ? (
+                <Alert variant="destructive">
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertTitle>{t("admin.newsletter.error_message")}</AlertTitle>
+                  <AlertDescription>{sendError}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              <Button
+                type="submit"
+                disabled={!canSend}
+                className="bg-primary text-white hover:bg-primary/90"
+              >
+                {isSending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                {isSending
+                  ? t("admin.newsletter.sending_button")
+                  : t("admin.newsletter.send_button")}
+              </Button>
+            </form>
+          </AdminSectionCard>
+
+          <div className="space-y-6">
+            <AdminSidebarCard
+              icon={Mail}
+              title={t("admin.newsletter.preview_title")}
+              description={t("admin.newsletter.preview_note")}
+              delay={0.18}
+            >
+              {templateContentLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{listLoading}</span>
+                  <span>{t("admin.newsletter.preview_loading")}</span>
                 </div>
-              ) : subscribersError ? (
-                <p className="text-sm text-red-500">{subscribersError}</p>
-              ) : subscribers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{listEmpty}</p>
+              ) : templateContentError ? (
+                <p className="text-sm text-red-500">{templateContentError}</p>
+              ) : !templateContent ? (
+                <AdminEmptyState
+                  icon={Mail}
+                  title={t("admin.newsletter.preview_empty")}
+                  className="py-10 text-center"
+                />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{columnEmail}</TableHead>
-                      <TableHead>{columnName}</TableHead>
-                      <TableHead>{columnUserType}</TableHead>
-                      <TableHead>{columnCompany}</TableHead>
-                      <TableHead>{columnLanguage}</TableHead>
-                      <TableHead>{columnSubscribedAt}</TableHead>
-                      <TableHead>{columnStatus}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {subscribers.map((subscriber) => (
-                      <TableRow key={subscriber.id}>
-                        <TableCell className="font-medium">{subscriber.email}</TableCell>
-                        <TableCell>{subscriber.name || "-"}</TableCell>
-                        <TableCell>{subscriber.user_type}</TableCell>
-                        <TableCell>{subscriber.company || "-"}</TableCell>
-                        <TableCell className="uppercase">{subscriber.language}</TableCell>
-                        <TableCell>
-                          {new Date(subscriber.subscribed_at).toLocaleDateString(
-                            locale === "en" ? "en-US" : "ro-RO",
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {subscriber.unsubscribed_at ? statusInactive : statusActive}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="rounded-xl border border-border bg-background/40 p-2">
+                  <iframe
+                    srcDoc={previewHtml}
+                    className="h-[480px] w-full rounded-lg bg-white"
+                    title={t("admin.newsletter.preview_frame_title")}
+                  />
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </AdminSidebarCard>
+
+            <AdminSidebarCard
+              icon={Users}
+              title={t("admin.newsletter.sidebar_title")}
+              description={t("admin.newsletter.sidebar_description")}
+              delay={0.26}
+            >
+              <div className="space-y-3">
+                <AdminOverviewItem
+                  label={t("admin.newsletter.sidebar.template")}
+                  value={template || "-"}
+                />
+                <AdminOverviewItem
+                  label={t("admin.newsletter.sidebar.audience")}
+                  value={
+                    userType === "all"
+                      ? t("admin.newsletter.user_type_all")
+                      : userType === "client"
+                        ? t("admin.newsletter.user_type_client")
+                        : t("admin.newsletter.user_type_provider")
+                  }
+                />
+                <AdminOverviewItem
+                  label={t("admin.newsletter.sidebar.language")}
+                  value={
+                    language === "ro"
+                      ? t("admin.newsletter.language_ro")
+                      : t("admin.newsletter.language_en")
+                  }
+                />
+                <AdminOverviewItem
+                  label={t("admin.newsletter.sidebar.explicit_recipients")}
+                  value={String(recipientList.length)}
+                />
+              </div>
+            </AdminSidebarCard>
+          </div>
         </div>
+
+        <AdminSectionCard
+          delay={0.28}
+          title={t("admin.newsletter.list_title")}
+          description={t("admin.newsletter.list_description")}
+          action={
+            <div className="flex flex-wrap items-center gap-4">
+              <AdminSearchInput
+                value={subscriberSearch}
+                onChange={(event) => setSubscriberSearch(event.target.value)}
+                placeholder={t("admin.newsletter.subscriber_search_placeholder")}
+                className="relative w-full sm:w-80"
+              />
+              <div className="flex items-center gap-3">
+                <Label className="text-sm">{t("admin.newsletter.per_page_label")}</Label>
+                <Select value={perPage} onValueChange={setPerPage}>
+                  <SelectTrigger className="h-11 w-28 border-border bg-transparent">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={onlyActive} onCheckedChange={setOnlyActive} />
+                <span className="text-sm text-muted-foreground">
+                  {t("admin.newsletter.only_active_label")}
+                </span>
+              </div>
+            </div>
+          }
+          headerClassName="flex-col items-start gap-4 xl:flex-row xl:items-center xl:justify-between"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.newsletter.columns.email")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.newsletter.columns.name")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.newsletter.columns.user_type")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.newsletter.columns.company")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.newsletter.columns.language")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.newsletter.columns.subscribed_at")}
+                  </th>
+                  <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                    {t("admin.newsletter.columns.status")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {subscribersLoading ? <AdminTableLoadingRow colSpan={7} /> : null}
+
+                {!subscribersLoading &&
+                subscribersError ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-sm text-red-500">
+                      {subscribersError}
+                    </td>
+                  </tr>
+                ) : null}
+
+                {!subscribersLoading &&
+                  !subscribersError &&
+                  filteredSubscribers.map((subscriber) => (
+                    <tr
+                      key={subscriber.id}
+                      className="border-b border-border/70 transition-colors hover:bg-secondary/20"
+                    >
+                      <td className="px-4 py-4 align-top font-medium">{subscriber.email}</td>
+                      <td className="px-4 py-4 align-top">{subscriber.name || "-"}</td>
+                      <td className="px-4 py-4 align-top">
+                        <Badge variant="secondary">
+                          {subscriber.user_type === "client"
+                            ? t("admin.newsletter.user_type_client")
+                            : t("admin.newsletter.user_type_provider")}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4 align-top">{subscriber.company || "-"}</td>
+                      <td className="px-4 py-4 align-top">
+                        <Badge variant="outline" className="uppercase">
+                          {subscriber.language}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        {new Date(subscriber.subscribed_at).toLocaleDateString(
+                          locale === "en" ? "en-US" : "ro-RO"
+                        )}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <Badge
+                          className={
+                            subscriber.unsubscribed_at
+                              ? "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                          }
+                        >
+                          {subscriber.unsubscribed_at
+                            ? t("admin.newsletter.status_inactive")
+                            : t("admin.newsletter.status_active")}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+
+                {!subscribersLoading && !subscribersError && filteredSubscribers.length === 0 ? (
+                  <AdminTableEmptyRow
+                    colSpan={7}
+                    icon={Users}
+                    title={t("admin.newsletter.list_empty")}
+                    description={t("admin.newsletter.list_empty_description")}
+                  />
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </AdminSectionCard>
       </div>
-    </>
+    </ProjectAdminShell>
   );
 }

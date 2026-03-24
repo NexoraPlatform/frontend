@@ -21,12 +21,12 @@ describe('lib/server/rate-limit', () => {
 
   it('falls back to a hashed session identifier when trusted IP headers are absent', () => {
     const headers = new Headers({
-      cookie: 'foo=bar; laravel_session=session-token-123; XSRF-TOKEN=test',
+      cookie: 'foo=bar; authjs.session-token=session-token-123',
       'user-agent': 'Mozilla/5.0',
     });
 
     const identifier = getClientIdentifier(headers);
-    expect(identifier).toMatch(/^session:laravel_session:/);
+    expect(identifier).toMatch(/^session:authjs\.session-token:/);
     expect(identifier).not.toContain('session-token-123');
   });
 

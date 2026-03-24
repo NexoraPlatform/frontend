@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/laravel-proxy';
+import {
+  API_BASE_URL,
+  appendSetCookie,
+  buildAuthenticatedProxyHeaders,
+} from '@/lib/server/laravel-proxy';
 
 type RouteContext = {
   params: Promise<{
@@ -18,7 +22,7 @@ export async function GET(req: Request, { params }: RouteContext) {
     targetUrl.searchParams.set(key, value);
   });
 
-  const headers = buildProxyHeaders(req);
+  const headers = await buildAuthenticatedProxyHeaders(req);
   const response = await fetch(targetUrl.toString(), {
     method: 'GET',
     headers,

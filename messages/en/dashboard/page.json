@@ -34,6 +34,10 @@
     "finance": "Financial",
     "settings": "Settings"
   },
+  "shell": {
+    "toggle_menu": "Toggle dashboard menu",
+    "sign_out": "Sign Out"
+  },
   "finance": {
     "title": "Financial status",
     "wallet_balance": "Wallet balance",
@@ -162,6 +166,42 @@
       }
     }
   },
+  "overview_page": {
+    "cards": {
+      "footer": "Compared to the last reporting window"
+    },
+    "charts": {
+      "performance_title": "Performance Trend",
+      "performance_description": "Current values compared with the previous reporting window across the core dashboard indicators.",
+      "mix_title": "Activity Mix",
+      "mix_description": "A quick breakdown of current workflow signals pulled from your latest dashboard activity.",
+      "previous": "Previous",
+      "current": "Current",
+      "value": "Value",
+      "groups": {
+        "projects": "Projects",
+        "finance": "Finance",
+        "collaboration": "Collaboration",
+        "delivery": "Delivery",
+        "system": "System"
+      }
+    },
+    "table": {
+      "title": "Recent Projects",
+      "description": "The latest opportunities and project updates visible from your dashboard home.",
+      "project": "Project",
+      "budget": "Budget",
+      "status": "Status",
+      "updated": "Updated",
+      "action": "Action",
+      "view_all": "View all",
+      "view": "View project",
+      "untitled_project": "Untitled project",
+      "no_budget": "Budget unavailable",
+      "empty_title": "No recent projects",
+      "empty_description": "Projects will appear here as soon as activity reaches your dashboard."
+    }
+  },
   "filters": {
     "search_placeholder": "Search projects by title or description...",
     "active": "Active filters:",
@@ -275,6 +315,7 @@
     }
   },
   "settings": {
+    "page_description": "Manage your profile, notifications, security preferences and company information.",
     "profile": {
       "title": "Profile Settings",
       "company_informations": "Company Information",

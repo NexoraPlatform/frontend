@@ -1,20 +1,18 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
+  ArrowDownLeft,
+  ArrowUpRight,
   Users,
   FileText,
   DollarSign,
   TrendingUp,
   Shield,
-  Settings,
   BarChart3,
-  Plus,
   FolderPlus,
   UserPlus,
   UserCheck,
@@ -22,34 +20,20 @@ import {
   Bell,
   BookOpen,
   IdCardLanyard,
-  TrendingDown,
-  History
+  History,
+  MoreVertical
 } from 'lucide-react';
 import CallIcon from '@mui/icons-material/Call';
 import apiClient from '@/lib/api';
+import { normalizeAdminStats, type AdminStats } from '@/lib/admin-stats';
 import { Can } from '@/components/Can';
 import ActivityFeed from '@/components/ActivityFeed';
 import { PriceDisplay } from '@/components/PriceDisplay';
-
-interface AdminStats {
-  totalUsers: number;
-  currentMonthUsers: number;
-  currentMonthVsLastMonthUsers: number;
-  activeServices: number;
-  currentMonthServices: number;
-  currentMonthVsLastMonthServices: number;
-  totalProjects: number;
-  currentMonthProjects: number;
-  totalPendingProjects: number;
-  currentMonthVsLastMonthProjects: number;
-  totalRevenue: number;
-  currentMonthRevenue: number;
-  currentMonthVsLastMonthRevenue: number;
-  pendingUsers: number;
-  pendingServices: number;
-  pendingCalls: number;
-  totalScheduleCalls: number;
-}
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { AdminSectionCard } from '@/components/admin/admin-section-card';
+import { AdminSummaryCard } from '@/components/admin/admin-summary-card';
+import { ProjectAdminShell } from '@/components/admin/project-admin-shell';
+import { TrustoraLandingFooter } from '@/components/homepage/trustora-landing/footer';
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState<AdminStats | null>(null);
@@ -58,10 +42,7 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       try {
         const response = await apiClient.getAdminStats();
-        if (!response.ok) {
-          throw new Error('Failed to fetch stats');
-        }
-        setStatsData(response);
+        setStatsData(normalizeAdminStats(response));
       } catch (error) {
         console.error('Error fetching stats:', error);
       }
@@ -139,6 +120,9 @@ export default function AdminDashboard() {
   const fastLabel = t('admin.dashboard.system_status.fast');
   const flexibleLabel = t('admin.dashboard.system_status.flexible');
   const activeLabel = t('admin.dashboard.system_status.active');
+  const currentMonthLabel = t('admin.dashboard.current_month');
+  const recentActivityTitle = t('admin.dashboard.activity.title');
+  const recentActivityViewAll = t('admin.dashboard.activity.view_all');
 
   const stats = useMemo(() => [
     {
@@ -147,7 +131,7 @@ export default function AdminDashboard() {
       change: Math.round(statsData?.currentMonthVsLastMonthUsers || 0),
       current: statsData?.currentMonthUsers || 0,
       icon: Users,
-      color: 'text-blue-600',
+      color: 'bg-gradient-to-br from-primary to-emerald-400',
       href: '/admin/users'
     },
     {
@@ -156,7 +140,7 @@ export default function AdminDashboard() {
       change: Math.round(statsData?.currentMonthVsLastMonthServices || 0),
       current: statsData?.currentMonthServices || 0,
       icon: FileText,
-      color: 'text-green-600',
+      color: 'bg-gradient-to-br from-blue-500 to-cyan-400',
       href: '/admin/services'
     },
     {
@@ -166,7 +150,7 @@ export default function AdminDashboard() {
       change: Math.round(statsData?.currentMonthVsLastMonthRevenue || 0),
       current: statsData?.currentMonthRevenue || 0,
       icon: DollarSign,
-      color: 'text-yellow-600',
+      color: 'bg-gradient-to-br from-purple-500 to-pink-400',
       href: '/admin/orders'
     },
     {
@@ -175,7 +159,7 @@ export default function AdminDashboard() {
       change: Math.round(statsData?.currentMonthVsLastMonthProjects || 0),
       current: statsData?.currentMonthProjects || 0,
       icon: TrendingUp,
-      color: 'text-purple-600',
+      color: 'bg-gradient-to-br from-orange-500 to-red-400',
       href: '/admin/orders'
     }
   ], [statsUsersTitle, statsServicesTitle, statsRevenueTitle, statsProjectsTitle, statsData]);
@@ -407,122 +391,125 @@ export default function AdminDashboard() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-8 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
-        <div className="relative flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Trustora Admin
-          </span>
-          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{dashboardTitle}</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-            {dashboardSubtitle}
-          </p>
-        </div>
-      </div>
+    <ProjectAdminShell>
+      <div className="flex min-h-full flex-col">
+        <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+          <AdminPageHeader
+            title={dashboardTitle}
+            description={dashboardSubtitle}
+            action={
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="hidden items-center space-x-2 rounded-lg px-4 py-2 transition-colors hover:bg-secondary sm:flex"
+              >
+                <MoreVertical className="h-5 w-5 text-muted-foreground" />
+              </motion.button>
+            }
+            className="sm:flex-row"
+          />
 
-      {/* Stats Cards */}
-      <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {stats.map((stat, index) => (
-          <Link key={index} href={stat.href}>
-            <Card className="group h-full border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-card dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)] dark:hover:border-sky-500/40 dark:hover:bg-slate-900">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                      {stat.title}
-                    </p>
-                    <p className="text-2xl font-semibold text-foreground flex flex-wrap items-center gap-2">
-                      {stat.isCurrency ? (
-                        <PriceDisplay value={Number(stat.value)} />
-                      ) : (
-                        stat.value
-                      )}
-                      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${stat?.current <= 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
-                        <span className="text-muted-foreground">(</span>
-                        {stat.isCurrency ? (
-                          <PriceDisplay value={Number(stat.current)} />
-                        ) : (
-                          stat?.current
-                        )} &nbsp;{stat?.current <= 0
-                          ? <TrendingDown className="text-red-500 w-5 h-5" />
-                          : <TrendingUp className="text-green-500 w-5 h-5" />}
-                        <span className="text-muted-foreground">)</span>
-                      </span>
-                    </p>
-                    {stat?.change && (<p className="text-xs text-muted-foreground mt-2">
-                      <span className={`font-semibold ${stat?.change < 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
-                        {t('admin.dashboard.stats.change_template', { percent: stat?.change })}
-                      </span>
-                    </p>)}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat, index) => (
+              <AdminSummaryCard
+                key={stat.title}
+                title={stat.title}
+                value={stat.isCurrency ? <PriceDisplay value={Number(stat.value)} /> : stat.value}
+                icon={stat.icon}
+                colorClassName={stat.color}
+                href={stat.href}
+                delay={index * 0.1}
+                badge={
+                  <div className={`flex items-center space-x-1 rounded-full px-3 py-1 text-sm font-medium ${
+                    stat.change >= 0
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-destructive/20 text-destructive'
+                  }`}>
+                    {stat.change >= 0 ? (
+                      <>
+                        <ArrowUpRight className="h-4 w-4" />
+                        <span>+{Math.abs(stat.change)}%</span>
+                      </>
+                    ) : (
+                      <>
+                        <ArrowDownLeft className="h-4 w-4" />
+                        <span>-{Math.abs(stat.change)}%</span>
+                      </>
+                    )}
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-2xl bg-sky-500/20 blur-xl transition-opacity group-hover:opacity-100 opacity-0" />
-                    <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border border-border/60 bg-background/60 ${stat.color} dark:border-slate-800/70 dark:bg-slate-950/70`}>
-                      <stat.icon className="w-6 h-6" />
-                    </div>
+                }
+                footer={
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p>{t('admin.dashboard.stats.change_template', { percent: Math.abs(stat.change) })}</p>
+                    <p>
+                      {currentMonthLabel}: {stat.isCurrency ? <PriceDisplay value={Number(stat.current)} /> : stat.current}
+                    </p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                }
+              />
+            ))}
+          </div>
 
-      <div className="grid xs:grid-cols-1 lg:grid-cols-[2.6fr_1fr] gap-8">
-        {/* Quick Actions */}
-        <div>
-          <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-foreground">
-                <Plus className="w-5 h-5" />
-                <span>{quickActionsTitle}</span>
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                {quickActionsDescription}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <AdminSectionCard
+              delay={0.2}
+              title={quickActionsTitle}
+              description={quickActionsDescription}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
                 {quickActions.map((action, index) => (
-                  <Link key={index} href={action.href}>
-                    <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
-                      <CardContent className="p-4">
-                        <div className="flex items-start space-x-3">
-                          <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                            <action.icon className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold mb-1 text-foreground">{action.title}</h3>
-                            <p className="text-sm text-muted-foreground">{action.description}</p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                  <motion.div
+                    key={action.title}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.05, duration: 0.4 }}
+                  >
+                    <Link
+                      href={action.href}
+                      className="glass-effect block h-full rounded-xl border border-border p-4 transition-all duration-200 hover:border-primary/40 active:scale-95"
+                    >
+                      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${action.color}`}>
+                        <action.icon className="h-5 w-5 text-white" />
+                      </div>
+                      <p className="text-sm font-medium">{action.title}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">{action.description}</p>
+                    </Link>
+                  </motion.div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </AdminSectionCard>
 
-          {/* Admin Sections */}
-          <Card className="mt-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-foreground">
-                <Settings className="w-5 h-5" />
-                <span>{sectionsTitle}</span>
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                {sectionsDescription}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+            <AdminSectionCard
+              delay={0.3}
+              title={systemStatusTitle}
+              description={dashboardSubtitle}
+            >
+              <div className="space-y-3">
+                {systemStatus.map((status) => (
+                  <div
+                    key={status.label}
+                    className="flex items-center justify-between rounded-xl border border-border/60 bg-background/50 px-4 py-3"
+                  >
+                    <span className="text-sm text-muted-foreground">{status.label}</span>
+                    <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      {status.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </AdminSectionCard>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
+            <AdminSectionCard
+              delay={0.4}
+              title={sectionsTitle}
+              description={sectionsDescription}
+            >
+              <div className="grid gap-4 md:grid-cols-2">
                 {adminSections.map((section, index) => (
                   <Can
-                    key={index}
+                    key={section.href}
                     {...(
                       section.role === 'superuser'
                         ? { superuser: true }
@@ -530,66 +517,81 @@ export default function AdminDashboard() {
                     )}
                     allPerms={section.permissions || []}
                   >
-                    <Link href={section.href}>
-                      <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-start space-x-3">
-                              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
-                                <section.icon className="w-5 h-5 text-sky-600 dark:text-sky-300" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold mb-1 text-foreground">{section.title}</h3>
-                                <p className="text-sm text-muted-foreground mb-2">{section.description}</p>
-                                <p className="text-xs text-muted-foreground/80">{section.stats}</p>
-                              </div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 + index * 0.05, duration: 0.4 }}
+                    >
+                      <Link
+                        href={section.href}
+                        className="glass-effect group flex h-full flex-col rounded-2xl border border-border p-5 transition-all duration-200 hover:border-primary/40 hover:bg-secondary/20"
+                      >
+                        <div className="mb-4 flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                              <section.icon className="h-5 w-5 text-primary" />
                             </div>
-                            <div className="flex flex-col items-end space-y-1">
-                              {section.pending > 0 && (
-                                <Badge variant="destructive" className="text-xs w-max">
-                                  {t('admin.dashboard.pending_template', { count: section.pending })}
-                                </Badge>
-                              )}
-                              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
+                            <div>
+                              <p className="text-sm font-semibold">{section.title}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">{section.description}</p>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" />
+                        </div>
+
+                        <div className="mt-auto space-y-3">
+                          <div className="rounded-xl border border-border/60 bg-background/50 px-4 py-3">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                              {t('admin.dashboard.table.stats')}
+                            </p>
+                            <p className="mt-2 text-sm text-foreground/90">{section.stats || section.description}</p>
+                          </div>
+
+                          <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/50 px-4 py-3">
+                            <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                              {t('admin.dashboard.table.pending')}
+                            </span>
+                            {section.pending > 0 ? (
+                              <span className="inline-flex items-center rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                                {t('admin.dashboard.pending_template', { count: section.pending })}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                0
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
                   </Can>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </AdminSectionCard>
 
-        {/* Recent Activity */}
-        <div>
-          <ActivityFeed />
-
-          {/* System Status */}
-
-          {/* System Status */}
-          <Card className="mt-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-foreground">
-                <Bell className="w-5 h-5" />
-                <span>{systemStatusTitle}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {systemStatus.map((status, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{status.label}</span>
-                    <Badge className="border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">{status.value}</Badge>
-                  </div>
-                ))}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="glass-effect rounded-2xl border border-border p-6"
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h3 className="mb-1 text-lg font-bold">{recentActivityTitle}</h3>
+                  <p className="text-sm text-muted-foreground">{activitiesSectionDescription}</p>
+                </div>
+                <Link href="/admin/activity" className="text-sm font-medium text-primary transition-colors hover:text-primary/80">
+                  {recentActivityViewAll}
+                </Link>
               </div>
-            </CardContent>
-          </Card>
+
+              <ActivityFeed withCard={false} title={recentActivityTitle} />
+            </motion.div>
+          </div>
         </div>
+
+        <TrustoraLandingFooter />
       </div>
-    </div>
+    </ProjectAdminShell>
   );
 }

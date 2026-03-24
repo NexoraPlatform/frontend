@@ -1,0 +1,118 @@
+{
+  "legal_clauses": {
+    "manage_title": "Clauze Legale",
+    "manage_subtitle": "Administrează biblioteca de clauze legale, traducerile și textele pregătite pentru contracte.",
+    "create_title": "Creează Clauză Legală",
+    "create_subtitle": "Adaugă un identificator nou, o categorie și una sau mai multe traduceri pentru motorul juridic.",
+    "edit_title": "Editează Clauza Legală",
+    "edit_subtitle": "Actualizează metadatele și traducerile acestei clauze direct din dashboard.",
+    "add_clause": "Adaugă Clauză",
+    "summary": {
+      "cards": {
+        "total": "Total clauze",
+        "categories": "Categorii",
+        "translations": "Traduceri",
+        "recently_updated": "Actualizate 30z"
+      }
+    },
+    "filters": {
+      "title": "Filtre",
+      "description": "Caută după identificator, categorie sau traducere și rafinează biblioteca după limbă și sortare.",
+      "search": "Căutare",
+      "category": "Categorie",
+      "all_categories": "Toate categoriile",
+      "identifier": "Identificator",
+      "sort_by": "Sortează după",
+      "direction": "Direcție",
+      "language": "Limbă",
+      "per_page": "Pe pagină",
+      "apply": "Reîncarcă"
+    },
+    "sort": {
+      "created_at": "Data creării",
+      "updated_at": "Data actualizării",
+      "identifier": "Identificator",
+      "category": "Categorie"
+    },
+    "direction": {
+      "asc": "Ascendent",
+      "desc": "Descendent"
+    },
+    "languages": {
+      "all": "Toate limbile",
+      "en": "Engleză",
+      "ro": "Română",
+      "de": "Germană",
+      "it": "Italiană",
+      "fr": "Franceză",
+      "es": "Spaniolă",
+      "pl": "Poloneză",
+      "nl": "Olandeză",
+      "ch": "Chineză",
+      "ie": "Irlandeză"
+    },
+    "list_title": "Bibliotecă de Clauze",
+    "list_description": "{count} clauze găsite",
+    "table": {
+      "identifier": "Identificator",
+      "category": "Categorie",
+      "preview": "Preview",
+      "languages": "Limbi",
+      "updated": "Actualizat",
+      "actions": "Acțiuni",
+      "updated_label": "Actualizat {date}",
+      "page_label": "Pagina {current} din {total}"
+    },
+    "translations_count": "{count} traduceri",
+    "empty_title": "Nu s-au găsit clauze",
+    "empty_description": "Modifică filtrele sau creează o clauză nouă.",
+    "actions": {
+      "edit": "Editează",
+      "delete": "Șterge",
+      "create": "Creează Clauza",
+      "save": "Salvează Modificările",
+      "saving": "Se salvează...",
+      "cancel": "Anulează",
+      "previous": "Anterior",
+      "next": "Următor",
+      "back": "Înapoi la clauze"
+    },
+    "form": {
+      "details_title": "Detalii Clauză",
+      "details_description": "Identificatorul și categoria controlează cum este referențiată clauza în motorul juridic.",
+      "identifier": "Identificator",
+      "identifier_placeholder": "custom_clause",
+      "category": "Categorie",
+      "category_placeholder": "scope",
+      "translations_title": "Traduceri",
+      "translations_description": "Adaugă toate traducerile disponibile. Câmpurile goale sunt ignorate.",
+      "translation_title": "Traducere",
+      "translation_description": "Actualizează limba selectată fără să afectezi restul bibliotecii.",
+      "language": "Limbă",
+      "text_label": "Text ({language})",
+      "text_placeholder": "Textul clauzei"
+    },
+    "sidebar": {
+      "create_title": "Note de Publicare",
+      "create_description": "Păstrează identificatorii stabili și folosește categorii care corespund grupurilor din motorul contractual.",
+      "edit_title": "Privire Generală",
+      "edit_description": "Metadate rapide despre clauza selectată și acoperirea traducerilor.",
+      "selected_language": "Limba selectată",
+      "available_translations": "Traduceri disponibile",
+      "created_at": "Creată",
+      "updated_at": "Actualizată"
+    },
+    "errors": {
+      "load_list": "Nu s-au putut încărca clauzele legale.",
+      "load_categories": "Nu s-au putut încărca categoriile clauzelor legale.",
+      "delete_confirm": "Ștergi această clauză legală? Acțiunea nu poate fi anulată.",
+      "delete_failed": "Nu s-a putut șterge clauza legală.",
+      "create_required": "Identificatorul, categoria și cel puțin o traducere sunt obligatorii.",
+      "create_failed": "Nu s-a putut crea clauza legală.",
+      "load_detail": "Nu s-a putut încărca clauza legală.",
+      "update_required_identifier": "Identificatorul și categoria sunt obligatorii.",
+      "update_required_content": "Textul clauzei este obligatoriu pentru limba selectată.",
+      "update_failed": "Nu s-a putut actualiza clauza legală."
+    }
+  }
+}

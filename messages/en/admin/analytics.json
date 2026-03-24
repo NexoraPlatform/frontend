@@ -1,10 +1,101 @@
 {
   "analytics": {
     "manage_title": "Analytics & Reports",
-    "manage_subtitle": "Analyze platform performance",
+    "manage_subtitle": "Analyze platform performance with the dashboard reporting view.",
     "stats_title": "Detailed Statistics",
     "stats_description": "Reports and analytics for the Trustora platform",
     "in_development_title": "Analytics in development",
-    "in_development_description": "Detailed reports will be available soon"
+    "in_development_description": "Live reporting is available now, and deeper drill-down reports will continue to expand here.",
+    "loading": "Loading analytics data...",
+    "error_message": "We couldn't load the analytics overview.",
+    "error_prefix": "Error: ",
+    "actions": {
+      "refresh": "Refresh"
+    },
+    "summary": {
+      "cards": {
+        "users": "Registered Users",
+        "services": "Active Services",
+        "revenue": "Total Revenue",
+        "projects": "Processed Projects"
+      }
+    },
+    "metrics": {
+      "users": "Users",
+      "services": "Services",
+      "revenue": "Revenue",
+      "projects": "Projects",
+      "calls": "Calls"
+    },
+    "comparison": {
+      "title": "Monthly Momentum",
+      "description": "Current month compared with the previous month across the main platform indicators.",
+      "monthly_signal": "Monthly signal",
+      "previous_month": "Previous month",
+      "current_month": "Current month"
+    },
+    "charts": {
+      "performance_title": "Performance Trend",
+      "performance_description": "A line-view of current month versus previous month across the core delivery metrics.",
+      "distribution_title": "Operational Distribution",
+      "distribution_description": "Monthly throughput and pending load across the operational queues.",
+      "legend": {
+        "current": "Current month",
+        "previous": "Previous month",
+        "pending": "Pending"
+      }
+    },
+    "pipeline": {
+      "title": "Operational Pipeline",
+      "description": "Current load and pending items across the main operational areas.",
+      "focus_label": "Current focus"
+    },
+    "key_metrics": {
+      "title": "Key Metrics",
+      "description": "Derived indicators inspired by the dashboard reporting panels from the reference design.",
+      "items": {
+        "user_growth": "User Growth Rate",
+        "service_growth": "Service Growth Rate",
+        "revenue_growth": "Revenue Growth Rate",
+        "avg_revenue_per_project": "Avg Revenue / Project",
+        "project_clearance": "Project Clearance",
+        "pending_load": "Pending Review Load"
+      },
+      "helpers": {
+        "growth_signal": "Growth signal",
+        "unit_economics": "Unit economics",
+        "delivery_health": "Delivery health",
+        "review_queue": "Review queue"
+      }
+    },
+    "report_table": {
+      "title": "Reporting Breakdown",
+      "description": "Operational totals, current-month movement, and pending queues in one consolidated table.",
+      "metric": "Metric",
+      "total": "Total",
+      "current": "Current month",
+      "change": "Change",
+      "pending": "Pending",
+      "stream_finance": "Financial reporting stream",
+      "stream_operational": "Operational reporting stream"
+    },
+    "sidebar": {
+      "overview_title": "Analytics Snapshot",
+      "overview_description": "Key values to monitor without leaving the reporting view.",
+      "revenue_now": "Current month revenue",
+      "pending_reviews": "Pending reviews",
+      "processed_projects": "Processed projects",
+      "scheduled_calls": "Scheduled calls",
+      "reporting_title": "Reporting Notes",
+      "reporting_description": "Data source and coverage for the current dashboard view.",
+      "source": "Source",
+      "source_value": "Admin platform stats",
+      "coverage": "Coverage",
+      "coverage_value": "Users, services, revenue, projects, calls",
+      "refresh": "Refresh mode",
+      "live": "Live"
+    },
+    "empty_title": "No analytics data available",
+    "empty_description": "The reporting dashboard will populate as activity is recorded."
   }
 }

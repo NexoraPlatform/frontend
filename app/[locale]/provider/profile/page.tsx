@@ -442,6 +442,19 @@ export default function ProviderProfileEditPage() {
             billing_postal_code: '',
         },
     });
+    const roleSlugs = useMemo(() => {
+        const rolesList: any[] = Array.isArray(user?.roles) ? (user?.roles ?? []) : [];
+        const fromRoles = rolesList.map((role: any) => role?.slug).filter(Boolean);
+        const fromRoleSlugs = (Array.isArray(user?.role_slugs) ? user?.role_slugs : []) ?? [];
+        const fromSingleRole = user?.role ? [user.role] : [];
+        return Array.from(
+            new Set(
+                [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
+                    .filter(Boolean)
+                    .map((slug) => String(slug).toLowerCase()),
+            ),
+        );
+    }, [user?.roles, user?.role_slugs, user?.role]);
 
     const updateSectionQuery = useCallback((value: ProviderProfileTab) => {
         const params = buildProviderProfileSearchParams(searchParams, value, defaultTab);
@@ -932,19 +945,6 @@ export default function ProviderProfileEditPage() {
             profileData.firstName.trim() !== String(providerProfile.firstName || '').trim() ||
             profileData.lastName.trim() !== String(providerProfile.lastName || '').trim()
         );
-    const roleSlugs = useMemo(() => {
-        const rolesList = Array.isArray(user?.roles) ? user.roles : [];
-        const fromRoles = rolesList.map((role: any) => role?.slug).filter(Boolean);
-        const fromRoleSlugs = (Array.isArray(user?.role_slugs) ? user.role_slugs : []) ?? [];
-        const fromSingleRole = user?.role ? [user.role] : [];
-        return Array.from(
-            new Set(
-                [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
-                    .filter(Boolean)
-                    .map((slug) => String(slug).toLowerCase()),
-            ),
-        );
-    }, [user?.roles, user?.role_slugs, user?.role]);
     // This page is provider-only; keep provider dashboard menu behavior even if role payload is partial.
     const isProviderFromRoute = true;
     const isProvider = isProviderFromRoute || roleSlugs.includes('provider');

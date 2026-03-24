@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/lib/navigation";
 
 import { revealEase } from "./constants";
-import type { LandingHeroPanel, LandingMetric } from "./types";
+import type { LandingMetric } from "./types";
 
 export function TrustoraLandingHeroSection() {
   const t = useTranslations("trustora.landing");
@@ -19,40 +19,41 @@ export function TrustoraLandingHeroSection() {
     { value: "500K+", label: t("hero.metrics.transactions_label") },
   ];
 
-  const panel: LandingHeroPanel = {
-    balanceLabel: t("hero.panel.balance_label"),
-    balanceValue: t("hero.panel.balance_value"),
-    balanceGrowth: t("hero.panel.balance_growth"),
-    cards: [
-      {
-        label: t("hero.panel.income.label"),
-        value: t("hero.panel.income.value"),
-        trend: t("hero.panel.income.trend"),
-      },
-      {
-        label: t("hero.panel.expenses.label"),
-        value: t("hero.panel.expenses.value"),
-        trend: t("hero.panel.expenses.trend"),
-      },
-    ],
-    transactions: [
-      {
-        name: t("hero.panel.transactions.first.name"),
-        amount: t("hero.panel.transactions.first.amount"),
-        time: t("hero.panel.transactions.first.time"),
-      },
-      {
-        name: t("hero.panel.transactions.second.name"),
-        amount: t("hero.panel.transactions.second.amount"),
-        time: t("hero.panel.transactions.second.time"),
-      },
-      {
-        name: t("hero.panel.transactions.third.name"),
-        amount: t("hero.panel.transactions.third.amount"),
-        time: t("hero.panel.transactions.third.time"),
-      },
-    ],
-  };
+  const panelStats = [
+    {
+      label: t("hero.panel.stats.first.label"),
+      value: t("hero.panel.stats.first.value"),
+      change: t("hero.panel.stats.first.change"),
+    },
+    {
+      label: t("hero.panel.stats.second.label"),
+      value: t("hero.panel.stats.second.value"),
+      change: t("hero.panel.stats.second.change"),
+    },
+    {
+      label: t("hero.panel.stats.third.label"),
+      value: t("hero.panel.stats.third.value"),
+      change: t("hero.panel.stats.third.change"),
+    },
+  ];
+
+  const checks = [
+    {
+      name: t("hero.panel.checks.first.name"),
+      status: t("hero.panel.checks.first.status"),
+      tone: "success" as const,
+    },
+    {
+      name: t("hero.panel.checks.second.name"),
+      status: t("hero.panel.checks.second.status"),
+      tone: "success" as const,
+    },
+    {
+      name: t("hero.panel.checks.third.name"),
+      status: t("hero.panel.checks.third.status"),
+      tone: "accent" as const,
+    },
+  ];
 
   return (
     <section className="relative isolate flex min-h-screen items-center justify-center overflow-hidden pt-20">
@@ -140,77 +141,110 @@ export function TrustoraLandingHeroSection() {
             </motion.div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.3, ease: revealEase }}
-            className="relative"
-          >
-            <div className="glass-effect relative rounded-3xl p-8 shadow-2xl">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">{panel.balanceLabel}</div>
-                    <div className="text-3xl font-bold">{panel.balanceValue}</div>
+          <div className="flex justify-center lg:justify-end">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.3, ease: revealEase }}
+              className="relative w-full max-w-lg"
+              style={{ perspective: "1200px", transformStyle: "preserve-3d" }}
+            >
+              <div className="absolute inset-0 -m-8 rounded-3xl bg-[#1BC47D]/10 blur-3xl" />
+
+              <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_40px_-20px_rgba(0,0,0,0.5)] dark:border-white/10 dark:bg-[#111B27]">
+                <div className="flex items-center gap-2 border-b border-black/5 bg-black/5 px-4 py-3 dark:border-white/5 dark:bg-white/5">
+                  <div className="flex gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-red-400/60" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/60" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-green-400/60" />
                   </div>
-                  <div className="rounded-full bg-primary/20 px-4 py-2 text-sm font-medium text-primary">
-                    {panel.balanceGrowth}
+                  <div className="mx-4 flex-1">
+                    <div className="flex h-5 items-center rounded-md bg-black/5 px-3 dark:bg-white/5">
+                      <span className="font-mono text-[10px] text-[#64748B] dark:text-[#94A3B8]">
+                        {t("hero.panel.browser_url")}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {panel.cards.map((item, index) => (
-                    <motion.div
-                      key={item.label}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + index * 0.1, duration: 0.6 }}
-                      className="rounded-2xl border border-white/5 bg-background/50 p-4"
-                    >
-                      <div className="mb-1 text-xs text-muted-foreground">{item.label}</div>
-                      <div className="text-xl font-bold">{item.value}</div>
-                      <div className="mt-1 text-xs text-primary">{item.trend}</div>
-                    </motion.div>
-                  ))}
-                </div>
+                <div className="space-y-4 p-5">
+                  <div className="grid grid-cols-3 gap-3">
+                    {panelStats.map((item, index) => (
+                      <motion.div
+                        key={item.label}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.45 + index * 0.08, duration: 0.5 }}
+                        className="rounded-xl bg-black/5 p-3 dark:bg-white/5"
+                      >
+                        <p className="mb-1 text-[10px] text-[#64748B] dark:text-[#94A3B8]">{item.label}</p>
+                        <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F5F7FA]">{item.value}</p>
+                        <p className="text-[10px] font-medium text-[#1BC47D]">{item.change}</p>
+                      </motion.div>
+                    ))}
+                  </div>
 
-                <div className="space-y-3">
-                  {panel.transactions.map((transaction, index) => (
-                    <motion.div
-                      key={transaction.name}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 + index * 0.1, duration: 0.6 }}
-                      className="flex items-center justify-between rounded-xl border border-white/5 bg-background/50 p-3 transition-colors hover:border-primary/50"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
-                          <div className="h-2 w-2 rounded-full bg-primary" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium">{transaction.name}</div>
-                          <div className="text-xs text-muted-foreground">{transaction.time}</div>
-                        </div>
-                      </div>
-                      <div className="text-sm font-bold text-primary">{transaction.amount}</div>
-                    </motion.div>
-                  ))}
+                  <motion.div
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.68, duration: 0.55 }}
+                    className="relative h-28 overflow-hidden rounded-xl bg-black/5 p-4 dark:bg-white/5"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-[#64748B] dark:text-[#94A3B8]">
+                        {t("hero.panel.chart.title")}
+                      </span>
+                      <span className="text-[10px] font-medium text-[#1BC47D]">
+                        {t("hero.panel.chart.live")}
+                      </span>
+                    </div>
+
+                    <svg viewBox="0 0 300 60" preserveAspectRatio="none" className="h-14 w-full">
+                      <defs>
+                        <linearGradient id="heroChartGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#1BC47D" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#1BC47D" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M0,50 Q30,45 60,35 T120,25 T180,30 T240,20 T300,5"
+                        fill="none"
+                        stroke="#1BC47D"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M0,50 Q30,45 60,35 T120,25 T180,30 T240,20 T300,5 L300,60 L0,60Z"
+                        fill="url(#heroChartGrad)"
+                      />
+                    </svg>
+                  </motion.div>
+
+                  <div className="space-y-2">
+                    {checks.map((item, index) => (
+                      <motion.div
+                        key={item.name}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 + index * 0.08, duration: 0.45 }}
+                        className="flex items-center justify-between rounded-lg bg-black/[0.03] px-3 py-2 dark:bg-white/[0.03]"
+                      >
+                        <span className="text-xs text-[#0F172A] dark:text-[#F5F7FA]">{item.name}</span>
+                        <span
+                          className={
+                            item.tone === "accent"
+                              ? "rounded-full px-2 py-0.5 text-[10px] font-medium text-[#21D19F] bg-[rgba(33,209,159,0.082)]"
+                              : "rounded-full bg-[rgba(27,196,125,0.082)] px-2 py-0.5 text-[10px] font-medium text-[#1BC47D]"
+                          }
+                        >
+                          {item.status}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               </div>
-
-              <motion.div
-                animate={{
-                  boxShadow: [
-                    "0 0 0 0 rgba(27, 196, 125, 0)",
-                    "0 0 0 20px rgba(27, 196, 125, 0.05)",
-                    "0 0 0 0 rgba(27, 196, 125, 0)",
-                  ],
-                }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-0 -z-10 rounded-3xl"
-              />
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>

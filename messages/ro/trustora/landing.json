@@ -17,34 +17,40 @@
         "transactions_label": "Tranzacții"
       },
       "panel": {
-        "balance_label": "Sold total",
-        "balance_value": "$2,847,392.00",
-        "balance_growth": "+12.5%",
-        "income": {
-          "label": "Venituri",
-          "value": "$842.5K",
-          "trend": "+8.2%"
-        },
-        "expenses": {
-          "label": "Cheltuieli",
-          "value": "$234.1K",
-          "trend": "-2.4%"
-        },
-        "transactions": {
+        "browser_url": "trustora.com/dashboard",
+        "stats": {
           "first": {
-            "name": "Tranzacția A",
-            "amount": "+$12,400",
-            "time": "acum 2m"
+            "label": "Volum",
+            "value": "$2.4M",
+            "change": "+12.5%"
           },
           "second": {
-            "name": "Tranzacția B",
-            "amount": "+$8,200",
-            "time": "acum 5m"
+            "label": "Conformitate",
+            "value": "99.8%",
+            "change": "+0.3%"
           },
           "third": {
-            "name": "Tranzacția C",
-            "amount": "+$5,600",
-            "time": "acum 12m"
+            "label": "Active",
+            "value": "1,247",
+            "change": "+89"
+          }
+        },
+        "chart": {
+          "title": "Volum tranzacții",
+          "live": "Live"
+        },
+        "checks": {
+          "first": {
+            "name": "Verificare KYC",
+            "status": "Aprobată"
+          },
+          "second": {
+            "name": "Screening AML",
+            "status": "Curat"
+          },
+          "third": {
+            "name": "Evaluare risc",
+            "status": "Scăzut"
           }
         }
       }

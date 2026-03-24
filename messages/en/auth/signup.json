@@ -4,6 +4,19 @@
     "title_prefix": "Create your",
     "title_brand": "Trustora account",
     "subtitle": "Set up your profile and prepare your projects for secure, transparent collaboration.",
+    "social_divider": "Or continue with",
+    "hero_kicker": "Verified onboarding",
+    "oauth_unavailable": "Social sign-up is unavailable right now.",
+    "providers": {
+      "google": "Google",
+      "github": "GitHub"
+    },
+    "metrics": {
+      "account_value": "Client & Provider",
+      "account_label": "Flexible account roles",
+      "security_value": "Escrow-ready",
+      "security_label": "Secure onboarding"
+    },
     "benefits": {
       "digital_contracts": "Digital contracts with automated escrow",
       "fast_verifications": "Fast verification for clients and providers",

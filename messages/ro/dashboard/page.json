@@ -34,6 +34,10 @@
     "finance": "Situație financiară",
     "settings": "Setări"
   },
+  "shell": {
+    "toggle_menu": "Comută meniul dashboardului",
+    "sign_out": "Deconectare"
+  },
   "finance": {
     "title": "Situație financiară",
     "wallet_balance": "Sold portofel",
@@ -162,6 +166,42 @@
       }
     }
   },
+  "overview_page": {
+    "cards": {
+      "footer": "Comparativ cu ultima fereastră de raportare"
+    },
+    "charts": {
+      "performance_title": "Trend Performanță",
+      "performance_description": "Valorile curente comparate cu fereastra anterioară de raportare pentru indicatorii principali din dashboard.",
+      "mix_title": "Mix Activitate",
+      "mix_description": "O vedere rapidă asupra semnalelor de workflow extrase din activitatea recentă a dashboardului tău.",
+      "previous": "Anterior",
+      "current": "Curent",
+      "value": "Valoare",
+      "groups": {
+        "projects": "Proiecte",
+        "finance": "Financiar",
+        "collaboration": "Colaborare",
+        "delivery": "Livrare",
+        "system": "Sistem"
+      }
+    },
+    "table": {
+      "title": "Proiecte Recente",
+      "description": "Cele mai noi oportunități și actualizări de proiect vizibile din homepage-ul dashboardului.",
+      "project": "Proiect",
+      "budget": "Buget",
+      "status": "Status",
+      "updated": "Actualizat",
+      "action": "Acțiune",
+      "view_all": "Vezi tot",
+      "view": "Vezi proiectul",
+      "untitled_project": "Proiect fără titlu",
+      "no_budget": "Buget indisponibil",
+      "empty_title": "Nu există proiecte recente",
+      "empty_description": "Proiectele vor apărea aici imediat ce ajunge activitate în dashboard."
+    }
+  },
   "filters": {
     "search_placeholder": "Caută proiecte după titlu sau descriere...",
     "active": "Filtre active:",
@@ -275,6 +315,7 @@
     }
   },
   "settings": {
+    "page_description": "Gestionează-ți profilul, notificările, preferințele de securitate și informațiile companiei.",
     "profile": {
       "title": "Setări profil",
       "company_informations": "Informații Companie",

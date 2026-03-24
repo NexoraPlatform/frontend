@@ -9,6 +9,13 @@
       "projects": "Processed Projects",
       "change_template": "{percent}% this month"
     },
+    "current_month": "Current month",
+    "table": {
+      "section": "Section",
+      "stats": "Stats",
+      "pending": "Pending",
+      "action": "Action"
+    },
     "quick_actions": {
       "title": "Quick Actions",
       "description": "Common actions for platform administration",
@@ -96,6 +103,28 @@
       }
     },
     "pending_template": "{count} pending",
+    "shell": {
+      "brand_label": "Administration",
+      "toggle_menu": "Toggle admin menu",
+      "search_placeholder": "Search users, services...",
+      "account_settings": "Account Settings",
+      "sign_out": "Sign Out",
+      "menu": {
+        "dashboard": "Dashboard",
+        "users": "Users",
+        "services": "Services",
+        "projects": "Projects",
+        "calls": "Calls",
+        "disputes": "Disputes",
+        "legal_clauses": "Legal Clauses",
+        "newsletter": "Newsletter",
+        "activity": "Activity",
+        "audit_logs": "Audit Logs",
+        "roles": "Roles",
+        "analytics": "Analytics",
+        "settings": "Settings"
+      }
+    },
     "activity": {
       "title": "Recent Activity",
       "entries": {

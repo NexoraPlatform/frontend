@@ -1,15 +1,24 @@
 "use client";
 
-import { Link } from '@/lib/navigation';
-import { ArrowLeft, Loader2, UserCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { useEarlyAccessGrouped } from "@/hooks/use-api";
+import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Clock3,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminSectionCard } from "@/components/admin/admin-section-card";
+import { AdminSummaryCard } from "@/components/admin/admin-summary-card";
+import { AdminEmptyState, AdminSpinner } from "@/components/admin/admin-state";
+import { AdminSearchInput } from "@/components/admin/admin-search-input";
+import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEarlyAccessGrouped } from "@/hooks/use-api";
 
 type ProviderEntry = {
   id: number;
@@ -57,15 +66,14 @@ type EarlyAccessResponse = {
   };
 };
 
-const formatDate = (value: string, locale: string) => {
-  if (!value) {
-    return "-";
-  }
+type CombinedEntry =
+  | (ProviderEntry & { displayName: string; organization: string })
+  | (ClientEntry & { displayName: string; organization: string });
 
+const formatDate = (value: string, locale: string) => {
+  if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
+  if (Number.isNaN(date.getTime())) return "-";
 
   return date.toLocaleDateString(locale === "ro" ? "ro-RO" : "en-US", {
     year: "numeric",
@@ -75,14 +83,9 @@ const formatDate = (value: string, locale: string) => {
 };
 
 const formatDateTime = (value: string | null, locale: string) => {
-  if (!value) {
-    return "-";
-  }
-
+  if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
+  if (Number.isNaN(date.getTime())) return "-";
 
   return date.toLocaleString(locale === "ro" ? "ro-RO" : "en-US", {
     year: "numeric",
@@ -93,9 +96,24 @@ const formatDateTime = (value: string | null, locale: string) => {
   });
 };
 
+const getVerificationBadgeClassName = (verified: boolean, expired: boolean) => {
+  if (verified) {
+    return "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+  }
+
+  if (expired) {
+    return "bg-destructive/20 text-destructive";
+  }
+
+  return "bg-amber-500/20 text-amber-600 dark:text-amber-400";
+};
+
 export default function AdminEarlyAccessPage() {
   const locale = useLocale();
   const t = useTranslations();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [tab, setTab] = useState("providers");
+
   const { data, loading, error } = useEarlyAccessGrouped() as {
     data: EarlyAccessResponse | null;
     loading: boolean;
@@ -126,215 +144,322 @@ export default function AdminEarlyAccessPage() {
   const verifiedLabel = t("admin.early_access.status.verified");
   const unverifiedLabel = t("admin.early_access.status.unverified");
   const expiredLabel = t("admin.early_access.status.expired");
-
   const paginationLabel = t("admin.early_access.pagination");
+  const searchPlaceholder = t("admin.early_access.search_placeholder");
+  const summaryTitle = t("admin.early_access.summary.title");
+  const summaryDescription = t("admin.early_access.summary.description");
+  const totalApplicationsLabel = t("admin.early_access.summary.cards.total");
+  const verifiedApplicationsLabel = t("admin.early_access.summary.cards.verified");
+  const pendingApplicationsLabel = t("admin.early_access.summary.cards.pending");
+  const averageScoreLabel = t("admin.early_access.summary.cards.average_score");
 
   const providers = data?.providers ?? [];
   const clients = data?.clients ?? [];
   const pagination = data?.pagination;
 
-  return (
-    <>
-      <TrustoraThemeStyles />
-      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
-        <div className="container mx-auto px-4 py-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <Link href="/admin">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{manageTitle}</h1>
-                <p className="text-sm text-muted-foreground">{manageSubtitle}</p>
-                {pagination && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {paginationLabel
-                      .replace("{current}", pagination.current_page.toString())
-                      .replace("{last}", pagination.last_page.toString())
-                      .replace("{total}", pagination.total.toString())
-                      .replace("{per_page}", pagination.per_page.toString())}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+  const filteredProviders = useMemo(() => {
+    return providers.filter((provider) => {
+      const haystack = [
+        provider.full_name,
+        provider.email,
+        provider.application_id,
+        provider.country,
+        provider.language,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-          <Tabs defaultValue="providers" className="w-full">
-            <TabsList className="w-full justify-start">
+      return haystack.includes(searchTerm.toLowerCase());
+    });
+  }, [providers, searchTerm]);
+
+  const filteredClients = useMemo(() => {
+    return clients.filter((client) => {
+      const haystack = [
+        client.contact_name,
+        client.company_name,
+        client.email,
+        client.application_id,
+        client.country,
+        client.language,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(searchTerm.toLowerCase());
+    });
+  }, [clients, searchTerm]);
+
+  const summaryCards = useMemo(() => {
+    const combined = [...providers, ...clients];
+    const verifiedCount = combined.filter((entry) => entry.email_verification).length;
+    const pendingCount = combined.filter(
+      (entry) => !entry.email_verification && !entry.email_verification_expired
+    ).length;
+    const averageScore =
+      combined.length > 0
+        ? Math.round(combined.reduce((sum, entry) => sum + (entry.score ?? 0), 0) / combined.length)
+        : 0;
+
+    return [
+      {
+        title: totalApplicationsLabel,
+        value: combined.length,
+        icon: Users,
+        color: "bg-gradient-to-br from-primary to-emerald-400",
+      },
+      {
+        title: verifiedApplicationsLabel,
+        value: verifiedCount,
+        icon: CheckCircle2,
+        color: "bg-gradient-to-br from-blue-500 to-cyan-400",
+      },
+      {
+        title: pendingApplicationsLabel,
+        value: pendingCount,
+        icon: Clock3,
+        color: "bg-gradient-to-br from-orange-500 to-amber-400",
+      },
+      {
+        title: averageScoreLabel,
+        value: averageScore,
+        icon: ArrowUpRight,
+        color: "bg-gradient-to-br from-purple-500 to-pink-400",
+      },
+    ];
+  }, [
+    averageScoreLabel,
+    clients,
+    pendingApplicationsLabel,
+    providers,
+    totalApplicationsLabel,
+    verifiedApplicationsLabel,
+  ]);
+
+  const renderTable = (
+    rows: CombinedEntry[],
+    emptyText: string,
+    description: string,
+    isProviders: boolean
+  ) => {
+    if (loading) {
+      return <AdminSpinner />;
+    }
+
+    if (error) {
+      return <p className="text-sm text-destructive">{`${errorMessage} ${error}`}</p>;
+    }
+
+    if (rows.length === 0) {
+      return (
+        <AdminEmptyState
+          icon={UserCheck}
+          description={emptyText}
+          className="py-16 text-center"
+        />
+      );
+    }
+
+    return (
+      <>
+        <div className="mb-6">
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {isProviders ? nameLabel : contactNameLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {isProviders ? applicationIdLabel : companyNameLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {emailLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {countryLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {languageLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {scoreLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {verificationLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {verificationSentLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {verificationExpiresLabel}
+                </th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {createdAtLabel}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => {
+                const verificationLabelValue = row.email_verification
+                  ? verifiedLabel
+                  : row.email_verification_expired
+                    ? expiredLabel
+                    : unverifiedLabel;
+
+                return (
+                  <motion.tr
+                    key={`${row.user_type}-${row.id}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.04, duration: 0.35 }}
+                    className="group border-b border-border/50 transition-colors hover:bg-secondary/30"
+                  >
+                    <td className="px-4 py-4">
+                      <div>
+                        <p className="text-sm font-medium">{row.displayName || "-"}</p>
+                        {!isProviders ? (
+                          <p className="mt-1 text-xs text-muted-foreground">{row.application_id || "-"}</p>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                      {row.organization || "-"}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">{row.email || "-"}</td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">{row.country || "-"}</td>
+                    <td className="px-4 py-4 text-sm uppercase text-muted-foreground">{row.language || "-"}</td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center rounded-full bg-primary/15 px-3 py-1 text-xs font-medium text-primary">
+                        {row.score ?? 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getVerificationBadgeClassName(
+                          row.email_verification,
+                          row.email_verification_expired
+                        )}`}
+                      >
+                        {verificationLabelValue}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                      {formatDateTime(row.email_verification_sent_at, locale)}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                      {formatDateTime(row.email_verification_expires_at, locale)}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                      {formatDate(row.created_at, locale)}
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  };
+
+  const providerRows: CombinedEntry[] = filteredProviders.map((provider) => ({
+    ...provider,
+    displayName: provider.full_name,
+    organization: provider.application_id,
+  }));
+
+  const clientRows: CombinedEntry[] = filteredClients.map((client) => ({
+    ...client,
+    displayName: client.contact_name,
+    organization: client.company_name,
+  }));
+
+  return (
+    <ProjectAdminShell>
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <AdminPageHeader
+          title={manageTitle}
+          description={
+            <>
+              {manageSubtitle}
+              {pagination ? (
+                <span className="mt-2 block text-xs text-muted-foreground">
+                  {paginationLabel
+                    .replace("{current}", String(pagination.current_page))
+                    .replace("{last}", String(pagination.last_page))
+                    .replace("{total}", String(pagination.total))
+                    .replace("{per_page}", String(pagination.per_page))}
+                </span>
+              ) : null}
+            </>
+          }
+        />
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryCards.map((card, index) => (
+            <AdminSummaryCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              colorClassName={card.color}
+              delay={index * 0.08}
+            />
+          ))}
+        </div>
+
+        <AdminSectionCard
+          delay={0.2}
+          title={summaryTitle}
+          description={summaryDescription}
+          action={
+            <AdminSearchInput
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="relative w-full lg:max-w-sm"
+            />
+          }
+          headerClassName="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+        >
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            <TabsList className="mb-6 grid w-full max-w-md grid-cols-2 bg-secondary/40">
               <TabsTrigger value="providers" className="gap-2">
-                <UserCheck className="w-4 h-4" />
+                <UserCheck className="h-4 w-4" />
                 {providersTitle}
               </TabsTrigger>
               <TabsTrigger value="clients" className="gap-2">
-                <UserCheck className="w-4 h-4" />
+                <Users className="h-4 w-4" />
                 {clientsTitle}
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="providers">
-              <Card className="glass-card shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                    <UserCheck className="w-5 h-5" />
-                    <span>{providersTitle}</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {providersDescription.replace("{count}", providers.length.toString())}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    </div>
-                  ) : error ? (
-                    <p className="text-sm text-red-500">{`${errorMessage} ${error}`}</p>
-                  ) : providers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{providersEmpty}</p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{nameLabel}</TableHead>
-                          <TableHead>{applicationIdLabel}</TableHead>
-                          <TableHead>{emailLabel}</TableHead>
-                          <TableHead>{countryLabel}</TableHead>
-                          <TableHead>{languageLabel}</TableHead>
-                          <TableHead>{scoreLabel}</TableHead>
-                          <TableHead>{verificationLabel}</TableHead>
-                          <TableHead>{verificationSentLabel}</TableHead>
-                          <TableHead>{verificationExpiresLabel}</TableHead>
-                          <TableHead>{createdAtLabel}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {providers.map((provider) => (
-                          <TableRow key={provider.id}>
-                            <TableCell className="font-medium">{provider.full_name || "-"}</TableCell>
-                            <TableCell className="font-medium">{provider.application_id || "-"}</TableCell>
-                            <TableCell>{provider.email || "-"}</TableCell>
-                            <TableCell>{provider.country || "-"}</TableCell>
-                            <TableCell className="uppercase">{provider.language || "-"}</TableCell>
-                            <TableCell>
-                              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
-                                {provider.score ?? 0}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  provider.email_verification
-                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
-                                    : provider.email_verification_expired
-                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                                    : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200"
-                                }
-                              >
-                                {provider.email_verification
-                                  ? verifiedLabel
-                                  : provider.email_verification_expired
-                                  ? expiredLabel
-                                  : unverifiedLabel}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{formatDateTime(provider.email_verification_sent_at, locale)}</TableCell>
-                            <TableCell>{formatDateTime(provider.email_verification_expires_at, locale)}</TableCell>
-                            <TableCell>{formatDate(provider.created_at, locale)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
+
+            <TabsContent value="providers" className="mt-0">
+              {renderTable(
+                providerRows,
+                providersEmpty,
+                providersDescription.replace("{count}", String(filteredProviders.length)),
+                true
+              )}
             </TabsContent>
-            <TabsContent value="clients">
-              <Card className="glass-card shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                    <UserCheck className="w-5 h-5" />
-                    <span>{clientsTitle}</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {clientsDescription.replace("{count}", clients.length.toString())}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    </div>
-                  ) : error ? (
-                    <p className="text-sm text-red-500">{`${errorMessage} ${error}`}</p>
-                  ) : clients.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{clientsEmpty}</p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{contactNameLabel}</TableHead>
-                          <TableHead>{companyNameLabel}</TableHead>
-                          <TableHead>{applicationIdLabel}</TableHead>
-                          <TableHead>{emailLabel}</TableHead>
-                          <TableHead>{countryLabel}</TableHead>
-                          <TableHead>{languageLabel}</TableHead>
-                          <TableHead>{scoreLabel}</TableHead>
-                          <TableHead>{verificationLabel}</TableHead>
-                          <TableHead>{verificationSentLabel}</TableHead>
-                          <TableHead>{verificationExpiresLabel}</TableHead>
-                          <TableHead>{createdAtLabel}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {clients.map((client) => (
-                          <TableRow key={client.id}>
-                            <TableCell className="font-medium">{client.contact_name || "-"}</TableCell>
-                            <TableCell>{client.company_name || "-"}</TableCell>
-                            <TableCell className="font-medium">{client.application_id || "-"}</TableCell>
-                            <TableCell>{client.email || "-"}</TableCell>
-                            <TableCell>{client.country || "-"}</TableCell>
-                            <TableCell className="uppercase">{client.language || "-"}</TableCell>
-                            <TableCell>
-                              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
-                                {client.score ?? 0}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  client.email_verification
-                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
-                                    : client.email_verification_expired
-                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                                    : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200"
-                                }
-                              >
-                                {client.email_verification
-                                  ? verifiedLabel
-                                  : client.email_verification_expired
-                                  ? expiredLabel
-                                  : unverifiedLabel}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{formatDateTime(client.email_verification_sent_at, locale)}</TableCell>
-                            <TableCell>{formatDateTime(client.email_verification_expires_at, locale)}</TableCell>
-                            <TableCell>{formatDate(client.created_at, locale)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
+
+            <TabsContent value="clients" className="mt-0">
+              {renderTable(
+                clientRows,
+                clientsEmpty,
+                clientsDescription.replace("{count}", String(filteredClients.length)),
+                false
+              )}
             </TabsContent>
           </Tabs>
-        </div>
+        </AdminSectionCard>
       </div>
-    </>
+    </ProjectAdminShell>
   );
 }

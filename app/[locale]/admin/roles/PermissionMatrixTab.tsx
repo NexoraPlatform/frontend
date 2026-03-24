@@ -3,11 +3,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { Locale } from '@/types/locale';
+import { AdminSearchInput } from '@/components/admin/admin-search-input';
+import { AdminSectionCard } from '@/components/admin/admin-section-card';
 
 type Permission = {
     id: number;
@@ -267,20 +267,27 @@ export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
     const savingShort = t('admin.roles.permission_matrix.saving_short');
 
     if (loading) {
-        return <div className="p-6 text-sm text-muted-foreground">{loadingLabel}</div>;
+        return (
+            <div className="rounded-2xl border border-border p-6 text-sm text-muted-foreground">
+                {loadingLabel}
+            </div>
+        );
     }
 
     return (
-        <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-            <CardContent className="p-6">
+        <AdminSectionCard
+            title={t('admin.roles.permission_matrix.title')}
+            description={t('admin.roles.permission_matrix.subtitle')}
+            delay={0.12}
+        >
                 {/* Toolbar */}
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <Input
+                    <div className="flex w-full max-w-md items-center gap-2">
+                        <AdminSearchInput
                             placeholder={searchPlaceholder}
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
-                            className="w-80"
+                            className="relative flex-1"
                         />
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -435,7 +442,6 @@ export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
                         </tbody>
                     </table>
                 </div>
-            </CardContent>
-        </Card>
+        </AdminSectionCard>
     );
 }

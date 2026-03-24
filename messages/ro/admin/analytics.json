@@ -1,10 +1,101 @@
 {
   "analytics": {
     "manage_title": "Analytics & Rapoarte",
-    "manage_subtitle": "Analizează performanța platformei",
+    "manage_subtitle": "Analizează performanța platformei în view-ul de raportare din dashboard.",
     "stats_title": "Statistici Detaliate",
     "stats_description": "Rapoarte și analize pentru platforma Trustora",
     "in_development_title": "Analytics în dezvoltare",
-    "in_development_description": "Rapoartele detaliate vor fi disponibile în curând"
+    "in_development_description": "Raportarea live este disponibilă acum, iar rapoartele detaliate vor continua să fie extinse aici.",
+    "loading": "Se încarcă datele de analytics...",
+    "error_message": "Nu am putut încărca overview-ul de analytics.",
+    "error_prefix": "Eroare: ",
+    "actions": {
+      "refresh": "Reîncarcă"
+    },
+    "summary": {
+      "cards": {
+        "users": "Utilizatori Înregistrați",
+        "services": "Servicii Active",
+        "revenue": "Venit Total",
+        "projects": "Proiecte Procesate"
+      }
+    },
+    "metrics": {
+      "users": "Utilizatori",
+      "services": "Servicii",
+      "revenue": "Venit",
+      "projects": "Proiecte",
+      "calls": "Call-uri"
+    },
+    "comparison": {
+      "title": "Dinamică Lunară",
+      "description": "Luna curentă comparată cu luna precedentă pentru principalii indicatori ai platformei.",
+      "monthly_signal": "Semnal lunar",
+      "previous_month": "Luna precedentă",
+      "current_month": "Luna curentă"
+    },
+    "charts": {
+      "performance_title": "Trend Performanță",
+      "performance_description": "O vedere tip line-chart pentru luna curentă versus luna precedentă pe metricile principale de livrare.",
+      "distribution_title": "Distribuție Operațională",
+      "distribution_description": "Throughput-ul lunar și încărcarea pending din cozile operaționale.",
+      "legend": {
+        "current": "Luna curentă",
+        "previous": "Luna precedentă",
+        "pending": "În așteptare"
+      }
+    },
+    "pipeline": {
+      "title": "Pipeline Operațional",
+      "description": "Încărcarea curentă și elementele în așteptare din principalele zone operaționale.",
+      "focus_label": "Focus curent"
+    },
+    "key_metrics": {
+      "title": "Metrici Cheie",
+      "description": "Indicatori derivați, inspirați din panourile de raportare ale designului de referință.",
+      "items": {
+        "user_growth": "Rată Creștere Utilizatori",
+        "service_growth": "Rată Creștere Servicii",
+        "revenue_growth": "Rată Creștere Venit",
+        "avg_revenue_per_project": "Venit Mediu / Proiect",
+        "project_clearance": "Rată Deblocare Proiecte",
+        "pending_load": "Încărcare Pending"
+      },
+      "helpers": {
+        "growth_signal": "Semnal de creștere",
+        "unit_economics": "Economie per unitate",
+        "delivery_health": "Sănătate livrare",
+        "review_queue": "Coadă de review"
+      }
+    },
+    "report_table": {
+      "title": "Defalcare Raportare",
+      "description": "Totaluri operaționale, mișcare în luna curentă și cozi pending într-un singur tabel consolidat.",
+      "metric": "Metrică",
+      "total": "Total",
+      "current": "Luna curentă",
+      "change": "Schimbare",
+      "pending": "În așteptare",
+      "stream_finance": "Flux de raportare financiară",
+      "stream_operational": "Flux de raportare operațională"
+    },
+    "sidebar": {
+      "overview_title": "Snapshot Analytics",
+      "overview_description": "Valori cheie de urmărit fără să părăsești zona de raportare.",
+      "revenue_now": "Venit luna curentă",
+      "pending_reviews": "Revizuiri în așteptare",
+      "processed_projects": "Proiecte procesate",
+      "scheduled_calls": "Call-uri programate",
+      "reporting_title": "Note Raportare",
+      "reporting_description": "Sursa de date și acoperirea pentru view-ul curent din dashboard.",
+      "source": "Sursă",
+      "source_value": "Statistici platformă admin",
+      "coverage": "Acoperire",
+      "coverage_value": "Utilizatori, servicii, venit, proiecte, call-uri",
+      "refresh": "Mod refresh",
+      "live": "Live"
+    },
+    "empty_title": "Nu există date de analytics disponibile",
+    "empty_description": "Dashboardul de raportare se va popula pe măsură ce este înregistrată activitate."
   }
 }

@@ -1,10 +1,16 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { SessionProvider, signIn, signOut, useSession } from 'next-auth/react';
+import { getSession, SessionProvider, signIn, signOut, useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
-import { onApiUnauthorized } from '@/lib/fetch-client';
-import { getXsrfToken } from '@/lib/csrf';
+import {
+  clearBrowserSessionAuthCache,
+  setBrowserSessionAuthCache,
+} from '@/lib/fetch-client';
+import {
+  clearSessionPreferenceCookies,
+  setSessionPreferenceCookies,
+} from '@/lib/auth/session-preferences';
 import { normalizeAuthUser, type AuthUser } from '@/lib/auth/user';
 
 interface AuthContextType {
@@ -12,7 +18,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   loading: boolean;
   userLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<AuthUser>) => Promise<void>;
@@ -64,6 +70,47 @@ const normalizeLoginPayloadUser = (payload: any) => {
   });
 };
 
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  invalid_credentials: 'The provided credentials are incorrect.',
+  passport_client: 'Passport client configuration is invalid or incomplete.',
+  passport_grant: 'Laravel Passport password grant is not enabled on the backend.',
+  passport_profile: 'Login succeeded, but the user profile could not be loaded.',
+  passport_token: 'Login succeeded, but no access token was returned by the backend.',
+  passport_error: 'Authentication with Passport failed.',
+};
+
+const extractLoginErrorMessage = async (email: string, password: string, fallbackCode?: string) => {
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === 'object'
+        ? payload.message || payload.error_description || payload.error
+        : null;
+
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+  } catch (error) {
+    console.warn('Failed to retrieve detailed login error:', error);
+  }
+
+  if (fallbackCode && LOGIN_ERROR_MESSAGES[fallbackCode]) {
+    return LOGIN_ERROR_MESSAGES[fallbackCode];
+  }
+
+  return 'Login failed';
+};
+
 function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) {
   const normalizedInitialUser = useMemo(() => normalizeAuthUser(initialUser), [initialUser]);
   const { data: session, status, update } = useSession();
@@ -83,48 +130,40 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     setUser(null);
   }, [normalizedInitialUser, sessionUser, status]);
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      setBrowserSessionAuthCache(session);
+      return;
+    }
+
+    if (status === 'unauthenticated') {
+      clearBrowserSessionAuthCache();
+    }
+  }, [session, status]);
+
   const login = useCallback(
-    async (email: string, password: string) => {
-      await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
-      const xsrfToken = getXsrfToken();
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      let payload: any = null;
-      try {
-        payload = await response.clone().json();
-      } catch {
-        payload = null;
-      }
-
-      if (!response.ok) {
-        let message = 'Login failed';
-        try {
-          message = payload?.message || payload?.error || message;
-        } catch {
-          // ignore
-        }
-        throw new Error(message);
-      }
-
+    async (email: string, password: string, rememberMe = false) => {
       const authResult = await signIn('credentials', {
         email,
         password,
+        remember: rememberMe ? 'true' : 'false',
         redirect: false,
       });
 
       if (!authResult || authResult.error) {
-        throw new Error(authResult?.error || 'Login failed');
+        const detailedMessage = await extractLoginErrorMessage(
+          email,
+          password,
+          authResult?.code
+        );
+        throw new Error(detailedMessage);
       }
 
-      const loginUser = normalizeLoginPayloadUser(payload);
+      setSessionPreferenceCookies(rememberMe);
+
+      const sessionAfterLogin = await getSession().catch(() => null);
+      setBrowserSessionAuthCache(sessionAfterLogin);
+      const loginUser = normalizeAuthUser((sessionAfterLogin as any)?.user ?? null);
       let refreshedUser: AuthUser | null = null;
       try {
         refreshedUser = await fetchCurrentUser();
@@ -147,14 +186,11 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
   const register = useCallback(
     async (userData: any) => {
       try {
-        await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
-        const xsrfToken = getXsrfToken();
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
           },
           body: JSON.stringify(userData),
         });
@@ -183,6 +219,11 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     } catch (error) {
       console.warn('Failed to refresh authenticated user:', error);
     }
+    if (!refreshedUser) {
+      const sessionSnapshot = await getSession().catch(() => null);
+      setBrowserSessionAuthCache(sessionSnapshot);
+      refreshedUser = normalizeAuthUser((sessionSnapshot as any)?.user ?? null);
+    }
     if (refreshedUser) {
       setUser(refreshedUser);
       await update({ user: refreshedUser } as any);
@@ -190,22 +231,23 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     }
 
     setUser(null);
+    clearBrowserSessionAuthCache();
+    clearSessionPreferenceCookies();
     await signOut({ redirect: false });
   }, [update]);
 
   const logout = useCallback(async () => {
     try {
-      await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
-      const xsrfToken = getXsrfToken();
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
-        headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : undefined,
       });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      clearBrowserSessionAuthCache();
+      clearSessionPreferenceCookies();
       await signOut({ redirect: false });
       const localeFromPath =
         typeof window !== 'undefined'
@@ -230,7 +272,6 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     async (language: string) => {
       if (!language) return null;
       try {
-        await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
         const updatedUser = await apiClient.updateUserLanguage(language);
         const normalizedUser = normalizeAuthUser(updatedUser?.user ?? updatedUser);
 
@@ -249,15 +290,6 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     },
     [refreshUser, update]
   );
-
-  useEffect(() => {
-    const unsubscribe = onApiUnauthorized(() => {
-      setUser(null);
-      void signOut({ redirect: false });
-    });
-
-    return unsubscribe;
-  }, []);
 
   const loading = status === 'loading';
   const userLoading = loading && !user;

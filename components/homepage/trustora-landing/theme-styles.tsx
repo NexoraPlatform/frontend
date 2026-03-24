@@ -1,9 +1,13 @@
 "use client";
 
-export function TrustoraLandingThemeStyles() {
+type TrustoraLandingThemeStylesProps = {
+  scopeClassName: string;
+};
+
+export function TrustoraLandingThemeStyles({ scopeClassName }: TrustoraLandingThemeStylesProps) {
   return (
     <style>{`
-      .project-homepage {
+      .${scopeClassName} {
         --background: 0 0% 96%;
         --foreground: 222 47% 11%;
         --card: 0 0% 100%;
@@ -24,9 +28,20 @@ export function TrustoraLandingThemeStyles() {
         --input: 214 32% 91%;
         --ring: 158 64% 42%;
         --radius: 1rem;
+        font-family: var(--font-manrope), system-ui, sans-serif;
       }
 
-      .dark .project-homepage {
+      .${scopeClassName} h1,
+      .${scopeClassName} h2,
+      .${scopeClassName} h3,
+      .${scopeClassName} h4,
+      .${scopeClassName} h5,
+      .${scopeClassName} h6 {
+        font-family: var(--font-space-grotesk), var(--font-manrope), system-ui, sans-serif;
+        letter-spacing: -0.03em;
+      }
+
+      .dark .${scopeClassName} {
         --background: 210 50% 10%;
         --foreground: 210 40% 98%;
         --card: 210 45% 11%;
@@ -48,13 +63,13 @@ export function TrustoraLandingThemeStyles() {
         --ring: 158 64% 42%;
       }
 
-      .project-homepage .glass-effect {
-        background: rgba(255, 255, 255, 0.05);
+      .${scopeClassName} .glass-effect {
+        background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(100px);
       }
 
-      .project-homepage .text-gradient {
+      .${scopeClassName} .text-gradient {
         background-image: linear-gradient(to right, hsl(var(--primary)), rgb(52 211 153));
         background-clip: text;
         -webkit-background-clip: text;

@@ -1,5 +1,4 @@
 import { http } from '@/lib/fetch-client';
-import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 import type {
   AiAssistantMessage,
   AiBriefBuilderResultEnvelope,
@@ -55,27 +54,11 @@ export interface AiRecommendProvidersResponse {
 }
 
 const buildAiRequestOptions = async () => {
-  if (typeof window === 'undefined') {
-    return {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      } as Record<string, string>,
-      credentials: 'include' as const,
-      withCredentials: true as const,
-      baseURL: getAiApiBaseUrl(),
-    };
-  }
-
-  await ensureCsrfCookie();
-  const xsrfToken = getXsrfToken();
-
   return {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-    },
+    } as Record<string, string>,
     credentials: 'include' as const,
     withCredentials: true as const,
     baseURL: getAiApiBaseUrl(),

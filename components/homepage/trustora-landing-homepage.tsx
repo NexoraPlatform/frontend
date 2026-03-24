@@ -13,8 +13,8 @@ import { TrustoraLandingThemeStyles } from "@/components/homepage/trustora-landi
 
 export function TrustoraLandingHomepage() {
   return (
-    <div className="project-homepage relative isolate overflow-x-hidden bg-background text-foreground">
-      <TrustoraLandingThemeStyles />
+    <div className="trustora-homepage relative isolate overflow-x-hidden bg-background text-foreground">
+      <TrustoraLandingThemeStyles scopeClassName="trustora-homepage" />
 
       <TrustoraLandingNavigation />
 

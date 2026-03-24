@@ -946,7 +946,7 @@ export default function SelectTestsPageClient() {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push(getDashboardHomeHref());
+            router.replace(getDashboardHomeHref());
             return;
         }
 

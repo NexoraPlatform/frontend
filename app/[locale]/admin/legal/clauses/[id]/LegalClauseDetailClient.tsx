@@ -1,32 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useRouter } from '@/lib/navigation';
-import { useAuth } from '@/contexts/auth-context';
-import { checkRequirement } from '@/lib/access';
-import { apiClient, type LegalClause } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
-import { useLocale } from 'next-intl';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {useSearchParams} from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { AlertCircle, FileText } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 
-const LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'ro', label: 'Romanian' },
-  { code: 'de', label: 'German' },
-  { code: 'it', label: 'Italian' },
-  { code: 'fr', label: 'French' },
-  { code: 'es', label: 'Spanish' },
-  { code: 'pl', label: 'Polish' },
-  { code: 'nl', label: 'Dutch' },
-  { code: 'ch', label: 'Chinese' },
-  { code: 'ie', label: 'Irish' },
-];
-const LANGUAGE_CODES = new Set(LANGUAGES.map((language) => language.code));
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import {
+  AdminOverviewItem,
+  AdminSidebarCard,
+} from "@/components/admin/admin-sidebar-card";
+import { LegalClauseEditorForm } from "@/components/admin/legal-clause-editor-form";
+import { AdminSpinner } from "@/components/admin/admin-state";
+import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/auth-context";
+import { checkRequirement } from "@/lib/access";
+import {
+  LEGAL_CLAUSE_LANGUAGE_CODES,
+  LEGAL_CLAUSE_TRANSLATION_LANGUAGE_OPTIONS,
+  countLegalClauseTranslations,
+} from "@/lib/admin-legal-clauses";
+import { apiClient, type LegalClause } from "@/lib/api";
+import { useRouter } from "@/lib/navigation";
 
 type Props = {
   id: string;
@@ -37,29 +33,34 @@ export default function LegalClauseDetailClient({ id }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
+  const t = useTranslations();
   const [clause, setClause] = useState<LegalClause | null>(null);
-  const [identifier, setIdentifier] = useState('');
-  const [category, setCategory] = useState('');
-  const [content, setContent] = useState('');
+  const [identifier, setIdentifier] = useState("");
+  const [category, setCategory] = useState("");
+  const [content, setContent] = useState<Record<string, string>>({});
   const [fetching, setFetching] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draftLanguage, setDraftLanguage] = useState(searchParams.get('lang') ?? 'ro');
 
-  const selectedLanguage = useMemo(() => {
-    const preferredLanguage = locale;
-    if (preferredLanguage && LANGUAGE_CODES.has(preferredLanguage)) {
-      return preferredLanguage;
-    }
-    return 'en';
-  }, [locale]);
+  const preferredLanguage = searchParams.get("lang") ?? locale ?? "en";
+  const selectedLanguage = LEGAL_CLAUSE_LANGUAGE_CODES.has(preferredLanguage)
+    ? preferredLanguage
+    : "en";
+
   const selectedLanguageLabel = useMemo(
-    () => LANGUAGES.find((language) => language.code === searchParams.get('lang'))?.label ?? searchParams.get('lang'),
-    [searchParams]
+    () =>
+      LEGAL_CLAUSE_TRANSLATION_LANGUAGE_OPTIONS.find(
+        (language) => language.code === selectedLanguage
+      )?.labelKey || "admin.legal_clauses.languages.en",
+    [selectedLanguage]
   );
 
   const canEdit = useMemo(
-    () => checkRequirement(user, { roles: ['admin', 'legal'], permissions: ['legal.clauses.update'] }),
+    () =>
+      checkRequirement(user, {
+        roles: ["admin", "legal"],
+        permissions: ["legal.clauses.update"],
+      }),
     [user]
   );
 
@@ -69,202 +70,159 @@ export default function LegalClauseDetailClient({ id }: Props) {
     if (!canEdit) {
       router.replace(`/access-denied?from=${encodeURIComponent(`/admin/legal/clauses/${id}`)}`);
     }
-  }, [userLoading, canEdit, router, id]);
+  }, [canEdit, id, router, userLoading]);
 
   useEffect(() => {
     const fetchClause = async () => {
       setFetching(true);
       setError(null);
+
       try {
-        const response = await apiClient.getAdminLegalClause(id, searchParams.get('lang') ?? 'ro');
+        const response = await apiClient.getAdminLegalClause(id, selectedLanguage);
         const loadedClause = response as LegalClause;
         setClause(loadedClause);
-        setIdentifier(loadedClause.identifier || '');
-        setCategory(loadedClause.category || '');
-        setContent(loadedClause.content?.[searchParams.get('lang') ?? 'ro'] || '');
+        setIdentifier(loadedClause.identifier || "");
+        setCategory(loadedClause.category || "");
+        setContent(loadedClause.content || {});
       } catch (err: any) {
-        setError(err?.message || 'Failed to load the legal clause.');
+        setError(err?.message || t("admin.legal_clauses.errors.load_detail"));
       } finally {
         setFetching(false);
       }
     };
 
     if (canEdit) {
-      fetchClause();
+      void fetchClause();
     }
-  }, [id, canEdit, selectedLanguage, searchParams]);
+  }, [canEdit, id, selectedLanguage, t]);
+
+  const setQueryParam = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("lang", value);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
+  const handleContentChange = (language: string, value: string) => {
+    setContent((previous) => ({ ...previous, [language]: value }));
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const trimmedContent = content.trim();
-    if (!identifier.trim() || !category.trim()) {
-      setError('Identifier and category are required.');
+
+    const trimmedIdentifier = identifier.trim();
+    const trimmedCategory = category.trim();
+    const trimmedContent = (content[selectedLanguage] || "").trim();
+
+    if (!trimmedIdentifier || !trimmedCategory) {
+      setError(t("admin.legal_clauses.errors.update_required_identifier"));
       return;
     }
+
     if (!trimmedContent) {
-      setError('Clause content is required for the selected language.');
+      setError(t("admin.legal_clauses.errors.update_required_content"));
       return;
     }
 
     setSaving(true);
     setError(null);
+
     try {
       await apiClient.updateAdminLegalClause(id, {
-        identifier: identifier.trim(),
-        category: category.trim(),
+        identifier: trimmedIdentifier,
+        category: trimmedCategory,
         content: { [selectedLanguage]: trimmedContent },
       });
-      router.push('/admin/legal/clauses');
+      router.push("/admin/legal/clauses");
     } catch (err: any) {
-      setError(err?.message || 'Failed to update the legal clause.');
+      setError(err?.message || t("admin.legal_clauses.errors.update_failed"));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading || userLoading || !canEdit) {
+  if (loading || userLoading || !canEdit || fetching) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
+      <ProjectAdminShell>
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <AdminSpinner />
+        </div>
+      </ProjectAdminShell>
     );
   }
-
-  if (fetching) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  }
-
-  const setQueryParam = (value?: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (!value) {
-      params.delete('lang');
-    } else {
-      params.set('lang', value);
-    }
-
-    router.replace(`?${params.toString()}`, { scroll: false });
-  };
 
   if (error && !clause) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <Card className="border border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200">
-          <CardHeader>
-            <CardTitle>Unable to load clause</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/admin/legal/clauses">Back to clauses</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ProjectAdminShell>
+        <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+          <AdminPageHeader
+            backHref="/admin/legal/clauses"
+            title={t("admin.legal_clauses.edit_title")}
+            description={t("admin.legal_clauses.edit_subtitle")}
+          />
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      </ProjectAdminShell>
     );
   }
 
+  if (!clause) {
+    return null;
+  }
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-      <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
-        <div className="relative flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <Link href="/admin/legal/clauses">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Trustora Admin
-              </span>
-            </div>
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">Edit legal clause</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-              Update the clause metadata and the translation for the selected language.
-            </p>
-          </div>
-        </div>
-      </div>
+    <ProjectAdminShell>
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <AdminPageHeader
+          backHref="/admin/legal/clauses"
+          title={t("admin.legal_clauses.edit_title")}
+          description={t("admin.legal_clauses.edit_subtitle")}
+        />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-          <CardHeader>
-            <CardTitle>Clause details</CardTitle>
-            <CardDescription>Identifier and category control how the clause is referenced by the legal engine.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Identifier</label>
-              <Input value={identifier} onChange={(event) => setIdentifier(event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Input value={category} onChange={(event) => setCategory(event.target.value)} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-          <CardHeader>
-            <CardTitle>Text</CardTitle>
-            <CardDescription>Update the clause for the selected language.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Select
-                value={draftLanguage}
-                onValueChange={(value) => {
-                  setDraftLanguage(value);
-                  setQueryParam(value);
-                }}
+        <LegalClauseEditorForm
+          mode="edit"
+          identifier={identifier}
+          category={category}
+          content={content}
+          selectedLanguage={selectedLanguage}
+          onIdentifierChange={setIdentifier}
+          onCategoryChange={setCategory}
+          onContentChange={handleContentChange}
+          onLanguageChange={setQueryParam}
+          onSubmit={handleSubmit}
+          cancelHref="/admin/legal/clauses"
+          error={error}
+          saving={saving}
+          sidebar={
+            <AdminSidebarCard
+              icon={FileText}
+              title={t("admin.legal_clauses.sidebar.edit_title")}
+              description={t("admin.legal_clauses.sidebar.edit_description")}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((option, key) => (
-                    <SelectItem key={key} value={option.code}>
-                      {option.label}
-                    </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <label className="mt-5 text-sm font-medium">{selectedLanguageLabel}</label>
-            <Textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              className="min-h-[160px]"
-            />
-          </CardContent>
-        </Card>
-
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200">
-            {error}
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Button variant="outline" asChild>
-            <Link href="/admin/legal/clauses">Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save changes
-          </Button>
-        </div>
-      </form>
-    </div>
+              <div className="space-y-3">
+                <AdminOverviewItem
+                  label={t("admin.legal_clauses.sidebar.selected_language")}
+                  value={t(selectedLanguageLabel)}
+                />
+                <AdminOverviewItem
+                  label={t("admin.legal_clauses.sidebar.available_translations")}
+                  value={String(countLegalClauseTranslations({ content }))}
+                />
+                <AdminOverviewItem
+                  label={t("admin.legal_clauses.sidebar.created_at")}
+                  value={new Date(clause.created_at).toLocaleDateString()}
+                />
+                <AdminOverviewItem
+                  label={t("admin.legal_clauses.sidebar.updated_at")}
+                  value={new Date(clause.updated_at).toLocaleDateString()}
+                />
+              </div>
+            </AdminSidebarCard>
+          }
+        />
+      </div>
+    </ProjectAdminShell>
   );
 }
