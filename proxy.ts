@@ -100,7 +100,10 @@ const buildPageCsp = async (nonce: string) => {
   return [
     "default-src 'self'",
     `script-src ${scriptSrc.join(' ')}`,
+    `script-src-elem ${scriptSrc.join(' ')}`, // ADAUGĂ ACEASTĂ LINIE
+    "script-src-attr 'unsafe-inline'",       // SCHIMBĂ din 'none' în 'unsafe-inline'
     `style-src ${styleSrc.join(' ')}`,
+    `style-src-elem ${styleSrc.join(' ')}`,
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "connect-src 'self' https: wss:",

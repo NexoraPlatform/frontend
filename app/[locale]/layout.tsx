@@ -45,11 +45,11 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <div className="font-sans antialiased">
-      <meta name="csp-nonce" content={nonce} />
       <JsonLdScript id="global" json={globalJsonLd} />
       {shouldLoadGtm && gtmId && (
         <GoogleTagManagerLoader gtmId={gtmId} />
       )}
+      <meta name="csp-nonce" content={nonce} />
       {shouldLoadGtm && gtmId && (
         <noscript>
           <iframe
