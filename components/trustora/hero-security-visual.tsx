@@ -453,7 +453,6 @@ export function TrustoraHeroSecurityVisual() {
   }, []);
 
   return (
-    <>
       <div
         className="relative h-[clamp(300px,48vh,680px)] w-full overflow-hidden sm:h-[clamp(360px,54vh,760px)] lg:h-[clamp(460px,72vh,920px)]"
         ref={containerRef}
@@ -580,24 +579,5 @@ export function TrustoraHeroSecurityVisual() {
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-          100% { transform: translateY(0px); }
-        }
-        @keyframes contractSweep {
-          0% { transform: translateX(-18%) rotate(12deg); opacity: 0; }
-          14% { opacity: 0.7; }
-          50% { transform: translateX(118%) rotate(12deg); opacity: 0.18; }
-          100% { transform: translateX(118%) rotate(12deg); opacity: 0; }
-        }
-        @keyframes contractPulse {
-          0%, 100% { box-shadow: 0 32px 72px rgba(2, 6, 23, 0.48), 0 0 0 1px rgba(51, 65, 85, 0.8); }
-          50% { box-shadow: 0 38px 82px rgba(2, 6, 23, 0.58), 0 0 0 1px rgba(27, 196, 125, 0.18); }
-        }
-      `}</style>
-    </>
   );
 }

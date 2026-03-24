@@ -5530,20 +5530,6 @@ export default function NewProjectPage() {
       }
     >
       <TrustoraThemeStyles />
-      <style jsx global>{`
-        .trustora-wizard input,
-        .trustora-wizard textarea,
-        .trustora-wizard button[role='combobox'] {
-          background-color: var(--input-bg);
-          border-color: var(--border-color);
-          color: var(--text-main);
-        }
-        .trustora-wizard input::placeholder,
-        .trustora-wizard textarea::placeholder {
-          color: var(--text-muted);
-          opacity: 0.9;
-        }
-      `}</style>
 
       <aside className="w-64 bg-[#0B1C2D] border-r border-[#152B42] flex flex-col justify-between hidden md:flex shrink-0 z-20">
         <div>

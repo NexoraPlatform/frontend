@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
+import { useTheme } from 'next-themes';
 
 import { cn } from '@/lib/utils';
 
@@ -42,9 +43,21 @@ const ChartContainer = React.forwardRef<
       typeof RechartsPrimitive.ResponsiveContainer
     >['children'];
   }
->(({ id, className, children, config, ...props }, ref) => {
+>(({ id, className, children, config, style, ...props }, ref) => {
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`;
+  const { resolvedTheme } = useTheme();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const activeTheme = isMounted && resolvedTheme === 'dark' ? 'dark' : 'light';
+  const chartStyle = React.useMemo(
+    () => buildChartStyleVariables(config, activeTheme),
+    [activeTheme, config]
+  );
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -55,9 +68,9 @@ const ChartContainer = React.forwardRef<
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className
         )}
+        style={{ ...chartStyle, ...style }}
         {...props}
       >
-        <ChartStyle id={chartId} config={config} />
         <RechartsPrimitive.ResponsiveContainer>
           {children}
         </RechartsPrimitive.ResponsiveContainer>
@@ -67,35 +80,31 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = 'Chart';
 
-const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
-  );
+function buildChartStyleVariables(
+  config: ChartConfig,
+  activeTheme: keyof typeof THEMES
+): React.CSSProperties {
+  const chartVariables: Record<string, string> = {};
 
-  if (!colorConfig.length) {
-    return null;
-  }
-
-  return (
-    <style jsx global>{`
-      ${Object.entries(THEMES)
-        .map(
-          ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
+  Object.entries(config).forEach(([key, itemConfig]) => {
     const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join('\n')}
+      itemConfig.theme?.[activeTheme] ??
+      itemConfig.color ??
+      itemConfig.theme?.light ??
+      itemConfig.theme?.dark;
+
+    if (color) {
+      chartVariables[`--color-${key}`] = color;
+    }
+  });
+
+  return chartVariables as React.CSSProperties;
 }
-`
-          )
-          .join('\n')}
-    `}</style>
-  );
+
+const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+  void id;
+  void config;
+  return null;
 };
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
