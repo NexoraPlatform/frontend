@@ -78,17 +78,22 @@ const getAllowedJsonLdHashes = () => {
 
 const buildPageCsp = async (nonce: string) => {
   const isDev = process.env.NODE_ENV === 'development';
+  const isVercelPreview = process.env.VERCEL_ENV === 'preview';
+  const allowVercelLive = isDev || isVercelPreview;
   const jsonLdHashes = isDev ? [] : await getAllowedJsonLdHashes();
 
   const scriptSrc = [
     "'self'",
-    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : [`'nonce-${nonce}'`, "'strict-dynamic'"]),
+    ...(isDev
+      ? ["'unsafe-eval'", "'unsafe-inline'"]
+      : [`'nonce-${nonce}'`, "'strict-dynamic'", "'unsafe-inline'"]),
     ...jsonLdHashes,
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
     'https://cdn.cookie-script.com',
     'https://applepay.cdn-apple.com',
     'https://sandboxcheckouttoolkit.rapyd.net',
+    ...(allowVercelLive ? ['https://vercel.live'] : []),
   ];
 
   const styleSrc = [
@@ -109,6 +114,7 @@ const buildPageCsp = async (nonce: string) => {
     'https://www.googletagmanager.com',
     'https://cdn.cookie-script.com',
     'https://sandboxcheckouttoolkit.rapyd.net',
+    ...(allowVercelLive ? ['https://vercel.live'] : []),
   ];
 
   if (isDev) {
@@ -128,6 +134,7 @@ const buildPageCsp = async (nonce: string) => {
     "'self'",
     'https://sandboxcheckout.rapyd.net',
     'https://www.googletagmanager.com',
+    ...(allowVercelLive ? ['https://vercel.live'] : []),
   ];
 
   return [
