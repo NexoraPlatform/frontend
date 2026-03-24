@@ -9,6 +9,10 @@ import type {
   AiBriefBuilderRequestBody,
   AiBriefBuilderResponse,
 } from '@/types/ai';
+import {
+  BROWSER_SESSION_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from '@/lib/auth/session-preferences';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -25,6 +29,13 @@ const BRIEF_BUILDER_TIMEOUT_MS = 15_000;
 const BRIEF_BUILDER_TIMEOUT_RETRIES = 2;
 const BRIEF_BUILDER_RETRY_DELAY_MS = 450;
 const SESSION_AUTH_CACHE_TTL_MS = 30_000;
+const SESSION_AUTH_REFRESH_BUFFER_MS = 60_000;
+const REFRESH_SESSION_ENDPOINT = '/api/auth/refresh';
+const TERMINAL_SESSION_AUTH_ERRORS = new Set([
+  'RefreshAccessTokenError',
+  'MissingRefreshToken',
+  'ExpiredAccessToken',
+]);
 
 type ParamPrimitive = string | number | boolean | null | undefined;
 type ParamValue = ParamPrimitive | ParamPrimitive[];
@@ -55,8 +66,11 @@ export interface ApiFetchConfig {
 
 type UnauthorizedHandler = (error: FetchError) => void;
 type BrowserSessionAuth = {
-  accessToken: string;
+  accessToken: string | null;
   tokenType: string;
+  accessTokenExpiresAt?: number;
+  hasRefreshToken: boolean;
+  error?: string | null;
 } | null;
 
 export class FetchError extends Error {
@@ -79,6 +93,30 @@ const isBrowser = typeof window !== 'undefined';
 let browserSessionAuthCache: BrowserSessionAuth | undefined;
 let browserSessionAuthCacheTimestamp = 0;
 let browserSessionAuthPromise: Promise<BrowserSessionAuth> | null = null;
+let browserSessionRefreshPromise: Promise<BrowserSessionAuth> | null = null;
+
+const hasClientSessionPreferenceCookie = () => {
+  if (!isBrowser) {
+    return false;
+  }
+
+  const cookieEntries = document.cookie
+    .split(';')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return cookieEntries.some((entry) => {
+    const [name, value] = entry.split('=');
+    if (!value) {
+      return false;
+    }
+
+    return (
+      (name === REMEMBER_ME_COOKIE_NAME || name === BROWSER_SESSION_COOKIE_NAME) &&
+      value === '1'
+    );
+  });
+};
 
 const isAbsoluteUrl = (value: string) =>
   /^https?:\/\//i.test(value) || value.startsWith('//');
@@ -367,18 +405,31 @@ const normalizeSessionAuth = (session: unknown): BrowserSessionAuth => {
     (session as { accessToken?: string }).accessToken!.length > 0
       ? (session as { accessToken?: string }).accessToken!
       : null;
-
-  if (!accessToken) {
-    return null;
-  }
+  const hasRefreshToken =
+    typeof (session as { refreshToken?: unknown } | null)?.refreshToken === 'string' &&
+    (session as { refreshToken?: string }).refreshToken!.length > 0;
 
   const tokenType =
     typeof (session as { tokenType?: unknown } | null)?.tokenType === 'string' &&
     (session as { tokenType?: string }).tokenType!.length > 0
       ? (session as { tokenType?: string }).tokenType!
       : 'Bearer';
+  const accessTokenExpiresAt =
+    typeof (session as { accessTokenExpiresAt?: unknown } | null)?.accessTokenExpiresAt ===
+    'number'
+      ? (session as { accessTokenExpiresAt?: number }).accessTokenExpiresAt
+      : undefined;
+  const error =
+    typeof (session as { error?: unknown } | null)?.error === 'string' &&
+    (session as { error?: string }).error!.length > 0
+      ? (session as { error?: string }).error!
+      : null;
 
-  return { accessToken, tokenType };
+  if (!accessToken && !hasRefreshToken) {
+    return null;
+  }
+
+  return { accessToken, tokenType, accessTokenExpiresAt, hasRefreshToken, error };
 };
 
 export const setBrowserSessionAuthCache = (session: unknown) => {
@@ -397,12 +448,47 @@ export const clearBrowserSessionAuthCache = () => {
     return;
   }
 
+  browserSessionAuthCache = undefined;
+  browserSessionAuthCacheTimestamp = 0;
+  browserSessionAuthPromise = null;
+  browserSessionRefreshPromise = null;
+};
+
+const setBrowserSessionAuthUnavailable = () => {
+  if (!isBrowser) {
+    return;
+  }
+
   browserSessionAuthCache = null;
   browserSessionAuthCacheTimestamp = Date.now();
   browserSessionAuthPromise = null;
+  browserSessionRefreshPromise = null;
 };
 
-const resolveBrowserAccessToken = async () => {
+const shouldRefreshBrowserSessionAuth = (sessionAuth: BrowserSessionAuth) => {
+  if (!sessionAuth) {
+    return false;
+  }
+
+  if (sessionAuth.error && TERMINAL_SESSION_AUTH_ERRORS.has(sessionAuth.error)) {
+    return false;
+  }
+
+  if (!sessionAuth?.hasRefreshToken) {
+    return false;
+  }
+
+  if (!sessionAuth.accessToken) {
+    return true;
+  }
+
+  return (
+    typeof sessionAuth.accessTokenExpiresAt === 'number' &&
+    Date.now() >= sessionAuth.accessTokenExpiresAt - SESSION_AUTH_REFRESH_BUFFER_MS
+  );
+};
+
+const resolveBrowserAccessToken = async (): Promise<BrowserSessionAuth> => {
   if (!isBrowser) {
     return null;
   }
@@ -412,7 +498,19 @@ const resolveBrowserAccessToken = async () => {
     Date.now() - browserSessionAuthCacheTimestamp < SESSION_AUTH_CACHE_TTL_MS;
 
   if (hasFreshCache) {
-    return browserSessionAuthCache;
+    if (shouldRefreshBrowserSessionAuth(browserSessionAuthCache ?? null)) {
+      const refreshedSessionAuth = await refreshBrowserSessionAuth();
+      if (refreshedSessionAuth?.accessToken) {
+        return refreshedSessionAuth;
+      }
+    }
+
+    return browserSessionAuthCache?.accessToken ? browserSessionAuthCache : null;
+  }
+
+  if (!hasClientSessionPreferenceCookie()) {
+    setBrowserSessionAuthUnavailable();
+    return null;
   }
 
   if (browserSessionAuthPromise) {
@@ -430,10 +528,80 @@ const resolveBrowserAccessToken = async () => {
     });
 
   try {
-    return await browserSessionAuthPromise;
+    const sessionAuth = await browserSessionAuthPromise;
+    if (shouldRefreshBrowserSessionAuth(sessionAuth)) {
+      const refreshedSessionAuth = await refreshBrowserSessionAuth();
+      if (refreshedSessionAuth?.accessToken) {
+        return refreshedSessionAuth;
+      }
+    }
+
+    return sessionAuth?.accessToken ? sessionAuth : null;
   } catch {
     return null;
   }
+};
+
+const isAuthRefreshUrl = (url: string) => {
+  if (!isBrowser) return false;
+
+  try {
+    const targetUrl = new URL(url, window.location.origin);
+    return (
+      targetUrl.origin === window.location.origin &&
+      targetUrl.pathname === REFRESH_SESSION_ENDPOINT
+    );
+  } catch {
+    return false;
+  }
+};
+
+const refreshBrowserSessionAuth = async () => {
+  if (!isBrowser) {
+    return null;
+  }
+
+  if (browserSessionRefreshPromise) {
+    return browserSessionRefreshPromise;
+  }
+
+  browserSessionRefreshPromise = fetch(REFRESH_SESSION_ENDPOINT, {
+    method: 'POST',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+  })
+    .then(async (response) => {
+      const payload = await parseResponsePayload(response, 'auto');
+      if (!response.ok) {
+        throw new FetchError(
+          toErrorMessage(payload, response),
+          response.status,
+          response,
+          payload,
+          REFRESH_SESSION_ENDPOINT
+        );
+      }
+
+      const nextSessionAuth = setBrowserSessionAuthCache(payload);
+      if (!nextSessionAuth?.accessToken) {
+        throw new Error('Refresh session response did not include an access token.');
+      }
+
+      return nextSessionAuth;
+    })
+    .catch(() => {
+      setBrowserSessionAuthUnavailable();
+      return null;
+    })
+    .finally(() => {
+      browserSessionRefreshPromise = null;
+    });
+
+  return browserSessionRefreshPromise;
 };
 
 const dispatchUnauthorized = (error: FetchError, skipAuthHandling?: boolean) => {
@@ -507,62 +675,83 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
       skipDefaultParams
     );
 
-    const headers = skipDefaultHeaders ? new Headers() : new Headers(defaultHeaders);
+    const baseHeaders = skipDefaultHeaders ? new Headers() : new Headers(defaultHeaders);
     if (customHeaders) {
       const incoming = new Headers(customHeaders);
-      incoming.forEach((value, key) => headers.set(key, value));
+      incoming.forEach((value, key) => baseHeaders.set(key, value));
     }
 
-    const hasExplicitAuthorization = headers.has('Authorization');
+    const hasExplicitAuthorization = baseHeaders.has('Authorization');
     const sessionAuth =
       !hasExplicitAuthorization && isBrowser ? await resolveBrowserAccessToken() : null;
-    const hasSessionAccessToken = Boolean(sessionAuth?.accessToken);
+    const executeRequest = async (
+      authOverride: BrowserSessionAuth,
+      allowRefreshRetry: boolean
+    ): Promise<T> => {
+      const headers = new Headers(baseHeaders);
 
-    if (hasSessionAccessToken && !headers.has('Authorization')) {
-      headers.set('Authorization', `${sessionAuth!.tokenType} ${sessionAuth!.accessToken}`);
-    }
+      if (authOverride?.accessToken && !headers.has('Authorization')) {
+        headers.set('Authorization', `${authOverride.tokenType} ${authOverride.accessToken}`);
+      }
 
-    const parsedBody = parseBodyIfNeeded(body, headers);
+      const parsedBody = parseBodyIfNeeded(body, headers);
 
-    if (parsedBody instanceof FormData) {
-      headers.delete('Content-Type');
-    } else if (parsedBody !== undefined && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
+      if (parsedBody instanceof FormData) {
+        headers.delete('Content-Type');
+      } else if (parsedBody !== undefined && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+      }
 
-    const response = await fetch(url, {
-      ...requestInit,
-      credentials:
-        requestInit.credentials ??
-        (withCredentials === true
-          ? 'include'
-          : withCredentials === false
-            ? 'omit'
-            : isInternalAppApiUrl(url)
-              ? 'include'
-              : headers.has('Authorization')
-                ? 'omit'
-                : 'include'),
-      headers,
-      body: parsedBody,
-    });
+      const response = await fetch(url, {
+        ...requestInit,
+        credentials:
+          requestInit.credentials ??
+          (withCredentials === true
+            ? 'include'
+            : withCredentials === false
+              ? 'omit'
+              : isInternalAppApiUrl(url)
+                ? 'include'
+                : headers.has('Authorization')
+                  ? 'omit'
+                  : 'include'),
+        headers,
+        body: parsedBody,
+      });
 
-    const data = await parseResponsePayload(response, parseAs);
-    if (response.ok) {
-      return data as T;
-    }
+      const data = await parseResponsePayload(response, parseAs);
+      if (response.ok) {
+        return data as T;
+      }
 
-    const error = new FetchError(
-      toErrorMessage(data, response),
-      response.status,
-      response,
-      data,
-      url
-    );
-    if (response.status === 401) {
-      dispatchUnauthorized(error, skipAuthHandling);
-    }
-    throw error;
+      if (
+        response.status === 401 &&
+        allowRefreshRetry &&
+        !skipAuthHandling &&
+        !hasExplicitAuthorization &&
+        Boolean(authOverride?.accessToken || authOverride?.hasRefreshToken) &&
+        !isAuthRefreshUrl(url)
+      ) {
+        const refreshedSessionAuth = await refreshBrowserSessionAuth();
+        if (refreshedSessionAuth?.accessToken) {
+          return executeRequest(refreshedSessionAuth, false);
+        }
+      }
+
+      const error = new FetchError(
+        toErrorMessage(data, response),
+        response.status,
+        response,
+        data,
+        url
+      );
+      if (response.status === 401) {
+        dispatchUnauthorized(error, skipAuthHandling);
+      }
+      throw error;
+    };
+
+    return executeRequest(sessionAuth, true);
   };
 };
 

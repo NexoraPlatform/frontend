@@ -199,36 +199,48 @@ const authConfig: NextAuthConfig = {
           __rememberMe,
           ...safeUser
         } = authUser;
-        token.user = safeUser;
+        token.user = normalizeAuthUser(safeUser) ?? undefined;
         token.accessToken = __backendAccessToken;
         token.refreshToken = __backendRefreshToken;
         token.tokenType = __backendTokenType;
         token.accessTokenExpiresAt = __backendAccessTokenExpiresAt;
         token.rememberMe = Boolean(__rememberMe);
         token.error = undefined;
-      } else if (trigger === 'update' && session?.user) {
-        const mergedUser = normalizeAuthUser({
-          ...(token.user as Record<string, unknown> | undefined),
-          ...(session.user as Record<string, unknown>),
-        });
-        token.user = mergedUser ?? token.user;
+      } else if (trigger === 'update' && session) {
+        if (session.user) {
+          const mergedUser = normalizeAuthUser({
+            ...(token.user as Record<string, unknown> | undefined),
+            ...(session.user as Record<string, unknown>),
+          });
+          token.user = mergedUser ?? token.user;
+        }
         if (typeof session.accessToken === 'string' && session.accessToken.length > 0) {
           token.accessToken = session.accessToken;
+        } else if (session.accessToken === null) {
+          token.accessToken = undefined;
         }
         if (typeof session.refreshToken === 'string' && session.refreshToken.length > 0) {
           token.refreshToken = session.refreshToken;
+        } else if (session.refreshToken === null) {
+          token.refreshToken = undefined;
         }
         if (typeof session.tokenType === 'string' && session.tokenType.length > 0) {
           token.tokenType = session.tokenType;
+        } else if (session.tokenType === null) {
+          token.tokenType = undefined;
         }
         if (typeof session.accessTokenExpiresAt === 'number') {
           token.accessTokenExpiresAt = session.accessTokenExpiresAt;
+        } else if (session.accessTokenExpiresAt === null) {
+          token.accessTokenExpiresAt = undefined;
         }
         if (typeof session.rememberMe === 'boolean') {
           token.rememberMe = session.rememberMe;
         }
-        if (typeof session.error === 'string') {
+        if (typeof session.error === 'string' && session.error.length > 0) {
           token.error = session.error;
+        } else if (session.error === null) {
+          token.error = undefined;
         }
       }
 
@@ -295,6 +307,6 @@ const authConfig: NextAuthConfig = {
   },
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth(authConfig);
 
 export type AuthSession = Awaited<ReturnType<typeof auth>>;

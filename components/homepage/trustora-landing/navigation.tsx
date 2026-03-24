@@ -18,8 +18,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/contexts/auth-context";
+import { useOptionalAuth } from "@/contexts/auth-context";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { usePublicAuth } from "@/hooks/use-public-auth";
 import { getRoleSlugs, isSuperUser } from "@/lib/access";
 import { Link, usePathname } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -59,14 +60,19 @@ const ChatButton = dynamic(
 );
 
 const themeButtonClass =
-  "h-11 w-11 rounded-xl border border-white/10 bg-white/70 text-foreground shadow-sm transition-all duration-200 hover:scale-105 hover:bg-white dark:bg-[#0B1220] dark:hover:bg-[#101A2D]";
+  "h-11 w-11 rounded-xl border border-white/10 bg-white/70 text-foreground shadow-sm transition-all duration-200 hover:scale-105 hover:bg-white hover:text-foreground dark:bg-[#0B1220] dark:text-white dark:hover:bg-[#101A2D] dark:hover:text-white";
 
 const utilitySurfaceClass =
-  "border border-white/10 bg-white/70 text-foreground shadow-sm backdrop-blur-xl hover:bg-white dark:bg-[#0B1220] dark:hover:bg-[#101A2D]";
+  "border border-white/10 bg-white/70 text-foreground shadow-sm backdrop-blur-xl hover:bg-white hover:text-foreground dark:bg-[#0B1220] dark:text-white dark:hover:bg-[#101A2D] dark:hover:text-white";
 
 export function TrustoraLandingNavigation() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const authContext = useOptionalAuth();
+  const publicAuth = usePublicAuth(!authContext);
+  const user = authContext?.user ?? publicAuth.user;
+  const loading = authContext?.loading ?? publicAuth.loading;
+  const logout = authContext?.logout ?? publicAuth.logout;
+  const canUseRealtimeControls = Boolean(authContext?.user);
   const { isDarkMode, isThemeMounted, toggleTheme } = useAppTheme();
   const t = useTranslations();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -124,6 +130,13 @@ export function TrustoraLandingNavigation() {
     void logout();
   };
 
+  const authActionsPlaceholder = (
+    <div className="flex items-center gap-2 pl-2" aria-hidden="true">
+      <div className="h-11 w-24 animate-pulse rounded-xl bg-white/60 dark:bg-white/10" />
+      <div className="h-11 w-28 animate-pulse rounded-xl bg-white/80 dark:bg-white/15" />
+    </div>
+  );
+
   return (
     <motion.nav
       initial={{ y: -100 }}
@@ -178,7 +191,7 @@ export function TrustoraLandingNavigation() {
           </div>
 
           <div className="hidden items-center gap-2 lg:flex">
-            {user ? (
+            {canUseRealtimeControls && user ? (
               <>
                 <NotificationBell
                   triggerClassName={cn("h-11 w-11 rounded-xl", utilitySurfaceClass)}
@@ -250,6 +263,8 @@ export function TrustoraLandingNavigation() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : loading ? (
+              authActionsPlaceholder
             ) : (
               <div className="flex items-center gap-2 pl-2">
                 <Link
@@ -270,7 +285,7 @@ export function TrustoraLandingNavigation() {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            {user ? (
+            {canUseRealtimeControls && user ? (
               <>
                 <NotificationBell
                   triggerClassName={cn("h-10 w-10 rounded-xl", utilitySurfaceClass)}
@@ -395,12 +410,12 @@ export function TrustoraLandingNavigation() {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : loading ? null : (
               <div className="grid gap-3">
                 <Button
                   asChild
                   variant="outline"
-                  className="h-12 rounded-xl border-white/15 bg-white/70 font-medium dark:bg-[#0B1220]"
+                  className="h-12 rounded-xl border-white/15 bg-white/70 font-medium text-foreground hover:bg-white hover:text-foreground dark:bg-[#0B1220] dark:text-white dark:hover:bg-[#101A2D] dark:hover:text-white"
                 >
                   <Link href="/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
                     {t("navigation.login")}

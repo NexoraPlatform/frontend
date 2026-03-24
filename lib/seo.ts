@@ -23,6 +23,11 @@ const DEFAULT_DESCRIPTIONS: Record<SupportedLocale, string> = {
   en: "IT services and freelancing marketplace: verified experts, escrow-secured payments, and predictable delivery.",
 };
 
+const SERVICE_DESCRIPTIONS: Record<SupportedLocale, string> = {
+  ro: "Marketplace pentru servicii IT și freelancing cu escrow nativ, verificare experți și fluxuri end-to-end.",
+  en: "Marketplace for IT services and freelancing with native escrow, vetted experts, and end-to-end delivery flows.",
+};
+
 const DEFAULT_KEYWORDS: string[] = [
   "Trustora",
   "marketplace servicii IT",
@@ -175,8 +180,13 @@ function buildOpenGraphTitle(title?: string): string {
   return containsBrand(title) ? title : `${title} | ${SITE_NAME}`;
 }
 
-export function buildRootMetadata(): Metadata {
+export function buildRootMetadata(locale?: Locale | string | null): Metadata {
+  const resolvedLocale = resolveLocale(locale);
   const baseUrl = getBaseUrl();
+  const defaultDescription = DEFAULT_DESCRIPTIONS[resolvedLocale];
+  const alternateOgLocales = SUPPORTED_LOCALES.filter((entry) => entry !== resolvedLocale).map(
+    (entry) => OG_LOCALE_MAP[entry]
+  );
 
   return {
     metadataBase: new URL(baseUrl),
@@ -184,7 +194,7 @@ export function buildRootMetadata(): Metadata {
       default: SITE_TITLE_SUFFIX,
       template: SITE_TITLE_TEMPLATE,
     },
-    description: DEFAULT_DESCRIPTIONS.ro,
+    description: defaultDescription,
     keywords: DEFAULT_KEYWORDS,
     applicationName: SITE_NAME,
     formatDetection: {
@@ -204,10 +214,10 @@ export function buildRootMetadata(): Metadata {
       type: "website",
       siteName: SITE_NAME,
       title: SITE_TITLE_SUFFIX,
-      description: DEFAULT_DESCRIPTIONS.ro,
+      description: defaultDescription,
       url: baseUrl,
-      locale: OG_LOCALE_MAP.ro,
-      alternateLocale: [OG_LOCALE_MAP.en],
+      locale: OG_LOCALE_MAP[resolvedLocale],
+      alternateLocale: alternateOgLocales,
       images: [
         {
           url: toAbsoluteUrl("/og-image.jpg"),
@@ -220,7 +230,7 @@ export function buildRootMetadata(): Metadata {
     twitter: {
       card: "summary_large_image",
       title: SITE_TITLE_SUFFIX,
-      description: DEFAULT_DESCRIPTIONS.ro,
+      description: defaultDescription,
       images: [toAbsoluteUrl("/og-image.jpg")],
       creator: "@trustora",
       site: "@trustora",
@@ -421,6 +431,7 @@ export function buildBreadcrumbListNode({
 export function buildGlobalKnowledgeGraph(locale?: Locale | string): JsonLdNode[] {
   const resolvedLocale = resolveLocale(locale);
   const baseUrl = getBaseUrl();
+  const localizedSearchPath = localizePath("/search/ai", resolvedLocale);
 
   return [
     {
@@ -428,12 +439,12 @@ export function buildGlobalKnowledgeGraph(locale?: Locale | string): JsonLdNode[
       "@id": `${baseUrl}/#website`,
       name: SITE_NAME,
       url: baseUrl,
-      inLanguage: SUPPORTED_LOCALES,
+      inLanguage: resolvedLocale,
       potentialAction: {
         "@type": "SearchAction",
         target: {
           "@type": "EntryPoint",
-          urlTemplate: `${baseUrl}/${resolvedLocale}/services?query={search_term_string}`,
+          urlTemplate: `${toAbsoluteUrl(localizedSearchPath)}?q={search_term_string}`,
         },
         "query-input": "required name=search_term_string",
       },
@@ -446,8 +457,8 @@ export function buildGlobalKnowledgeGraph(locale?: Locale | string): JsonLdNode[
       url: baseUrl,
       image: toAbsoluteUrl("/og-image.jpg"),
       logo: toAbsoluteUrl("/trustora-logo2-120.avif"),
-      description:
-        "Marketplace pentru servicii IT și freelancing cu escrow nativ, verificare experți și fluxuri end-to-end.",
+      description: SERVICE_DESCRIPTIONS[resolvedLocale],
+      inLanguage: resolvedLocale,
       areaServed: ["RO", "EU"],
       availableLanguage: ["ro", "en"],
       serviceType: [

@@ -1,9 +1,63 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { generateMetadata as generatePrivacyMetadata } from '../[locale]/privacy/page';
-import { generateMetadata as generateTermsMetadata } from '../[locale]/terms/page';
-import { generateMetadata as generateHelpMetadata } from '../[locale]/help/page';
-import { generateMetadata as generateHomeMetadata } from '../[locale]/page';
-import { generateMetadata as generateDashboardMetadata } from '../[locale]/dashboard/page';
+import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(),
+  redirect: vi.fn(),
+}));
+
+vi.mock('next-intl/server', () => ({
+  getTranslations: vi.fn(async () => (key: string) => key),
+}));
+
+vi.mock('@/components/footer', () => ({
+  Footer: () => null,
+}));
+
+vi.mock('@/components/header', () => ({
+  Header: () => null,
+}));
+
+vi.mock('@/components/privacy-content', () => ({
+  PrivacyContent: () => null,
+}));
+
+vi.mock('@/components/terms-content', () => ({
+  TermsContent: () => null,
+}));
+
+vi.mock('@/components/trustora/theme-styles', () => ({
+  TrustoraThemeStyles: () => null,
+}));
+
+vi.mock('@/components/homepage/trustora-landing-homepage', () => ({
+  TrustoraLandingHomepage: () => null,
+}));
+
+vi.mock('@/components/seo/json-ld-script', () => ({
+  JsonLdScript: () => null,
+}));
+
+vi.mock('@/components/dashboard/dashboard-route-page', () => ({
+  DashboardRoutePage: () => null,
+}));
+
+vi.mock('@/lib/dashboard-navigation', () => ({
+  getDashboardTabHref: vi.fn(() => '/dashboard'),
+}));
+
+vi.mock('@/lib/navigation', () => ({
+  Link: ({ children }: { children: React.ReactNode }) => children,
+  redirect: vi.fn(),
+  usePathname: vi.fn(),
+  useRouter: vi.fn(),
+}));
+
+import { generateMetadata as generatePrivacyMetadata } from '../[locale]/(public)/privacy/page';
+import { generateMetadata as generateTermsMetadata } from '../[locale]/(public)/terms/page';
+import { generateMetadata as generateHelpMetadata } from '../[locale]/(public)/help/page';
+import { generateMetadata as generateHomeMetadata } from '../[locale]/(public)/page';
+import { generateMetadata as generateDashboardMetadata } from '../[locale]/(protected)/dashboard/page';
 
 const makeParams = (locale: string) => Promise.resolve({ locale });
 
@@ -47,11 +101,13 @@ describe('SSR page metadata', () => {
     const meta = await generateHomeMetadata({ params: makeParams('en') });
 
     expect(meta.openGraph?.url).toBe('https://app.example/en');
-    expect(meta.alternates?.languages?.en).toBe('/en');
-    expect(meta.alternates?.languages?.ro).toBe('/ro');
+    expect(meta.alternates?.languages?.en).toBe('https://app.example/en');
+    expect(meta.alternates?.languages?.ro).toBe('https://app.example/ro');
 
-    if (typeof meta.title === 'object' && meta.title) {
-      expect(meta.title.default).toContain('Trustora');
+    if (typeof meta.title === 'string') {
+      expect(meta.title).toContain('Trustora');
+    } else if (meta.title && 'absolute' in meta.title && meta.title.absolute) {
+      expect(meta.title.absolute).toContain('Trustora');
     }
   });
 

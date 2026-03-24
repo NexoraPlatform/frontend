@@ -21,7 +21,7 @@ const STATIC_PUBLIC_PATHS = [
 ] as const;
 
 const FALLBACK_DYNAMIC_ROUTES: DynamicSitemapRoutes = {
-  services: ["web-development", "mobile-app-development", "ui-ux-design"],
+  services: [],
   projects: ["sample-project"],
   providers: ["top-react-expert"],
 };

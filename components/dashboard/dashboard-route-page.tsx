@@ -1,4 +1,4 @@
-import DashboardClient, { type DashboardSection } from '@/app/[locale]/dashboard/dashboard-client';
+import DashboardClient, { type DashboardSection } from '@/app/[locale]/(protected)/dashboard/dashboard-client';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 type DashboardRoutePageProps = {

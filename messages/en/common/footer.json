@@ -5,6 +5,8 @@
   "follow_us_on": "Follow Us On",
   "quick_links": "Quick Links",
   "popular_services": "Popular Services",
+  "popular_services_loading": "Loading popular services...",
+  "popular_services_unavailable": "Popular services are temporarily unavailable.",
   "all_rights_reserved": "All rights reserved",
   "trustora_tagline": "Where work meets trust.",
   "contact_title": "Contact",

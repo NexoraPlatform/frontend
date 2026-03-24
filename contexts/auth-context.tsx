@@ -124,11 +124,11 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
       return;
     }
     if (status === 'unauthenticated') {
-      setUser(normalizedInitialUser ?? null);
+      setUser(null);
       return;
     }
     setUser(null);
-  }, [normalizedInitialUser, sessionUser, status]);
+  }, [sessionUser, status]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -138,6 +138,7 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
 
     if (status === 'unauthenticated') {
       clearBrowserSessionAuthCache();
+      clearSessionPreferenceCookies();
     }
   }, [session, status]);
 
@@ -323,4 +324,8 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+export function useOptionalAuth() {
+  return useContext(AuthContext);
 }

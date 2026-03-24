@@ -13,10 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import apiClient from "@/lib/api";
 import { countPermissionsInGroups, normalizeRolesLite, type AdminRolePermissionGroup } from "@/lib/admin-roles";
 import { Link, useRouter } from "@/lib/navigation";
-import RolesListClient from "@/app/[locale]/admin/roles/roles-list-client";
+import RolesListClient from "@/app/[locale]/(protected)/admin/roles/roles-list-client";
 
 const PermissionMatrix = dynamic(
-  () => import("@/app/[locale]/admin/roles/PermissionMatrixTab"),
+  () => import("@/app/[locale]/(protected)/admin/roles/PermissionMatrixTab"),
   { ssr: false }
 );
 

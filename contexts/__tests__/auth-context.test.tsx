@@ -64,6 +64,12 @@ describe('contexts/auth-context', () => {
   });
 
   it('hydrates user from SSR initialUser', async () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: 'loading',
+      update: mockUpdate,
+    });
+
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <AuthProvider
         initialUser={{
@@ -82,6 +88,41 @@ describe('contexts/auth-context', () => {
     await waitFor(() => expect(result.current.user).not.toBeNull());
     expect(result.current.user?.id).toBe('123');
     expect(result.current.user?.email).toBe('test@example.com');
+  });
+
+  it('clears stale SSR initialUser when session becomes unauthenticated', async () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: 'loading',
+      update: mockUpdate,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider
+        initialUser={{
+          id: 123,
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+        } as any}
+      >
+        {children}
+      </AuthProvider>
+    );
+
+    const { result, rerender } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.user?.id).toBe('123'));
+
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: 'unauthenticated',
+      update: mockUpdate,
+    });
+
+    rerender();
+
+    await waitFor(() => expect(result.current.user).toBeNull());
   });
 
   it('handles unauthenticated session state', async () => {

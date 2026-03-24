@@ -106,7 +106,7 @@ export function LegalClauseEditorForm({
                     {t("admin.legal_clauses.form.language")}
                   </label>
                   <Select value={selectedLanguage} onValueChange={onLanguageChange}>
-                    <SelectTrigger className="border-border bg-background/40">
+                    <SelectTrigger className="border-slate-300/80 bg-white shadow-sm dark:border-border dark:bg-background">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
