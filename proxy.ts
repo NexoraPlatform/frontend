@@ -86,7 +86,7 @@ const buildPageCsp = async (nonce: string) => {
     "'self'",
     ...(isDev
       ? ["'unsafe-eval'", "'unsafe-inline'"]
-      : [`'nonce-${nonce}'`, "'strict-dynamic'", "'unsafe-inline'"]),
+      : [`'nonce-${nonce}'`]),
     ...jsonLdHashes,
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
