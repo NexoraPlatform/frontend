@@ -1,12 +1,11 @@
 'use client';
 
 import Editor, { loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 
-loader.config({
-    paths: {
-        vs: '/monaco/vs',
-    },
-});
+// Use the bundled Monaco instance instead of the AMD loader in /public/monaco.
+// The AMD loader falls back to eval/new Function, which production CSP blocks.
+loader.config({ monaco });
 
 type ExamMonacoEditorProps = {
     language: string;
