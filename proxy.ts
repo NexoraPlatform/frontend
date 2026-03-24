@@ -76,18 +76,46 @@ const getAllowedJsonLdHashes = () => {
   return jsonLdHashPromise;
 };
 
+// proxy.ts
+
 const buildPageCsp = async (nonce: string) => {
   const isDev = process.env.NODE_ENV === 'development';
   const isVercelPreview = process.env.VERCEL_ENV === 'preview';
   const allowVercelLive = isDev || isVercelPreview;
   const jsonLdHashes = isDev ? [] : await getAllowedJsonLdHashes();
 
+  // 1. Definește sursele pentru Imagini
+  const imgSrc = [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://www.googletagmanager.com",
+    "https://www.google-analytics.com",
+    // Adaugă aici domeniile pentru poze (ex: S3, Cloudinary, etc.)
+  ];
+
+  // 2. Definește sursele pentru Conexiuni (API-uri)
+  const connectSrc = [
+    "'self'",
+    "https://www.google-analytics.com",
+    "https://stats.g.doubleclick.net",
+    "https://sandboxcheckouttoolkit.rapyd.net",
+    ...(allowVercelLive ? ['https://vercel.live', 'wss://vercel.live'] : []),
+  ];
+
+  // 3. Definește sursele pentru Frame-uri
+  const frameSrc = [
+    "'self'",
+    "https://sandboxcheckouttoolkit.rapyd.net",
+    "https://applepay.cdn-apple.com",
+  ];
+
   const scriptSrc = [
     "'self'",
     `'nonce-${nonce}'`,
-    "'strict-dynamic'", // ADAUGĂ ASTA: Permite scripturilor cu nonce să încarce alte scripturi
-    "'unsafe-inline'",  // Rămâne ca fallback pentru browserele vechi
-    "https:",           // Necesar pentru ca strict-dynamic să permită surse externe
+    "'strict-dynamic'",
+    "'unsafe-inline'",
+    "https:",
     ...jsonLdHashes,
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
@@ -99,7 +127,7 @@ const buildPageCsp = async (nonce: string) => {
 
   const styleSrc = [
     "'self'",
-    "'unsafe-inline'", // Păstrăm doar unsafe-inline, eliminăm nonce-ul de aici
+    "'unsafe-inline'",
     'https://cdn.cookie-script.com',
   ];
 
@@ -109,12 +137,12 @@ const buildPageCsp = async (nonce: string) => {
     `script-src ${scriptSrc.join(' ')}`,
     "script-src-attr 'none'",
     `style-src ${styleSrc.join(' ')}`,
-    `style-src-elem ${styleSrc.join(' ')}`, // Asigură-te că styleSrc-elem reflectă styleSrc
+    `style-src-elem ${styleSrc.join(' ')}`,
     "style-src-attr 'unsafe-inline'",
-    `img-src ${imgSrc.join(' ')}`,
+    `img-src ${imgSrc.join(' ')}`, // Acum variabila este găsită
     "font-src 'self' data:",
-    `connect-src ${connectSrc.join(' ')}`,
-    `frame-src ${frameSrc.join(' ')}`,
+    `connect-src ${connectSrc.join(' ')}`, // Acum variabila este găsită
+    `frame-src ${frameSrc.join(' ')}`,     // Acum variabila este găsită
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
