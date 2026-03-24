@@ -82,7 +82,7 @@ const buildPageCsp = async (nonce: string) => {
 
   const scriptSrc = [
     "'self'",
-    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : [`'nonce-${nonce}'`]),
+    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : [`'nonce-${nonce}'`, "'strict-dynamic'"]),
     ...jsonLdHashes,
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
@@ -93,7 +93,7 @@ const buildPageCsp = async (nonce: string) => {
 
   const styleSrc = [
     "'self'",
-    ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`]),
+    ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`, "'unsafe-inline'"]),
     'https://cdn.cookie-script.com',
   ];
 
