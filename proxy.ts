@@ -84,9 +84,10 @@ const buildPageCsp = async (nonce: string) => {
 
   const scriptSrc = [
     "'self'",
-    ...(isDev
-      ? ["'unsafe-eval'", "'unsafe-inline'"]
-      : [`'nonce-${nonce}'`]),
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'", // ADAUGĂ ASTA: Permite scripturilor cu nonce să încarce alte scripturi
+    "'unsafe-inline'",  // Rămâne ca fallback pentru browserele vechi
+    "https:",           // Necesar pentru ca strict-dynamic să permită surse externe
     ...jsonLdHashes,
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
@@ -98,43 +99,8 @@ const buildPageCsp = async (nonce: string) => {
 
   const styleSrc = [
     "'self'",
-    "'unsafe-inline'",
+    "'unsafe-inline'", // Păstrăm doar unsafe-inline, eliminăm nonce-ul de aici
     'https://cdn.cookie-script.com',
-  ];
-
-  const connectSrc = [
-    "'self'",
-    'https://trustorabe.dacars.ro',
-    'https://backend.trustora.ro',
-    'https://previewbe.trustora.ro',
-    'https://api.iconify.design',
-    'https://api.simplesvg.com',
-    'https://api.unisvg.com',
-    'https://www.google-analytics.com',
-    'https://www.googletagmanager.com',
-    'https://cdn.cookie-script.com',
-    'https://sandboxcheckouttoolkit.rapyd.net',
-    ...(allowVercelLive ? ['https://vercel.live'] : []),
-  ];
-
-  if (isDev) {
-    connectSrc.push('http://127.0.0.1:8000', 'http://localhost:8000', 'ws:', 'wss:');
-  }
-
-  const imgSrc = [
-    "'self'",
-    'data:',
-    'blob:',
-    'https:',
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
-  ];
-
-  const frameSrc = [
-    "'self'",
-    'https://sandboxcheckout.rapyd.net',
-    'https://www.googletagmanager.com',
-    ...(allowVercelLive ? ['https://vercel.live'] : []),
   ];
 
   return [
@@ -143,7 +109,7 @@ const buildPageCsp = async (nonce: string) => {
     `script-src ${scriptSrc.join(' ')}`,
     "script-src-attr 'none'",
     `style-src ${styleSrc.join(' ')}`,
-    `style-src-elem ${styleSrc.join(' ')}`,
+    `style-src-elem ${styleSrc.join(' ')}`, // Asigură-te că styleSrc-elem reflectă styleSrc
     "style-src-attr 'unsafe-inline'",
     `img-src ${imgSrc.join(' ')}`,
     "font-src 'self' data:",
