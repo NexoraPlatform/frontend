@@ -12,6 +12,16 @@ declare global {
   }
 }
 
+function getCspNonce() {
+  if (typeof document === "undefined") return null;
+
+  const nonceSource = document.querySelector<HTMLElement>("script[nonce], style[nonce], [nonce]");
+  if (!nonceSource) return null;
+
+  const nonceProperty = "nonce" in nonceSource ? nonceSource.nonce : "";
+  return nonceProperty || nonceSource.getAttribute("nonce");
+}
+
 export function GoogleTagManagerLoader({ gtmId }: GoogleTagManagerLoaderProps) {
   useEffect(() => {
     if (!gtmId) return;
@@ -27,6 +37,11 @@ export function GoogleTagManagerLoader({ gtmId }: GoogleTagManagerLoaderProps) {
     script.id = "trustora-gtm-loader";
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
+    const nonce = getCspNonce();
+    if (nonce) {
+      script.nonce = nonce;
+      script.setAttribute("nonce", nonce);
+    }
     document.head.appendChild(script);
 
     return () => {

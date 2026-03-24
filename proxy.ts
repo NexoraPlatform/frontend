@@ -25,6 +25,7 @@ import {
 } from '@/lib/auth/session-preferences';
 import { enforceApiRateLimit } from '@/lib/server/rate-limit';
 import { normalizeAuthUser } from '@/lib/auth/user';
+import { buildAllowedJsonLdHashes } from '@/lib/csp';
 import { defaultLocale } from '@/lib/i18n';
 import { locales, localePrefix } from '@/lib/navigation';
 
@@ -65,12 +66,24 @@ const mergeHeaderValues = (currentValue: string | null, nextValue: string) => {
 
 const createCspNonce = () => btoa(crypto.randomUUID());
 
-const buildPageCsp = (nonce: string) => {
+let jsonLdHashPromise: Promise<string[]> | null = null;
+
+const getAllowedJsonLdHashes = () => {
+  if (!jsonLdHashPromise) {
+    jsonLdHashPromise = buildAllowedJsonLdHashes();
+  }
+
+  return jsonLdHashPromise;
+};
+
+const buildPageCsp = async (nonce: string) => {
   const isDev = process.env.NODE_ENV === 'development';
+  const jsonLdHashes = isDev ? [] : await getAllowedJsonLdHashes();
 
   const scriptSrc = [
     "'self'",
     ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : [`'nonce-${nonce}'`]),
+    ...jsonLdHashes,
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
     'https://cdn.cookie-script.com',
@@ -139,13 +152,14 @@ const buildPageCsp = (nonce: string) => {
 
 const createPageSecurityContext = (req: any) => {
   const nonce = createCspNonce();
-  const csp = buildPageCsp(nonce);
   const requestHeaders = new Headers(req.headers);
 
-  requestHeaders.set('x-nonce', nonce);
-  requestHeaders.set('content-security-policy', csp);
+  return buildPageCsp(nonce).then((csp) => {
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('content-security-policy', csp);
 
-  return { csp, requestHeaders };
+    return { csp, requestHeaders };
+  });
 };
 
 const applyPageCspHeader = (response: NextResponse, csp: string) => {
@@ -435,7 +449,7 @@ export const proxy = auth(async (req) => {
     return finalizeResponse(NextResponse.redirect(url));
   }
 
-  const pageSecurity = createPageSecurityContext(req);
+  const pageSecurity = await createPageSecurityContext(req);
   const intlResponse = intlMiddleware(req);
 
   if (
