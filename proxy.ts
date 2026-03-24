@@ -98,7 +98,7 @@ const buildPageCsp = async (nonce: string) => {
 
   const styleSrc = [
     "'self'",
-    ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`, "'unsafe-inline'"]),
+    "'unsafe-inline'",
     'https://cdn.cookie-script.com',
   ];
 
