@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev --turbopack",
     "postinstall": "node scripts/ensure-next-internals.mjs && node scripts/copy-monaco-assets.mjs",
     "prebuild": "node scripts/ensure-next-internals.mjs && node scripts/copy-monaco-assets.mjs",
     "build": "next build --webpack",

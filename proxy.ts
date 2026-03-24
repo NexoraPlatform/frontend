@@ -72,8 +72,12 @@ const getAllowedInlineScriptHashes = () => {
 
 const buildPageCsp = async (nonce: string) => {
   const isDev = process.env.NODE_ENV === 'development';
-  const isVercelPreview = process.env.VERCEL_ENV === 'preview';
-  const allowVercelLive = isDev || isVercelPreview;
+  const vercelPreviewFeedbackEnabled = ['1', 'true'].includes(
+    (process.env.VERCEL_PREVIEW_FEEDBACK_ENABLED ?? '').toLowerCase()
+  );
+  // Keep the Vercel toolbar opt-in on preview deployments so CSP only trusts
+  // vercel.live when comments/toolbar are intentionally enabled.
+  const allowVercelLive = isDev || vercelPreviewFeedbackEnabled;
   const allowedInlineScriptHashes = await getAllowedInlineScriptHashes();
 
   const scriptSrc = [
