@@ -4,6 +4,7 @@ import {
   localizePath,
   serializeJsonLd,
 } from "@/lib/seo";
+import { buildTrustoraThemeBootstrapScript } from "@/lib/theme";
 import type { Locale } from "@/types/locale";
 import enLandingMessages from "@/messages/en/trustora/landing.json";
 import roLandingMessages from "@/messages/ro/trustora/landing.json";
@@ -80,4 +81,11 @@ export async function buildAllowedJsonLdHashes(): Promise<string[]> {
   );
 
   return Array.from(new Set(hashes));
+}
+
+export async function buildAllowedInlineScriptHashes(): Promise<string[]> {
+  const jsonLdHashes = await buildAllowedJsonLdHashes();
+  const themeBootstrapHash = `'sha256-${await sha256Base64(buildTrustoraThemeBootstrapScript())}'`;
+
+  return Array.from(new Set([...jsonLdHashes, themeBootstrapHash]));
 }

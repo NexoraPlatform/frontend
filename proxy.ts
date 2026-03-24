@@ -1,14 +1,6 @@
 // proxy.ts
 import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
-import {
-  chain,
-  chainMatch,
-  continued,
-  isPageRequest,
-  nextSafe,
-} from '@next-safe/middleware';
-import type { NextMiddleware } from 'next/server';
 import { auth } from '@/auth';
 import {
   checkRequirement,
@@ -25,7 +17,7 @@ import {
 } from '@/lib/auth/session-preferences';
 import { enforceApiRateLimit } from '@/lib/server/rate-limit';
 import { normalizeAuthUser } from '@/lib/auth/user';
-import { buildAllowedJsonLdHashes } from '@/lib/csp';
+import { buildAllowedInlineScriptHashes } from '@/lib/csp';
 import { defaultLocale } from '@/lib/i18n';
 import { locales, localePrefix } from '@/lib/navigation';
 
@@ -66,14 +58,14 @@ const mergeHeaderValues = (currentValue: string | null, nextValue: string) => {
 
 const createCspNonce = () => btoa(crypto.randomUUID());
 
-let jsonLdHashPromise: Promise<string[]> | null = null;
+let inlineScriptHashPromise: Promise<string[]> | null = null;
 
-const getAllowedJsonLdHashes = () => {
-  if (!jsonLdHashPromise) {
-    jsonLdHashPromise = buildAllowedJsonLdHashes();
+const getAllowedInlineScriptHashes = () => {
+  if (!inlineScriptHashPromise) {
+    inlineScriptHashPromise = buildAllowedInlineScriptHashes();
   }
 
-  return jsonLdHashPromise;
+  return inlineScriptHashPromise;
 };
 
 // proxy.ts
@@ -82,13 +74,16 @@ const buildPageCsp = async (nonce: string) => {
   const isDev = process.env.NODE_ENV === 'development';
   const isVercelPreview = process.env.VERCEL_ENV === 'preview';
   const allowVercelLive = isDev || isVercelPreview;
+  const allowedInlineScriptHashes = await getAllowedInlineScriptHashes();
 
   const scriptSrc = [
     "'self'",
-    `'nonce-${nonce}'`, // Scripturile cu acest nonce sunt de încredere
-    "'strict-dynamic'", // OBLIGATORIU: Permite scriptului de mai sus să încarce altele
-    "'unsafe-inline'",  // Fallback pentru browsere foarte vechi
-    "https:",           // Permite încărcarea de pe HTTPS (necesar pt strict-dynamic)
+    `'nonce-${nonce}'`,
+    ...allowedInlineScriptHashes,
+    "'strict-dynamic'",
+    "'unsafe-inline'",
+    ...(isDev ? ["'unsafe-eval'"] : []),
+    "https:",
     ...(allowVercelLive ? ['https://vercel.live'] : []),
   ];
 
@@ -100,8 +95,8 @@ const buildPageCsp = async (nonce: string) => {
   return [
     "default-src 'self'",
     `script-src ${scriptSrc.join(' ')}`,
-    `script-src-elem ${scriptSrc.join(' ')}`, // ADAUGĂ ACEASTĂ LINIE
-    "script-src-attr 'unsafe-inline'",       // SCHIMBĂ din 'none' în 'unsafe-inline'
+    `script-src-elem ${scriptSrc.join(' ')}`,
+    "script-src-attr 'unsafe-inline'",
     `style-src ${styleSrc.join(' ')}`,
     `style-src-elem ${styleSrc.join(' ')}`,
     "style-src-attr 'unsafe-inline'",
@@ -113,20 +108,24 @@ const buildPageCsp = async (nonce: string) => {
   ].join('; ');
 };
 
-const createPageSecurityContext = (req: any) => {
+const createPageSecurityContext = async (req: Request) => {
   const nonce = createCspNonce();
   const requestHeaders = new Headers(req.headers);
+  const csp = await buildPageCsp(nonce);
 
-  return buildPageCsp(nonce).then((csp) => {
-    requestHeaders.set('x-nonce', nonce);
-    requestHeaders.set('content-security-policy', csp);
+  requestHeaders.set('x-nonce', nonce);
+  // Next parses the nonce from the request CSP header when rendering server components.
+  requestHeaders.set('content-security-policy', csp);
 
-    return { csp, requestHeaders };
-  });
+  return { csp, requestHeaders };
 };
 
-const applyPageCspHeader = (response: NextResponse, csp: string) => {
+
+const applyPageCspHeader = (response: NextResponse, csp: string, requestHeaders: Headers) => {
   response.headers.set('Content-Security-Policy', csp);
+  const nonce = requestHeaders.get('x-nonce');
+  if (nonce) response.headers.set('x-nonce', nonce);
+
   return response;
 };
 
@@ -137,13 +136,23 @@ const copyMiddlewareHeaders = (
   if (!source) return target;
 
   source.headers.forEach((value, key) => {
-    if (key.toLowerCase() === 'set-cookie') {
+    const normalizedKey = key.toLowerCase();
+
+    if (normalizedKey === 'set-cookie') {
       target.headers.append(key, value);
       return;
     }
 
-    if (key.toLowerCase() === 'vary') {
+    if (normalizedKey === 'vary') {
       target.headers.set(key, mergeHeaderValues(target.headers.get(key), value));
+      return;
+    }
+
+    if (
+      (normalizedKey === 'x-middleware-override-headers' ||
+        normalizedKey.startsWith('x-middleware-request-')) &&
+      target.headers.has(key)
+    ) {
       return;
     }
 
@@ -165,17 +174,17 @@ const createPageContinuationResponse = (
   });
 
   copyMiddlewareHeaders(response, intlResponse);
-  return applyPageCspHeader(response, csp);
+  return applyPageCspHeader(response, csp, requestHeaders);
 };
 
-const createPageRewriteResponse = (url: URL, requestHeaders: Headers, csp: string) => {
+const createPageRewriteResponse = (url: URL, requestHeaders: Headers, csp: string, ) => {
   const response = NextResponse.rewrite(url, {
     request: {
       headers: requestHeaders,
     },
   });
 
-  return applyPageCspHeader(response, csp);
+  return applyPageCspHeader(response, csp, requestHeaders);
 };
 
 const intlMiddleware = createMiddleware({
@@ -536,35 +545,4 @@ export const proxy = auth(async (req) => {
   return finalizeResponse(baseResponse);
 });
 
-const securityHeadersMiddleware = chainMatch(isPageRequest)(
-  nextSafe({
-    // CSP is generated per request above so we can attach a nonce without weakening it.
-    disableCsp: true,
-    frameOptions: 'DENY',
-    contentTypeOptions: 'nosniff',
-    referrerPolicy: 'strict-origin-when-cross-origin',
-    permissionsPolicy: false,
-    xssProtection: false,
-  }),
-);
-
-const proxiedMiddleware = proxy as unknown as NextMiddleware;
-const securedMiddleware = chain(continued(proxiedMiddleware), securityHeadersMiddleware);
-
-export default ((...args: Parameters<NextMiddleware>) => {
-  const [req, evt] = args;
-
-  // Unit tests invoke middleware with only `req`; keep legacy behavior there.
-  if (args.length < 2 || !evt) {
-    return proxiedMiddleware(req, evt as any);
-  }
-
-  return securedMiddleware(req, evt);
-}) as NextMiddleware;
-
-export const config = {
-  matcher: [
-    '/api/:path*',
-    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|non-critical\\.css|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|avif)|_error).*)',
-  ],
-};
+export default proxy;

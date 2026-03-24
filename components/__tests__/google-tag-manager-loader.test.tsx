@@ -11,7 +11,18 @@ afterEach(() => {
 });
 
 describe("GoogleTagManagerLoader", () => {
-  it("propagates the existing CSP nonce to the GTM script tag", async () => {
+  it("uses the explicit nonce prop when it is provided", async () => {
+    render(<GoogleTagManagerLoader gtmId="GTM-TEST123" nonce="nonce-from-prop" />);
+
+    await waitFor(() => {
+      const gtmScript = document.head.querySelector("#trustora-gtm-loader") as HTMLScriptElement | null;
+      expect(gtmScript).not.toBeNull();
+      expect(gtmScript?.nonce).toBe("nonce-from-prop");
+      expect(gtmScript?.getAttribute("nonce")).toBe("nonce-from-prop");
+    });
+  });
+
+  it("reuses an existing DOM nonce when no explicit prop is provided", async () => {
     const existingScript = document.createElement("script");
     existingScript.id = "existing-nonce-script";
     existingScript.nonce = "nonce-from-dom";

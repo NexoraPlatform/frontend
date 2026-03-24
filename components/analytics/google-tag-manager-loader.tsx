@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 type GoogleTagManagerLoaderProps = {
   gtmId: string;
+  nonce?: string;
 };
 
 declare global {
@@ -12,14 +13,20 @@ declare global {
   }
 }
 
-function getCspNonce() {
+function getCspNonce(fallbackNonce?: string) {
+  if (fallbackNonce) return fallbackNonce;
   if (typeof document === "undefined") return null;
-  // Căutăm meta tag-ul dedicat
+
+  const existingScript = document.querySelector<HTMLScriptElement>("script[nonce]");
+  if (existingScript?.nonce) {
+    return existingScript.nonce;
+  }
+
   const meta = document.querySelector<HTMLMetaElement>('meta[name="csp-nonce"]');
   return meta ? meta.content : null;
 }
 
-export function GoogleTagManagerLoader({ gtmId }: GoogleTagManagerLoaderProps) {
+export function GoogleTagManagerLoader({ gtmId, nonce }: GoogleTagManagerLoaderProps) {
   useEffect(() => {
     if (!gtmId) return;
     if (document.getElementById("trustora-gtm-loader")) return;
@@ -34,17 +41,17 @@ export function GoogleTagManagerLoader({ gtmId }: GoogleTagManagerLoaderProps) {
     script.id = "trustora-gtm-loader";
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
-    const nonce = getCspNonce();
-    if (nonce) {
-      script.nonce = nonce;
-      script.setAttribute("nonce", nonce);
+    const resolvedNonce = getCspNonce(nonce);
+    if (resolvedNonce) {
+      script.nonce = resolvedNonce;
+      script.setAttribute("nonce", resolvedNonce);
     }
     document.head.appendChild(script);
 
     return () => {
       script.remove();
     };
-  }, [gtmId]);
+  }, [gtmId, nonce]);
 
   return null;
 }

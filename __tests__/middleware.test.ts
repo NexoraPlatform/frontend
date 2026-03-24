@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import proxy from '../proxy';
+import {
+  BROWSER_SESSION_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from '../lib/auth/session-preferences';
 
 const makeResponse = (type: string, url?: string, status = 200) => ({
   type,
   url,
   status,
   headers: new Headers(),
+  cookies: {
+    set: vi.fn(),
+  },
 });
 
 vi.mock('next/server', () => {
@@ -20,6 +27,9 @@ vi.mock('next/server', () => {
       this.status = init?.status ?? 200;
       this.headers = new Headers(init?.headers);
       this.type = 'constructor';
+      this.cookies = {
+        set: vi.fn(),
+      };
     }
     static next() {
       return makeResponse('next');
@@ -71,10 +81,31 @@ describe('proxy', () => {
     const url = new URL(baseUrl + path);
     (url as any).clone = () => new URL(url.toString());
     const headers = new Headers(opts?.headers);
+    const cookieEntries = new Map<string, string>();
+    const cookieHeader = headers.get('cookie');
+
+    if (cookieHeader) {
+      for (const chunk of cookieHeader.split(';')) {
+        const [rawName, ...rawValue] = chunk.trim().split('=');
+        if (!rawName) continue;
+        cookieEntries.set(rawName, rawValue.join('='));
+      }
+    }
+
+    if (opts?.auth?.user) {
+      if (opts.auth.rememberMe === true) {
+        cookieEntries.set(REMEMBER_ME_COOKIE_NAME, '1');
+      } else {
+        cookieEntries.set(BROWSER_SESSION_COOKIE_NAME, '1');
+      }
+    }
+
     const cookies = {
-      get: (_name: string) => undefined,
-      has: (_name: string) => false,
-      getAll: () => [] as Array<{ name: string; value: string }>,
+      get: (name: string) =>
+        cookieEntries.has(name) ? { value: cookieEntries.get(name) } : undefined,
+      has: (name: string) => cookieEntries.has(name),
+      getAll: () =>
+        Array.from(cookieEntries.entries()).map(([name, value]) => ({ name, value })),
     };
     return {
       url: url.toString(),

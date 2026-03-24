@@ -13,6 +13,10 @@ vi.mock("next/navigation", () => ({
   notFound: mockedModules.notFound,
 }));
 
+vi.mock("next/headers", () => ({
+  headers: vi.fn(async () => new Headers()),
+}));
+
 vi.mock("next-intl", () => ({
   NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
