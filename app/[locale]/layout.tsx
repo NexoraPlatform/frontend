@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
-
+import { headers } from 'next/headers';
 import { GoogleTagManagerLoader } from "@/components/analytics/google-tag-manager-loader";
 import { LocaleSync } from "@/components/LocaleSync";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
@@ -27,7 +27,7 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
-
+  const nonce = (await headers()).get('x-nonce') || '';
   if (!locales.includes(locale as (typeof locales)[number])) {
     notFound();
   }
@@ -45,6 +45,7 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <div className="font-sans antialiased">
+      <meta name="csp-nonce" content={nonce} />
       <JsonLdScript id="global" json={globalJsonLd} />
       {shouldLoadGtm && gtmId && (
         <GoogleTagManagerLoader gtmId={gtmId} />

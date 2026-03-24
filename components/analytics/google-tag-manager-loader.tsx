@@ -14,12 +14,9 @@ declare global {
 
 function getCspNonce() {
   if (typeof document === "undefined") return null;
-
-  const nonceSource = document.querySelector<HTMLElement>("script[nonce], style[nonce], [nonce]");
-  if (!nonceSource) return null;
-
-  const nonceProperty = "nonce" in nonceSource ? nonceSource.nonce : "";
-  return nonceProperty || nonceSource.getAttribute("nonce");
+  // Căutăm meta tag-ul dedicat
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="csp-nonce"]');
+  return meta ? meta.content : null;
 }
 
 export function GoogleTagManagerLoader({ gtmId }: GoogleTagManagerLoaderProps) {

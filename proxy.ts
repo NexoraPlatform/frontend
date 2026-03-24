@@ -82,72 +82,31 @@ const buildPageCsp = async (nonce: string) => {
   const isDev = process.env.NODE_ENV === 'development';
   const isVercelPreview = process.env.VERCEL_ENV === 'preview';
   const allowVercelLive = isDev || isVercelPreview;
-  const jsonLdHashes = isDev ? [] : await getAllowedJsonLdHashes();
-
-  // 1. Definește sursele pentru Imagini
-  const imgSrc = [
-    "'self'",
-    "data:",
-    "blob:",
-    "https://www.googletagmanager.com",
-    "https://www.google-analytics.com",
-    // Adaugă aici domeniile pentru poze (ex: S3, Cloudinary, etc.)
-  ];
-
-  // 2. Definește sursele pentru Conexiuni (API-uri)
-  const connectSrc = [
-    "'self'",
-    "https://www.google-analytics.com",
-    "https://stats.g.doubleclick.net",
-    "https://sandboxcheckouttoolkit.rapyd.net",
-    ...(allowVercelLive ? ['https://vercel.live', 'wss://vercel.live'] : []),
-  ];
-
-  // 3. Definește sursele pentru Frame-uri
-  const frameSrc = [
-    "'self'",
-    "https://sandboxcheckouttoolkit.rapyd.net",
-    "https://applepay.cdn-apple.com",
-  ];
 
   const scriptSrc = [
     "'self'",
-    `'nonce-${nonce}'`,
-    "'strict-dynamic'",
-    "'unsafe-inline'",
-    "https:",
-    ...jsonLdHashes,
-    'https://www.googletagmanager.com',
-    'https://www.google-analytics.com',
-    'https://cdn.cookie-script.com',
-    'https://applepay.cdn-apple.com',
-    'https://sandboxcheckouttoolkit.rapyd.net',
+    `'nonce-${nonce}'`, // Scripturile cu acest nonce sunt de încredere
+    "'strict-dynamic'", // OBLIGATORIU: Permite scriptului de mai sus să încarce altele
+    "'unsafe-inline'",  // Fallback pentru browsere foarte vechi
+    "https:",           // Permite încărcarea de pe HTTPS (necesar pt strict-dynamic)
     ...(allowVercelLive ? ['https://vercel.live'] : []),
   ];
 
   const styleSrc = [
     "'self'",
-    "'unsafe-inline'",
-    'https://cdn.cookie-script.com',
+    "'unsafe-inline'", // Recomandat pentru stiluri (GTM modifică des stiluri inline)
   ];
 
   return [
     "default-src 'self'",
-    "object-src 'none'",
     `script-src ${scriptSrc.join(' ')}`,
-    "script-src-attr 'none'",
     `style-src ${styleSrc.join(' ')}`,
-    `style-src-elem ${styleSrc.join(' ')}`,
     "style-src-attr 'unsafe-inline'",
-    `img-src ${imgSrc.join(' ')}`, // Acum variabila este găsită
-    "font-src 'self' data:",
-    `connect-src ${connectSrc.join(' ')}`, // Acum variabila este găsită
-    `frame-src ${frameSrc.join(' ')}`,     // Acum variabila este găsită
-    "worker-src 'self' blob:",
-    "frame-ancestors 'none'",
+    "img-src 'self' data: blob: https:",
+    "connect-src 'self' https: wss:",
+    "frame-src 'self' https:",
     "base-uri 'self'",
     "form-action 'self'",
-    "manifest-src 'self'",
   ].join('; ');
 };
 
