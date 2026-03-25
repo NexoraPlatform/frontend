@@ -25,12 +25,24 @@ vi.mock("next-intl/server", () => ({
   setRequestLocale: mockedModules.setRequestLocale,
 }));
 
+vi.mock("@/auth", () => ({
+  auth: vi.fn(async () => null),
+}));
+
 vi.mock("@/components/analytics/google-tag-manager-loader", () => ({
   GoogleTagManagerLoader: () => null,
 }));
 
-vi.mock("@/components/LocaleSync", () => ({
-  LocaleSync: () => null,
+vi.mock("@/components/layout/app-shell", () => ({
+  AppShell: ({ children }: { children: React.ReactNode }) => (
+    <div id="main-content" tabIndex={-1}>
+      {children}
+    </div>
+  ),
+}));
+
+vi.mock("@/components/layout/runtime-auth-providers", () => ({
+  RuntimeAuthProviders: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 vi.mock("@/components/seo/json-ld-script", () => ({
@@ -39,10 +51,6 @@ vi.mock("@/components/seo/json-ld-script", () => ({
 
 vi.mock("@/components/theme-provider", () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-vi.mock("@/components/ui/sonner", () => ({
-  Toaster: () => null,
 }));
 
 vi.mock("@/contexts/CurrencyContext", () => ({

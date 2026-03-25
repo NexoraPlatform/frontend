@@ -9,10 +9,6 @@ import type {
   AiBriefBuilderRequestBody,
   AiBriefBuilderResponse,
 } from '@/types/ai';
-import {
-  BROWSER_SESSION_COOKIE_NAME,
-  REMEMBER_ME_COOKIE_NAME,
-} from '@/lib/auth/session-preferences';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -94,29 +90,6 @@ let browserSessionAuthCache: BrowserSessionAuth | undefined;
 let browserSessionAuthCacheTimestamp = 0;
 let browserSessionAuthPromise: Promise<BrowserSessionAuth> | null = null;
 let browserSessionRefreshPromise: Promise<BrowserSessionAuth> | null = null;
-
-const hasClientSessionPreferenceCookie = () => {
-  if (!isBrowser) {
-    return false;
-  }
-
-  const cookieEntries = document.cookie
-    .split(';')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-  return cookieEntries.some((entry) => {
-    const [name, value] = entry.split('=');
-    if (!value) {
-      return false;
-    }
-
-    return (
-      (name === REMEMBER_ME_COOKIE_NAME || name === BROWSER_SESSION_COOKIE_NAME) &&
-      value === '1'
-    );
-  });
-};
 
 const isAbsoluteUrl = (value: string) =>
   /^https?:\/\//i.test(value) || value.startsWith('//');
@@ -506,11 +479,6 @@ const resolveBrowserAccessToken = async (): Promise<BrowserSessionAuth> => {
     }
 
     return browserSessionAuthCache?.accessToken ? browserSessionAuthCache : null;
-  }
-
-  if (!hasClientSessionPreferenceCookie()) {
-    setBrowserSessionAuthUnavailable();
-    return null;
   }
 
   if (browserSessionAuthPromise) {

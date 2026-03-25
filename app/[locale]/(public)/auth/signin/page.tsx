@@ -64,6 +64,9 @@ export default function SignInPage() {
     "h-12 rounded-xl border-slate-300/80 bg-white/95 text-slate-950 shadow-sm placeholder:text-slate-500 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#08111B] dark:text-foreground dark:placeholder:text-muted-foreground/70";
   const signinSurfaceClassName =
     "rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm dark:border-white/10 dark:bg-background/40";
+  const registerHref = searchParams.get("callbackUrl")
+    ? `/auth/signup?callbackUrl=${encodeURIComponent(searchParams.get("callbackUrl") ?? "")}`
+    : "/auth/signup";
 
   const getSafeCallbackUrl = () => {
     const fallback = `/${locale}/dashboard`;
@@ -288,7 +291,7 @@ export default function SignInPage() {
 
                   <p className="text-center text-sm text-muted-foreground">
                     {noAccountText}
-                    <Link href="/auth/signup" className="ml-1 font-semibold text-primary hover:underline">
+                    <Link href={registerHref} className="ml-1 font-semibold text-primary hover:underline">
                       {registerText}
                     </Link>
                   </p>

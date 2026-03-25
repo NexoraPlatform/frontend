@@ -47,20 +47,25 @@ describe('hooks/use-public-auth', () => {
     document.cookie = 'trustora-browser-session=; Max-Age=0; Path=/';
   });
 
-  it('does not fetch public auth data when no readable session-preference cookie exists', async () => {
-    const fetchMock = vi.fn();
+  it('fetches public auth data once mounted so public pages use the same session source', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        user: {
+          id: 1,
+          email: 'public@example.com',
+        },
+      })
+    );
     vi.stubGlobal('fetch', fetchMock as typeof fetch);
 
     const { result } = renderHook(() => usePublicAuth(), { wrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.user).toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.user).toMatchObject({ id: '1', email: 'public@example.com' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not fetch public auth data when explicitly disabled', async () => {
-    document.cookie = 'trustora-browser-session=1; Path=/';
-
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock as typeof fetch);
 
@@ -71,12 +76,8 @@ describe('hooks/use-public-auth', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('clears readable session-preference cookies after a 401 and avoids refetching on remount', async () => {
-    document.cookie = 'trustora-browser-session=1; Path=/';
-
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse({ message: 'Unauthenticated' }, 401));
+  it('retries public auth resolution on remount after a 401 because auth.js is the single session source', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ message: 'Unauthenticated' }, 401));
     vi.stubGlobal('fetch', fetchMock as typeof fetch);
 
     const firstRender = renderHook(() => usePublicAuth(), { wrapper });
@@ -84,7 +85,6 @@ describe('hooks/use-public-auth', () => {
     await waitFor(() => expect(firstRender.result.current.loading).toBe(false));
     expect(firstRender.result.current.user).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(document.cookie.includes('trustora-browser-session=1')).toBe(false);
 
     firstRender.unmount();
 
@@ -92,6 +92,6 @@ describe('hooks/use-public-auth', () => {
 
     await waitFor(() => expect(secondRender.result.current.loading).toBe(false));
     expect(secondRender.result.current.user).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

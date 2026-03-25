@@ -6,8 +6,6 @@ import { signOut } from "next-auth/react";
 import useSWR from "swr";
 
 import {
-  BROWSER_SESSION_COOKIE_NAME,
-  REMEMBER_ME_COOKIE_NAME,
   clearSessionPreferenceCookies,
 } from "@/lib/auth/session-preferences";
 import { normalizeAuthUser, type AuthUser } from "@/lib/auth/user";
@@ -15,29 +13,6 @@ import { apiClient } from "@/lib/api";
 import { clearBrowserSessionAuthCache } from "@/lib/fetch-client";
 
 const PUBLIC_AUTH_USER_KEY = "/api/auth/me";
-
-const hasSessionPreferenceCookie = () => {
-  if (typeof document === "undefined") {
-    return false;
-  }
-
-  const cookieEntries = document.cookie
-    .split(";")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-  return cookieEntries.some((entry) => {
-    const [name, value] = entry.split("=");
-    if (!value) {
-      return false;
-    }
-
-    return (
-      (name === REMEMBER_ME_COOKIE_NAME || name === BROWSER_SESSION_COOKIE_NAME) &&
-      value === "1"
-    );
-  });
-};
 
 const fetchPublicAuthUser = async (): Promise<AuthUser | null> => {
   const response = await fetch(PUBLIC_AUTH_USER_KEY, {
@@ -52,7 +27,6 @@ const fetchPublicAuthUser = async (): Promise<AuthUser | null> => {
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       clearBrowserSessionAuthCache();
-      clearSessionPreferenceCookies();
       return null;
     }
 
@@ -70,7 +44,7 @@ export function usePublicAuth(enabled = true) {
     setHasMounted(true);
   }, []);
 
-  const shouldResolvePublicAuth = enabled && hasMounted && hasSessionPreferenceCookie();
+  const shouldResolvePublicAuth = enabled && hasMounted;
   const { data, isLoading, mutate } = useSWR<AuthUser | null>(
     shouldResolvePublicAuth ? PUBLIC_AUTH_USER_KEY : null,
     fetchPublicAuthUser,

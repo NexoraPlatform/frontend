@@ -9,12 +9,6 @@ import {
   type AccessUser,
   type Requirement,
 } from '@/lib/access';
-import {
-  BROWSER_SESSION_COOKIE_NAME,
-  NEXT_AUTH_SESSION_COOKIE_NAMES,
-  REMEMBER_ME_COOKIE_NAME,
-  isBrowserSessionExpired,
-} from '@/lib/auth/session-preferences';
 import { enforceApiRateLimit } from '@/lib/server/rate-limit';
 import { normalizeAuthUser } from '@/lib/auth/user';
 import { buildAllowedInlineScriptHashes } from '@/lib/csp';
@@ -59,6 +53,16 @@ const mergeHeaderValues = (currentValue: string | null, nextValue: string) => {
 const createCspNonce = () => btoa(crypto.randomUUID());
 
 let inlineScriptHashPromise: Promise<string[]> | null = null;
+const LOCAL_DEV_CONNECT_SRC = [
+  'http://127.0.0.1:8000',
+  'http://localhost:8000',
+  'ws://127.0.0.1:8000',
+  'ws://localhost:8000',
+];
+const LOCAL_DEV_IMAGE_SRC = [
+  'http://127.0.0.1:8000',
+  'http://localhost:8000',
+];
 
 const getAllowedInlineScriptHashes = () => {
   if (!inlineScriptHashPromise) {
@@ -84,8 +88,8 @@ const buildPageCsp = async (nonce: string) => {
     "'self'",
     `'nonce-${nonce}'`,
     ...allowedInlineScriptHashes,
-    "'strict-dynamic'",
     "'unsafe-inline'",
+    ...(!isDev ? ["'strict-dynamic'"] : []),
     ...(isDev ? ["'unsafe-eval'"] : []),
     "https:",
     ...(allowVercelLive ? ['https://vercel.live'] : []),
@@ -94,6 +98,12 @@ const buildPageCsp = async (nonce: string) => {
   const styleSrc = [
     "'self'",
     "'unsafe-inline'", // Recomandat pentru stiluri (GTM modifică des stiluri inline)
+  ];
+  const connectSrc = [
+    "'self'",
+    'https:',
+    'wss:',
+    ...(isDev ? LOCAL_DEV_CONNECT_SRC : []),
   ];
 
   return [
@@ -104,8 +114,8 @@ const buildPageCsp = async (nonce: string) => {
     `style-src ${styleSrc.join(' ')}`,
     `style-src-elem ${styleSrc.join(' ')}`,
     "style-src-attr 'unsafe-inline'",
-    "img-src 'self' data: blob: https:",
-    "connect-src 'self' https: wss:",
+    `img-src 'self' data: blob: https: ${isDev ? LOCAL_DEV_IMAGE_SRC.join(' ') : ''}`.trim(),
+    `connect-src ${connectSrc.join(' ')}`,
     "frame-src 'self' https:",
     "base-uri 'self'",
     "form-action 'self'",
@@ -263,15 +273,6 @@ function redirectToSignin(req: any, locale: string) {
   return NextResponse.redirect(url);
 }
 
-function clearRememberedAuthCookies(response: NextResponse) {
-  for (const cookieName of NEXT_AUTH_SESSION_COOKIE_NAMES) {
-    response.cookies.set(cookieName, '', { maxAge: 0, path: '/' });
-  }
-  response.cookies.set(REMEMBER_ME_COOKIE_NAME, '', { maxAge: 0, path: '/' });
-  response.cookies.set(BROWSER_SESSION_COOKIE_NAME, '', { maxAge: 0, path: '/' });
-  return response;
-}
-
 function isEarlyAccessEnabled() {
   return (
     process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true' ||
@@ -405,15 +406,9 @@ export const proxy = auth(async (req) => {
 
   const session = (req as any).auth;
   const sessionUser = session?.user as AccessUser | null | undefined;
-  const rememberMe = session?.rememberMe === true;
-  const browserSessionExpired =
-    Boolean(sessionUser) && isBrowserSessionExpired(rememberMe, req.cookies);
   const user =
-    !browserSessionExpired && sessionUser
-      ? ((normalizeAuthUser(sessionUser) as AccessUser | null) ?? sessionUser)
-      : null;
-  const finalizeResponse = <T extends NextResponse>(response: T) =>
-    browserSessionExpired ? (clearRememberedAuthCookies(response) as T) : response;
+    sessionUser ? ((normalizeAuthUser(sessionUser) as AccessUser | null) ?? sessionUser) : null;
+  const finalizeResponse = <T extends NextResponse>(response: T) => response;
 
   const isAuthenticated = Boolean(user);
   const preferredLocale = resolvePreferredLocale(user?.language, country);

@@ -6,7 +6,8 @@ import { normalizeAuthUser } from '@/lib/auth/user';
  */
 export async function getServerUser() {
   const session = await auth();
-  return normalizeAuthUser(session?.user ?? null);
+  const user = normalizeAuthUser(session?.user ?? null);
+  return user ?? null;
 }
 
 /**

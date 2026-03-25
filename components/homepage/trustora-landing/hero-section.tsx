@@ -1,20 +1,30 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import type { PointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent, PointerEvent } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
-import { ArrowRight, Play } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { Briefcase, Search, Users } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { Link } from "@/lib/navigation";
+import { Textarea } from "@/components/ui/textarea";
+import { useOptionalAuth } from "@/contexts/auth-context";
+import { usePublicAuth } from "@/hooks/use-public-auth";
+import { Link, useRouter } from "@/lib/navigation";
 
 import { revealEase } from "./constants";
 import type { LandingMetric } from "./types";
 
+const PROJECT_NEW_WIZARD_STATE_KEY = "trustora:projects-new-wizard-state";
+
 export function TrustoraLandingHeroSection() {
   const t = useTranslations("trustora.landing");
+  const locale = useLocale();
+  const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
+  const [brief, setBrief] = useState("");
+  const authContext = useOptionalAuth();
+  const publicAuth = usePublicAuth(!authContext);
   const chartPathRef = useRef<SVGPathElement | null>(null);
   const rotateX = useMotionValue(0);
   const rotateY = useMotionValue(0);
@@ -72,6 +82,52 @@ export function TrustoraLandingHeroSection() {
       tone: "accent" as const,
     },
   ];
+
+  const user = authContext?.user ?? publicAuth.user;
+  const authLoading = authContext?.loading ?? publicAuth.loading;
+  const authPending = !user && authLoading;
+  const isAuthenticated = Boolean(user);
+  const briefValue = brief.trim();
+  const localizedProjectNewPath = `/${locale}/projects/new`;
+
+  const persistProjectDraft = (value: string) => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.sessionStorage.setItem(
+        PROJECT_NEW_WIZARD_STATE_KEY,
+        JSON.stringify({
+          savedAt: Date.now(),
+          step: "intent",
+          projectInputMode: "ai",
+          intent: value,
+          manualTitle: value,
+          manualServiceSearch: "",
+        })
+      );
+    } catch (error) {
+      console.error("Failed to persist hero project draft:", error);
+    }
+  };
+
+  const handleBriefSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!briefValue || authPending) return;
+
+    persistProjectDraft(briefValue);
+
+    if (isAuthenticated) {
+      router.push("/projects/new");
+      return;
+    }
+
+    router.push(`/auth/signup?type=client&callbackUrl=${encodeURIComponent(localizedProjectNewPath)}`);
+  };
+
+  const handleHireClick = () => {
+    if (authPending || isAuthenticated) return;
+    router.push("/auth/signup?type=client");
+  };
 
   const handlePanelPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (shouldReduceMotion) return;
@@ -187,14 +243,16 @@ export function TrustoraLandingHeroSection() {
               className="flex flex-col gap-4 sm:flex-row"
             >
               <Button
-                asChild
                 size="lg"
                 className="group rounded-xl bg-primary px-8 py-6 text-base font-medium text-white transition-all duration-200 active:scale-[0.98] hover:bg-primary/90"
+                type="button"
+                onClick={handleHireClick}
+                disabled={authPending}
               >
-                <Link href="/projects">
-                  {t("hero.primary_cta")}
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Link>
+                <>
+                  <Briefcase className="mr-2 h-5 w-5" />
+                  {t("hero.hire_cta")}
+                </>
               </Button>
               <Button
                 asChild
@@ -202,17 +260,54 @@ export function TrustoraLandingHeroSection() {
                 variant="outline"
                 className="group rounded-xl border-2 px-8 py-6 text-base font-medium transition-all duration-200 active:scale-[0.98]"
               >
-                <a href="#how-it-works">
-                  <Play className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
-                  {t("hero.secondary_cta")}
-                </a>
+                <Link href="/auth/signup?type=provider">
+                  <Users className="mr-2 h-5 w-5" />
+                  {t("hero.work_cta")}
+                </Link>
               </Button>
             </motion.div>
+
+            <motion.form
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.38, ease: revealEase }}
+              onSubmit={handleBriefSubmit}
+              className="max-w-3xl"
+            >
+              <div className="relative overflow-hidden rounded-[1.75rem] border border-black/10 bg-white/85 shadow-[0_30px_90px_-45px_rgba(15,23,42,0.35)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04]">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(27,196,125,0.16),transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.45),rgba(255,255,255,0.08)_45%,transparent_80%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(27,196,125,0.16),transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03)_45%,transparent_80%)]"
+                />
+                <div className="relative z-10">
+                  <Textarea
+                    value={brief}
+                    onChange={(event) => setBrief(event.target.value)}
+                    placeholder={t("hero.brief_placeholder")}
+                    className="min-h-[138px] resize-none border-0 bg-transparent px-6 py-5 text-base leading-7 text-[#0F172A] shadow-none placeholder:text-[#64748B] focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-[#E6EDF3] dark:placeholder:text-[#94A3B8]"
+                  />
+                  <div className="flex flex-col gap-3 border-t border-black/5 px-4 pb-4 pt-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="pr-4 text-sm leading-6 text-muted-foreground">
+                      {t("hero.brief_helper")}
+                    </p>
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="shrink-0 rounded-2xl bg-primary px-6 py-5 text-sm font-semibold text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={!briefValue || authPending}
+                    >
+                      <Search className="mr-2 h-4 w-4" />
+                      {authPending ? t("hero.brief_loading") : t("hero.brief_submit")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.form>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: revealEase }}
+              transition={{ duration: 0.8, delay: 0.46, ease: revealEase }}
               className="flex items-center space-x-8 pt-8"
             >
               {metrics.map((metric, index) => (

@@ -532,7 +532,7 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
   }, [activeTab, focusedMilestoneId, focusedProjectId]);
 
   useEffect(() => {
-    if (userLoading) return;
+    if (loading || userLoading) return;
 
     if (!user) {
       const currentPath = pathname || '/dashboard';
@@ -543,7 +543,7 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
       const callbackUrl = query ? `${callbackPath}?${query}` : callbackPath;
       router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     }
-  }, [locale, pathname, router, searchParamsString, user, userLoading]);
+  }, [loading, locale, pathname, router, searchParamsString, user, userLoading]);
 
   useEffect(() => {
     if (!user || userLoading || isRefreshingRole) return;

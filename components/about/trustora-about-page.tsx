@@ -148,11 +148,11 @@ export async function TrustoraAboutPage() {
                 </div>
 
                 <div className="space-y-6">
-                  <h1 className="text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl">
+                  <h1 className="text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl text-center">
                     {t('about.hero.title')}{' '}
                     <span className="text-gradient">{t('about.hero.highlight')}</span>
                   </h1>
-                  <p className="text-lg leading-8 text-muted-foreground sm:text-xl">
+                  <p className="text-lg leading-8 text-muted-foreground sm:text-xl text-center">
                     {t('about.hero.description')}
                   </p>
                 </div>

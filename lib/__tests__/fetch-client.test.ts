@@ -113,8 +113,6 @@ describe('lib/fetch-client', () => {
   });
 
   it('refreshes the session before the request when only the refresh token is still available', async () => {
-    document.cookie = 'trustora-browser-session=1; Path=/';
-
     getSessionMock.mockResolvedValue({
       refreshToken: 'still-valid-refresh-token',
       tokenType: 'Bearer',
@@ -147,21 +145,25 @@ describe('lib/fetch-client', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('does not query next-auth session when no readable session-preference cookie exists', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ message: 'Unauthenticated' }, 401));
+  it('queries next-auth session when the cache is cold so browser requests reuse the same session source', async () => {
+    getSessionMock.mockResolvedValue({
+      accessToken: 'session-access-token',
+      tokenType: 'Bearer',
+    });
+
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      expect(headers.get('Authorization')).toBe('Bearer session-access-token');
+      return jsonResponse({ ok: true });
+    });
 
     vi.stubGlobal('fetch', fetchMock as typeof fetch);
 
     const apiFetch = createApiFetch({ baseURL: window.location.origin });
 
-    await expect(apiFetch('/protected', { method: 'GET' })).rejects.toMatchObject<Partial<FetchError>>(
-      {
-        status: 401,
-        message: 'Unauthenticated',
-      }
-    );
+    await expect(apiFetch('/protected', { method: 'GET' })).resolves.toEqual({ ok: true });
 
-    expect(getSessionMock).not.toHaveBeenCalled();
+    expect(getSessionMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(new URL(String(fetchMock.mock.calls[0]?.[0]), window.location.origin).pathname).toBe(
       '/api/protected'
@@ -169,8 +171,6 @@ describe('lib/fetch-client', () => {
   });
 
   it('does not keep retrying refresh when the session is already marked with a terminal auth error', async () => {
-    document.cookie = 'trustora-browser-session=1; Path=/';
-
     getSessionMock.mockResolvedValue({
       refreshToken: 'stale-refresh-token',
       tokenType: 'Bearer',

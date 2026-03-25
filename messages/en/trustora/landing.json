@@ -9,6 +9,12 @@
       "title": "Financial trust,",
       "title_highlight": "automated.",
       "description": "Secure your transactions and automate compliance with Trustora's next-gen fintech engine.",
+      "hire_cta": "I want to hire",
+      "work_cta": "I want to work",
+      "brief_placeholder": "Describe what you need: the project, skills, budget, timeline, or the kind of expert you want to hire.",
+      "brief_helper": "If you do not have an account yet, we will take you through signup first and then bring you straight into a new project with your brief already filled in.",
+      "brief_submit": "Search",
+      "brief_loading": "Preparing...",
       "primary_cta": "Get Started",
       "secondary_cta": "Watch Demo",
       "metrics": {

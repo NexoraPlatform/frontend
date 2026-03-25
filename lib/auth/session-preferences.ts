@@ -14,6 +14,36 @@ type CookieGetter = {
 };
 
 const isCookieEnabled = (value?: string | null) => value === '1';
+const resolveClientCookieSource = (cookieHeader?: string | null) => {
+  if (typeof cookieHeader === 'string') {
+    return cookieHeader;
+  }
+
+  if (typeof document === 'undefined') {
+    return '';
+  }
+
+  return document.cookie;
+};
+
+const readClientCookieValue = (name: string, cookieHeader?: string | null) => {
+  const cookieSource = resolveClientCookieSource(cookieHeader);
+  if (!cookieSource) {
+    return undefined;
+  }
+
+  const entry = cookieSource
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .find((part) => part.startsWith(`${name}=`));
+
+  if (!entry) {
+    return undefined;
+  }
+
+  return entry.slice(name.length + 1);
+};
 
 export const hasRememberMeCookie = (cookies: CookieGetter) =>
   isCookieEnabled(cookies.get(REMEMBER_ME_COOKIE_NAME)?.value);
@@ -23,6 +53,20 @@ export const hasBrowserSessionCookie = (cookies: CookieGetter) =>
 
 export const isBrowserSessionExpired = (rememberMe: boolean, cookies: CookieGetter) =>
   !rememberMe && !hasBrowserSessionCookie(cookies);
+
+export const hasClientRememberMeCookie = (cookieHeader?: string | null) =>
+  isCookieEnabled(readClientCookieValue(REMEMBER_ME_COOKIE_NAME, cookieHeader));
+
+export const hasClientBrowserSessionCookie = (cookieHeader?: string | null) =>
+  isCookieEnabled(readClientCookieValue(BROWSER_SESSION_COOKIE_NAME, cookieHeader));
+
+export const hasClientSessionPreferenceCookie = (cookieHeader?: string | null) =>
+  hasClientRememberMeCookie(cookieHeader) || hasClientBrowserSessionCookie(cookieHeader);
+
+export const isClientBrowserSessionExpired = (
+  rememberMe: boolean,
+  cookieHeader?: string | null
+) => !rememberMe && !hasClientBrowserSessionCookie(cookieHeader);
 
 export const setSessionPreferenceCookies = (rememberMe: boolean) => {
   if (typeof document === 'undefined') return;

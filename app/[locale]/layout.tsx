@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
+import { auth } from "@/auth";
 import { GoogleTagManagerLoader } from "@/components/analytics/google-tag-manager-loader";
-import { LocaleSync } from "@/components/LocaleSync";
+import { AppShell } from "@/components/layout/app-shell";
+import { RuntimeAuthProviders } from "@/components/layout/runtime-auth-providers";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
+import { normalizeAuthUser } from "@/lib/auth/user";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { loadMessagesForNamespaces, sharedClientNamespaces } from "@/lib/i18n";
 import { locales } from "@/lib/navigation";
@@ -33,10 +35,13 @@ export function generateStaticParams() {
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
   const requestHeaders = await headers();
+  const session = await auth();
   const nonce =
     requestHeaders.get("x-nonce") ??
     requestHeaders.get("content-security-policy")?.match(/'nonce-([^']+)'/)?.[1] ??
     undefined;
+  const initialSession = session ?? null;
+  const initialUser = normalizeAuthUser(session?.user ?? null);
 
   if (!locales.includes(locale as (typeof locales)[number])) {
     notFound();
@@ -54,7 +59,7 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <div className="font-sans antialiased">
-      <JsonLdScript id="global" json={globalJsonLd} nonce={nonce} />
+      <JsonLdScript id="global" json={globalJsonLd} />
       {shouldLoadGtm && gtmId && (
         <GoogleTagManagerLoader gtmId={gtmId} nonce={nonce} />
       )}
@@ -72,20 +77,17 @@ export default async function LocaleLayout({ children, params }: Props) {
       )}
       <NextIntlClientProvider locale={locale} messages={messages}>
         <CurrencyProvider>
-          <ThemeProvider
-            attribute={TRUSTORA_THEME_ATTRIBUTE}
-            defaultTheme={TRUSTORA_THEME_DEFAULT}
-            enableSystem
-            disableTransitionOnChange
-            storageKey={TRUSTORA_THEME_STORAGE_KEY}
-            nonce={nonce}
-          >
-            <LocaleSync />
-            <div id="main-content" tabIndex={-1}>
-              {children}
-            </div>
-            <Toaster position="top-right" expand={false} richColors closeButton />
-          </ThemeProvider>
+          <RuntimeAuthProviders initialSession={initialSession as any} initialUser={initialUser}>
+            <ThemeProvider
+              attribute={TRUSTORA_THEME_ATTRIBUTE}
+              defaultTheme={TRUSTORA_THEME_DEFAULT}
+              enableSystem
+              disableTransitionOnChange
+              storageKey={TRUSTORA_THEME_STORAGE_KEY}
+            >
+              <AppShell>{children}</AppShell>
+            </ThemeProvider>
+          </RuntimeAuthProviders>
         </CurrencyProvider>
       </NextIntlClientProvider>
     </div>

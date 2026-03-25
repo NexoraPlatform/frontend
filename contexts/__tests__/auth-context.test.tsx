@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { render, renderHook, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
@@ -34,6 +34,8 @@ describe('contexts/auth-context', () => {
   const mockedApi = apiClient as unknown as { updateUserLanguage: vi.Mock };
 
   beforeEach(() => {
+    document.cookie = 'trustora-remember=; Max-Age=0; Path=/';
+    document.cookie = 'trustora-browser-session=; Max-Age=0; Path=/';
     mockedApi.updateUserLanguage.mockReset();
     mockSignIn.mockReset();
     mockSignOut.mockReset();
@@ -61,6 +63,8 @@ describe('contexts/auth-context', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    document.cookie = 'trustora-remember=; Max-Age=0; Path=/';
+    document.cookie = 'trustora-browser-session=; Max-Age=0; Path=/';
   });
 
   it('hydrates user from SSR initialUser', async () => {
@@ -136,7 +140,133 @@ describe('contexts/auth-context', () => {
     expect(result.current.user).toBeNull();
   });
 
+  it('does not clear session-preference cookies for a plain unauthenticated state', async () => {
+    document.cookie = 'trustora-browser-session=1; Path=/';
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(document.cookie.includes('trustora-browser-session=1')).toBe(true);
+  });
+
+  it('keeps authenticated sessions active even when readable remember-me cookies are missing', async () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 11,
+          email: 'expired@example.com',
+          firstName: 'Expired',
+          lastName: 'User',
+        },
+        rememberMe: false,
+      },
+      status: 'authenticated',
+      update: mockUpdate,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.user?.id).toBe('11'));
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  it('recovers the authenticated user from getSession when the client hook starts unauthenticated', async () => {
+    mockGetSession.mockResolvedValue({
+      user: {
+        id: 21,
+        email: 'browser-session@example.com',
+        firstName: 'Browser',
+        lastName: 'Session',
+      },
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.user?.id).toBe('21'));
+    expect(result.current.user?.email).toBe('browser-session@example.com');
+  });
+
+  it('falls back to /api/auth/me when getSession does not return the authenticated user', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+
+      if (url.includes('/api/auth/me')) {
+        return jsonResponse({
+          user: {
+            id: 33,
+            email: 'server-auth@example.com',
+            firstName: 'Server',
+            lastName: 'Auth',
+          },
+        });
+      }
+
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+    mockGetSession.mockResolvedValue(null);
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.user?.id).toBe('33'));
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/me'))).toBe(true);
+  });
+
+  it('adopts a new SSR session snapshot after client-side navigation without requiring a refresh', async () => {
+    let latestAuth: ReturnType<typeof useAuth> | null = null;
+
+    function Harness() {
+      latestAuth = useAuth();
+      return null;
+    }
+
+    const { rerender } = render(
+      <AuthProvider initialSession={null}>
+        <Harness />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(latestAuth?.loading).toBe(false));
+    expect(latestAuth?.user).toBeNull();
+
+    rerender(
+      <AuthProvider
+        initialSession={{
+          user: {
+            id: 44,
+            email: 'navigated@example.com',
+            firstName: 'Route',
+            lastName: 'Snapshot',
+          },
+        }}
+      >
+        <Harness />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(latestAuth?.user?.id).toBe('44'));
+    expect(latestAuth?.user?.email).toBe('navigated@example.com');
+  });
+
   it('setUserLanguage updates local user', async () => {
+    document.cookie = 'trustora-remember=1; Path=/';
+
     mockUseSession.mockReturnValue({
       data: {
         user: {
@@ -146,6 +276,7 @@ describe('contexts/auth-context', () => {
           lastName: 'User',
           language: 'ro',
         },
+        rememberMe: true,
       },
       status: 'authenticated',
       update: mockUpdate,
@@ -176,6 +307,11 @@ describe('contexts/auth-context', () => {
   });
 
   it('logs in through backend + next-auth credentials', async () => {
+    mockSignIn.mockImplementation(async () => {
+      expect(document.cookie.includes('trustora-browser-session=1')).toBe(true);
+      return { ok: true, error: null, status: 200, url: null };
+    });
+
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
 
@@ -218,6 +354,39 @@ describe('contexts/auth-context', () => {
       expect.objectContaining({ email: 'login@example.com', password: 'secret', redirect: false })
     );
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/me'))).toBe(true);
+  });
+
+  it('clears session-preference cookies again when credentials sign-in fails', async () => {
+    mockSignIn.mockResolvedValue({
+      ok: false,
+      error: 'CredentialsSignin',
+      status: 401,
+      url: null,
+      code: 'invalid_credentials',
+    });
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+
+      if (url.includes('/api/auth/login')) {
+        return jsonResponse({ message: 'Invalid credentials' }, 401);
+      }
+
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await expect(result.current.login('login@example.com', 'wrong')).rejects.toThrow(
+      'Invalid credentials'
+    );
+    expect(document.cookie.includes('trustora-browser-session=1')).toBe(false);
+    expect(document.cookie.includes('trustora-remember=1')).toBe(false);
   });
 
   it('falls back to login payload roles and permissions when profile refresh fails', async () => {

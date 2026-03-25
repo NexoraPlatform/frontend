@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { AlertCircle, Building, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck, User } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 
 import { AuthSocialButtons } from "@/components/auth/social-auth-buttons";
@@ -21,13 +22,23 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { buildOAuthRedirectUrl } from "@/lib/backend-url";
-import { Link, useRouter } from "@/lib/navigation";
+import { Link } from "@/lib/navigation";
+import { sanitizeNavigationTarget } from "@/lib/navigation-security";
 import { cn } from "@/lib/utils";
 import { billingDetailsSchema, type BillingDetailsFormValues } from "@/types/user-forms";
 
 type OAuthProvider = "google" | "github";
+type SignupRole = "CLIENT" | "PROVIDER";
+
+const resolveSignupRole = (value: string | null): SignupRole =>
+  value === "provider" ? "PROVIDER" : "CLIENT";
 
 export default function SignUpPage() {
+  const t = useTranslations();
+  const locale = useLocale();
+  const searchParams = useSearchParams();
+  const requestedType = searchParams.get("type");
+  const callbackUrl = searchParams.get("callbackUrl");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -35,7 +46,7 @@ export default function SignUpPage() {
     phone: "",
     password: "",
     confirmPassword: "",
-    role: "CLIENT",
+    role: resolveSignupRole(requestedType),
     company: "",
     agreeToTerms: false,
   });
@@ -55,11 +66,12 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const t = useTranslations();
-  const router = useRouter();
   const { register } = useAuth();
   const termsHref = "/terms";
   const privacyHref = "/privacy";
+  const signInHref = callbackUrl
+    ? `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/auth/signin";
 
   const badgeText = t("auth.signup.badge");
   const titlePrefix = t("auth.signup.title_prefix");
@@ -109,6 +121,14 @@ export default function SignUpPage() {
   const signupSurfaceClassName =
     "rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm dark:border-white/10 dark:bg-background/40";
 
+  useEffect(() => {
+    const nextRole = resolveSignupRole(requestedType);
+    setFormData((current) => (current.role === nextRole ? current : { ...current, role: nextRole }));
+  }, [requestedType]);
+
+  const getSafeCallbackUrl = () =>
+    sanitizeNavigationTarget(callbackUrl) ?? `/${locale}/dashboard`;
+
   const handleSocialSignIn = (provider: OAuthProvider) => {
     const redirectUrl = buildOAuthRedirectUrl(provider);
     if (!redirectUrl) {
@@ -154,7 +174,7 @@ export default function SignUpPage() {
         company: formData.company,
         ...billingValues,
       });
-      router.push("/dashboard");
+      window.location.assign(getSafeCallbackUrl());
     } catch (caughtError: any) {
       setError(caughtError.message || genericErrorText);
     } finally {
@@ -331,7 +351,12 @@ export default function SignUpPage() {
                         </Label>
                         <Select
                           value={formData.role}
-                          onValueChange={(value) => setFormData({ ...formData, role: value })}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              role: value === "PROVIDER" ? "PROVIDER" : "CLIENT",
+                            })
+                          }
                         >
                           <SelectTrigger className={signupFieldClassName}>
                             <SelectValue />
@@ -471,7 +496,7 @@ export default function SignUpPage() {
 
                   <p className="text-center text-sm text-muted-foreground">
                     {hasAccountText}
-                    <Link href="/auth/signin" className="ml-1 font-semibold text-primary hover:underline">
+                    <Link href={signInHref} className="ml-1 font-semibold text-primary hover:underline">
                       {signinText}
                     </Link>
                   </p>

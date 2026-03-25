@@ -9,6 +9,12 @@
       "title": "Încredere financiară,",
       "title_highlight": "automatizată.",
       "description": "Securizează tranzacțiile și automatizează conformitatea cu motorul fintech next-gen Trustora.",
+      "hire_cta": "I want to hire",
+      "work_cta": "I want to work",
+      "brief_placeholder": "Descrie pe scurt ce ai nevoie: proiectul, skill-urile, bugetul, termenul sau tipul de colaborare pe care îl cauți.",
+      "brief_helper": "Dacă nu ai cont încă, te ducem mai întâi la înregistrare și apoi direct în formularul de proiect, cu mesajul tău deja completat.",
+      "brief_submit": "Caută",
+      "brief_loading": "Se pregătește...",
       "primary_cta": "Începe acum",
       "secondary_cta": "Vezi demo",
       "metrics": {

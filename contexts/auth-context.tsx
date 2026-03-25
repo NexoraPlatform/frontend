@@ -1,6 +1,15 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { Session } from 'next-auth';
 import { getSession, SessionProvider, signIn, signOut, useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import {
@@ -27,6 +36,7 @@ interface AuthContextType {
 
 type AuthProviderProps = {
   children: React.ReactNode;
+  initialSession?: Session | null;
   initialUser?: AuthUser | null;
 };
 
@@ -111,16 +121,45 @@ const extractLoginErrorMessage = async (email: string, password: string, fallbac
   return 'Login failed';
 };
 
-function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) {
+const getAuthUserSnapshotKey = (value: AuthUser | null) => {
+  if (!value) {
+    return 'guest';
+  }
+
+  return `${value.id ?? ''}:${value.email ?? ''}`;
+};
+
+function AuthProviderInner({ children, initialSession = null, initialUser = null }: AuthProviderProps) {
   const normalizedInitialUser = useMemo(() => normalizeAuthUser(initialUser), [initialUser]);
   const { data: session, status, update } = useSession();
+  const initialSessionUser = useMemo(
+    () => normalizeAuthUser((initialSession as any)?.user ?? null),
+    [initialSession]
+  );
+  const serverSnapshotUser = useMemo(
+    () => initialSessionUser ?? normalizedInitialUser,
+    [initialSessionUser, normalizedInitialUser]
+  );
+  const serverSnapshotKey = useMemo(
+    () => getAuthUserSnapshotKey(serverSnapshotUser),
+    [serverSnapshotUser]
+  );
   const sessionUser = useMemo(() => normalizeAuthUser((session as any)?.user ?? null), [session]);
-  const [user, setUser] = useState<AuthUser | null>(sessionUser ?? normalizedInitialUser);
+  const [recoveredSessionUser, setRecoveredSessionUser] = useState<AuthUser | null>(null);
+  const [isRecoveringSession, setIsRecoveringSession] = useState(
+    () => status === 'unauthenticated' && !sessionUser && !initialSessionUser && !normalizedInitialUser
+  );
+  const recoveryAttemptedRef = useRef(false);
+  const previousServerSnapshotKeyRef = useRef(serverSnapshotKey);
+  const effectiveSessionUser = sessionUser ?? recoveredSessionUser;
+  const [user, setUser] = useState<AuthUser | null>(
+    effectiveSessionUser ?? initialSessionUser ?? normalizedInitialUser
+  );
 
   useEffect(() => {
     if (status === 'loading') return;
-    if (sessionUser) {
-      setUser(sessionUser);
+    if (effectiveSessionUser) {
+      setUser(effectiveSessionUser);
       return;
     }
     if (status === 'unauthenticated') {
@@ -128,30 +167,119 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
       return;
     }
     setUser(null);
-  }, [sessionUser, status]);
+  }, [effectiveSessionUser, status]);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      setBrowserSessionAuthCache(session);
+    if (!initialSession) return;
+    setBrowserSessionAuthCache(initialSession);
+  }, [initialSession]);
+
+  useEffect(() => {
+    if (serverSnapshotKey === previousServerSnapshotKeyRef.current) return;
+
+    previousServerSnapshotKeyRef.current = serverSnapshotKey;
+    recoveryAttemptedRef.current = false;
+    setRecoveredSessionUser(serverSnapshotUser);
+
+    if (serverSnapshotUser) {
+      setUser(serverSnapshotUser);
+      setIsRecoveringSession(false);
       return;
     }
 
     if (status === 'unauthenticated') {
-      clearBrowserSessionAuthCache();
-      clearSessionPreferenceCookies();
+      setUser(null);
     }
-  }, [session, status]);
+  }, [serverSnapshotKey, serverSnapshotUser, status]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      recoveryAttemptedRef.current = false;
+      setRecoveredSessionUser(null);
+      setIsRecoveringSession(false);
+      setBrowserSessionAuthCache(session);
+      return;
+    }
+
+    if (status === 'unauthenticated' && !recoveredSessionUser) {
+      clearBrowserSessionAuthCache();
+    }
+  }, [recoveredSessionUser, session, status]);
+
+  useEffect(() => {
+    if (status !== 'unauthenticated') return;
+    if (effectiveSessionUser) {
+      setIsRecoveringSession(false);
+      return;
+    }
+    if (recoveryAttemptedRef.current) {
+      setIsRecoveringSession(false);
+      return;
+    }
+
+    recoveryAttemptedRef.current = true;
+    let cancelled = false;
+    setIsRecoveringSession(true);
+
+    void getSession()
+      .then(async (sessionSnapshot) => {
+        if (cancelled) return;
+
+        if (sessionSnapshot) {
+          setBrowserSessionAuthCache(sessionSnapshot);
+        }
+
+        let recoveredUser = normalizeAuthUser((sessionSnapshot as any)?.user ?? null);
+        if (!recoveredUser) {
+          recoveredUser = await fetchCurrentUser().catch((error) => {
+            console.warn('Failed to recover authenticated user from /api/auth/me:', error);
+            return null;
+          });
+        }
+
+        if (recoveredUser) {
+          setRecoveredSessionUser(recoveredUser);
+          setUser(recoveredUser);
+          return;
+        }
+
+        setRecoveredSessionUser(null);
+        clearBrowserSessionAuthCache();
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRecoveredSessionUser(null);
+        clearBrowserSessionAuthCache();
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsRecoveringSession(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveSessionUser, status]);
 
   const login = useCallback(
     async (email: string, password: string, rememberMe = false) => {
-      const authResult = await signIn('credentials', {
-        email,
-        password,
-        remember: rememberMe ? 'true' : 'false',
-        redirect: false,
-      });
+      setSessionPreferenceCookies(rememberMe);
+
+      let authResult;
+      try {
+        authResult = await signIn('credentials', {
+          email,
+          password,
+          remember: rememberMe ? 'true' : 'false',
+          redirect: false,
+        });
+      } catch (error) {
+        clearSessionPreferenceCookies();
+        throw error;
+      }
 
       if (!authResult || authResult.error) {
+        clearSessionPreferenceCookies();
         const detailedMessage = await extractLoginErrorMessage(
           email,
           password,
@@ -160,9 +288,9 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
         throw new Error(detailedMessage);
       }
 
-      setSessionPreferenceCookies(rememberMe);
-
       const sessionAfterLogin = await getSession().catch(() => null);
+      recoveryAttemptedRef.current = false;
+      setRecoveredSessionUser(null);
       setBrowserSessionAuthCache(sessionAfterLogin);
       const loginUser = normalizeAuthUser((sessionAfterLogin as any)?.user ?? null);
       let refreshedUser: AuthUser | null = null;
@@ -226,12 +354,15 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
       refreshedUser = normalizeAuthUser((sessionSnapshot as any)?.user ?? null);
     }
     if (refreshedUser) {
+      recoveryAttemptedRef.current = false;
+      setRecoveredSessionUser(null);
       setUser(refreshedUser);
       await update({ user: refreshedUser } as any);
       return;
     }
 
     setUser(null);
+    setRecoveredSessionUser(null);
     clearBrowserSessionAuthCache();
     clearSessionPreferenceCookies();
     await signOut({ redirect: false });
@@ -247,6 +378,7 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      setRecoveredSessionUser(null);
       clearBrowserSessionAuthCache();
       clearSessionPreferenceCookies();
       await signOut({ redirect: false });
@@ -292,7 +424,7 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     [refreshUser, update]
   );
 
-  const loading = status === 'loading';
+  const loading = status === 'loading' || isRecoveringSession;
   const userLoading = loading && !user;
 
   const value: AuthContextType = {
@@ -310,10 +442,20 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function AuthProvider({ children, initialUser = null }: AuthProviderProps) {
+export function AuthProvider({
+  children,
+  initialSession = null,
+  initialUser = null,
+}: AuthProviderProps) {
   return (
-    <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
-      <AuthProviderInner initialUser={initialUser}>{children}</AuthProviderInner>
+    <SessionProvider
+      refetchOnWindowFocus={false}
+      refetchInterval={0}
+      session={initialSession}
+    >
+      <AuthProviderInner initialSession={initialSession} initialUser={initialUser}>
+        {children}
+      </AuthProviderInner>
     </SessionProvider>
   );
 }
