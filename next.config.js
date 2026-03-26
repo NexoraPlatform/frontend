@@ -105,6 +105,7 @@ const nextConfig = {
 
   // Experimental features for performance
   experimental: {
+    inlineCss: true,
     // Package imports optimization
     optimizePackageImports: [
       'lucide-react',
