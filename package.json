@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "postinstall": "node scripts/ensure-next-internals.mjs && node scripts/copy-monaco-assets.mjs",
     "prebuild": "node scripts/ensure-next-internals.mjs && node scripts/copy-monaco-assets.mjs",
-    "build": "next build --webpack",
+    "build": "next build",
     "build:turbo": "next build --turbo",
     "build:sandbox": "next build --webpack",
     "start": "next start",
@@ -131,8 +131,9 @@
     "node": "24.x"
   },
   "browserslist": [
-    "defaults",
-    "not ie 11",
-    "maintained node versions"
+    "chrome 111",
+    "edge 111",
+    "firefox 111",
+    "safari 16.4"
   ]
 }

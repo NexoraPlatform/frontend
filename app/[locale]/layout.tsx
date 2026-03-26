@@ -20,6 +20,7 @@ import {
   TRUSTORA_THEME_DEFAULT,
   TRUSTORA_THEME_STORAGE_KEY,
 } from "@/lib/theme";
+import { GoogleTagManager } from '@next/third-parties/google';
 
 type Props = {
   children: ReactNode;
@@ -63,20 +64,21 @@ export default async function LocaleLayout({ children, params }: Props) {
     <div className="font-sans antialiased">
       <JsonLdScript id="global" json={globalJsonLd} />
       {shouldLoadGtm && gtmId && (
-        <GoogleTagManagerLoader gtmId={gtmId} nonce={nonce} />
+        // <GoogleTagManagerLoader gtmId={gtmId} nonce={nonce} />
+          <GoogleTagManager gtmId={gtmId} />
       )}
       {nonce ? <meta name="csp-nonce" content={nonce} /> : null}
-      {shouldLoadGtm && gtmId && (
-        <noscript>
-          <iframe
-            title="Google Tag Manager"
-            src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}`}
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
-      )}
+      {/*{shouldLoadGtm && gtmId && (*/}
+      {/*  <noscript>*/}
+      {/*    <iframe*/}
+      {/*      title="Google Tag Manager"*/}
+      {/*      src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}`}*/}
+      {/*      height="0"*/}
+      {/*      width="0"*/}
+      {/*      style={{ display: "none", visibility: "hidden" }}*/}
+      {/*    />*/}
+      {/*  </noscript>*/}
+      {/*)}*/}
       <NextIntlClientProvider locale={locale} messages={messages}>
         <CurrencyProvider>
           <RuntimeAuthProviders initialSession={initialSession as any} initialUser={initialUser}>

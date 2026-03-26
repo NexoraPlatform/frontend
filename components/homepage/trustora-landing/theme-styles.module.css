@@ -1,0 +1,118 @@
+:global(.trustora-homepage),
+:global(.trustora-signin-page),
+:global(.trustora-signup-page),
+:global(.trustora-help-page),
+:global(.trustora-about-page),
+:global(.trustora-contact-page) {
+  --background: 0 0% 96%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 158 64% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 158 64% 42%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 158 64% 42%;
+  --radius: 1rem;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+}
+
+:global(.trustora-homepage h1),
+:global(.trustora-homepage h2),
+:global(.trustora-homepage h3),
+:global(.trustora-homepage h4),
+:global(.trustora-homepage h5),
+:global(.trustora-homepage h6),
+:global(.trustora-signin-page h1),
+:global(.trustora-signin-page h2),
+:global(.trustora-signin-page h3),
+:global(.trustora-signin-page h4),
+:global(.trustora-signin-page h5),
+:global(.trustora-signin-page h6),
+:global(.trustora-signup-page h1),
+:global(.trustora-signup-page h2),
+:global(.trustora-signup-page h3),
+:global(.trustora-signup-page h4),
+:global(.trustora-signup-page h5),
+:global(.trustora-signup-page h6),
+:global(.trustora-help-page h1),
+:global(.trustora-help-page h2),
+:global(.trustora-help-page h3),
+:global(.trustora-help-page h4),
+:global(.trustora-help-page h5),
+:global(.trustora-help-page h6),
+:global(.trustora-about-page h1),
+:global(.trustora-about-page h2),
+:global(.trustora-about-page h3),
+:global(.trustora-about-page h4),
+:global(.trustora-about-page h5),
+:global(.trustora-about-page h6),
+:global(.trustora-contact-page h1),
+:global(.trustora-contact-page h2),
+:global(.trustora-contact-page h3),
+:global(.trustora-contact-page h4),
+:global(.trustora-contact-page h5),
+:global(.trustora-contact-page h6) {
+  font-family: var(--font-space-grotesk), var(--font-manrope), system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+:global(.dark .trustora-homepage),
+:global(.dark .trustora-signin-page),
+:global(.dark .trustora-signup-page),
+:global(.dark .trustora-help-page),
+:global(.dark .trustora-about-page),
+:global(.dark .trustora-contact-page) {
+  --background: 210 50% 10%;
+  --foreground: 210 40% 98%;
+  --card: 210 45% 11%;
+  --card-foreground: 210 40% 98%;
+  --popover: 210 45% 11%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 158 64% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 45% 15%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 210 45% 15%;
+  --muted-foreground: 217 10% 65%;
+  --accent: 158 64% 42%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 210 40% 20%;
+  --input: 210 40% 20%;
+  --ring: 158 64% 42%;
+}
+
+:global(.trustora-homepage .glass-effect),
+:global(.trustora-signin-page .glass-effect),
+:global(.trustora-signup-page .glass-effect),
+:global(.trustora-help-page .glass-effect),
+:global(.trustora-about-page .glass-effect),
+:global(.trustora-contact-page .glass-effect) {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(100px);
+}
+
+:global(.trustora-homepage .text-gradient),
+:global(.trustora-signin-page .text-gradient),
+:global(.trustora-signup-page .text-gradient),
+:global(.trustora-help-page .text-gradient),
+:global(.trustora-about-page .text-gradient),
+:global(.trustora-contact-page .text-gradient) {
+  background-image: linear-gradient(to right, hsl(var(--primary)), rgb(52 211 153));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
