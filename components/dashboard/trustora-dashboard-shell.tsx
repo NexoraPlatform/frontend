@@ -15,7 +15,6 @@ import {
   Settings,
   Sun,
   Users,
-  Wallet,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -47,8 +46,7 @@ type DashboardShellTab =
   | "projects"
   | "services"
   | "messages"
-  | "settings"
-  | "finance";
+  | "settings";
 
 type DashboardShellMenu = DashboardShellTab | "edit-profile";
 
@@ -110,7 +108,7 @@ function HeaderPrimaryAction({
   onClick: () => void;
   label: string;
 }) {
-  const Icon = isProvider ? Wallet : Plus;
+  const Icon = isProvider ? Layers : Plus;
 
   return (
     <button
@@ -160,16 +158,16 @@ export function TrustoraDashboardShell({
         action: () => onMenuSelect("overview"),
       },
       {
-        key: isProvider ? "finance" : "projects",
-        label: isProvider ? t("dashboard.tabs.finance") : t("dashboard.tabs.projects"),
-        icon: isProvider ? Wallet : Layers,
-        action: () => onMenuSelect(isProvider ? "finance" : "projects"),
+        key: "projects",
+        label: t("dashboard.tabs.projects"),
+        icon: Layers,
+        action: () => onMenuSelect("projects"),
       },
       {
-        key: isProvider ? "projects" : "services",
-        label: isProvider ? t("dashboard.tabs.projects") : t("dashboard.tabs.services"),
-        icon: isProvider ? Layers : Users,
-        action: () => onMenuSelect(isProvider ? "projects" : "services"),
+        key: "services",
+        label: t("dashboard.tabs.services"),
+        icon: Users,
+        action: () => onMenuSelect("services"),
       },
       {
         key: "messages",
@@ -180,12 +178,6 @@ export function TrustoraDashboardShell({
     ];
 
     if (isProvider) {
-      items.push({
-        key: "services",
-        label: t("dashboard.tabs.services"),
-        icon: Users,
-        action: () => onMenuSelect("services"),
-      });
       items.push({
         key: "edit-profile",
         label: t("navigation.edit_profile"),
@@ -198,7 +190,7 @@ export function TrustoraDashboardShell({
   }, [isProvider, onMenuSelect, router, t]);
 
   const primaryActionLabel = isProvider
-    ? t("dashboard.tabs.finance")
+    ? t("dashboard.tabs.projects")
     : t("dashboard.projects.new_project");
 
   const sidebarItemClass = (item: DashboardShellMenu) =>
@@ -397,7 +389,7 @@ export function TrustoraDashboardShell({
                 isProvider={isProvider}
                 onClick={() => {
                   if (isProvider) {
-                    onMenuSelect("finance");
+                    onMenuSelect("projects");
                     return;
                   }
 

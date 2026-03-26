@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { hasSessionAuthTokens } from '@/lib/auth/session';
 import { normalizeAuthUser } from '@/lib/auth/user';
 
 /**
@@ -6,6 +7,9 @@ import { normalizeAuthUser } from '@/lib/auth/user';
  */
 export async function getServerUser() {
   const session = await auth();
+  if (!hasSessionAuthTokens(session as any)) {
+    return null;
+  }
   const user = normalizeAuthUser(session?.user ?? null);
   return user ?? null;
 }

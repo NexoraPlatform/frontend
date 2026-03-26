@@ -20,7 +20,7 @@ describe('lib/dashboard-tabs', () => {
     ]);
   });
 
-  it('returns finance only for providers or users without resolved role info yet', () => {
+  it('returns only the base tabs for providers and unresolved roles too', () => {
     expect(
       getAvailableDashboardTabs({ hasRoleInfo: true, isProvider: true })
     ).toEqual([
@@ -29,7 +29,6 @@ describe('lib/dashboard-tabs', () => {
       'services',
       'messages',
       'settings',
-      'finance',
     ]);
 
     expect(
@@ -40,7 +39,6 @@ describe('lib/dashboard-tabs', () => {
       'services',
       'messages',
       'settings',
-      'finance',
     ]);
   });
 
@@ -110,7 +108,7 @@ describe('lib/dashboard-tabs', () => {
 
   it('uses the URL tab for the initial dashboard tab when present', () => {
     expect(resolveInitialDashboardTab('projects')).toBe('projects');
-    expect(resolveInitialDashboardTab(' finance ')).toBe('finance');
+    expect(resolveInitialDashboardTab(' settings ')).toBe('settings');
   });
 
   it('falls back to the default dashboard tab when the URL tab is missing', () => {
@@ -121,7 +119,7 @@ describe('lib/dashboard-tabs', () => {
 
   it('falls back to the default tab when the URL tab is not available', () => {
     expect(
-      resolveDashboardTab('finance', ['overview', 'projects', 'services'], 'overview')
+      resolveDashboardTab('billing', ['overview', 'projects', 'services'], 'overview')
     ).toBe('overview');
   });
 

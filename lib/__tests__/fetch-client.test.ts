@@ -25,6 +25,7 @@ describe('lib/fetch-client', () => {
   beforeEach(() => {
     clearBrowserSessionAuthCache();
     getSessionMock.mockReset();
+    vi.useRealTimers();
     localStorage.clear();
     document.cookie = 'trustora-remember=; Max-Age=0; Path=/';
     document.cookie = 'trustora-browser-session=; Max-Age=0; Path=/';
@@ -168,6 +169,35 @@ describe('lib/fetch-client', () => {
     expect(new URL(String(fetchMock.mock.calls[0]?.[0]), window.location.origin).pathname).toBe(
       '/api/protected'
     );
+  });
+
+  it('reuses the last cached session auth when getSession fails temporarily', async () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-03-25T10:00:00.000Z');
+    vi.setSystemTime(now);
+
+    setBrowserSessionAuthCache({
+      accessToken: 'cached-access-token',
+      tokenType: 'Bearer',
+    });
+
+    vi.setSystemTime(new Date(now.getTime() + 31_000));
+    getSessionMock.mockRejectedValue(new Error('Rate limiting is temporarily unavailable.'));
+
+    const fetchMock = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      expect(headers.get('Authorization')).toBe('Bearer cached-access-token');
+      return jsonResponse({ ok: true });
+    });
+
+    vi.stubGlobal('fetch', fetchMock as typeof fetch);
+
+    const apiFetch = createApiFetch({ baseURL: window.location.origin });
+
+    await expect(apiFetch('/protected', { method: 'GET' })).resolves.toEqual({ ok: true });
+
+    expect(getSessionMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not keep retrying refresh when the session is already marked with a terminal auth error', async () => {

@@ -5559,18 +5559,18 @@ export default function NewProjectPage() {
             <button
               type="button"
               onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
-              className={dashboardSidebarItemClass(isProvider ? 'finance' : 'projects')}
+              className={dashboardSidebarItemClass('projects')}
             >
               <Lock size={18} />
-              {isProvider ? tDashboard('tabs.finance') : tDashboard('tabs.projects')}
+              {tDashboard('tabs.projects')}
             </button>
             <button
               type="button"
               onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
-              className={dashboardSidebarItemClass(isProvider ? 'projects' : 'services')}
+              className={dashboardSidebarItemClass('services')}
             >
               <Layers size={18} />
-              {isProvider ? tDashboard('tabs.projects') : tDashboard('tabs.services')}
+              {tDashboard('tabs.services')}
             </button>
             <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={dashboardSidebarItemClass('messages')}>
               <History size={18} />

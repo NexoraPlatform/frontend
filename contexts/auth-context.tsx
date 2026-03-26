@@ -20,6 +20,7 @@ import {
   clearSessionPreferenceCookies,
   setSessionPreferenceCookies,
 } from '@/lib/auth/session-preferences';
+import { hasSessionAuthTokens } from '@/lib/auth/session';
 import { normalizeAuthUser, type AuthUser } from '@/lib/auth/user';
 
 interface AuthContextType {
@@ -132,9 +133,13 @@ const getAuthUserSnapshotKey = (value: AuthUser | null) => {
 function AuthProviderInner({ children, initialSession = null, initialUser = null }: AuthProviderProps) {
   const normalizedInitialUser = useMemo(() => normalizeAuthUser(initialUser), [initialUser]);
   const { data: session, status, update } = useSession();
-  const initialSessionUser = useMemo(
-    () => normalizeAuthUser((initialSession as any)?.user ?? null),
+  const initialSessionHasAuthTokens = useMemo(
+    () => hasSessionAuthTokens(initialSession as any),
     [initialSession]
+  );
+  const initialSessionUser = useMemo(
+    () => (initialSessionHasAuthTokens ? normalizeAuthUser((initialSession as any)?.user ?? null) : null),
+    [initialSession, initialSessionHasAuthTokens]
   );
   const serverSnapshotUser = useMemo(
     () => initialSessionUser ?? normalizedInitialUser,
@@ -144,7 +149,11 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
     () => getAuthUserSnapshotKey(serverSnapshotUser),
     [serverSnapshotUser]
   );
-  const sessionUser = useMemo(() => normalizeAuthUser((session as any)?.user ?? null), [session]);
+  const sessionHasAuthTokens = useMemo(() => hasSessionAuthTokens(session as any), [session]);
+  const sessionUser = useMemo(
+    () => (sessionHasAuthTokens ? normalizeAuthUser((session as any)?.user ?? null) : null),
+    [session, sessionHasAuthTokens]
+  );
   const [recoveredSessionUser, setRecoveredSessionUser] = useState<AuthUser | null>(null);
   const [isRecoveringSession, setIsRecoveringSession] = useState(
     () => status === 'unauthenticated' && !sessionUser && !initialSessionUser && !normalizedInitialUser
@@ -193,7 +202,7 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
   }, [serverSnapshotKey, serverSnapshotUser, status]);
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && sessionHasAuthTokens) {
       recoveryAttemptedRef.current = false;
       setRecoveredSessionUser(null);
       setIsRecoveringSession(false);
@@ -201,10 +210,13 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
       return;
     }
 
-    if (status === 'unauthenticated' && !recoveredSessionUser) {
+    if (status === 'authenticated' && !sessionHasAuthTokens) {
+      setRecoveredSessionUser(null);
+      setUser(null);
+      setIsRecoveringSession(false);
       clearBrowserSessionAuthCache();
     }
-  }, [recoveredSessionUser, session, status]);
+  }, [recoveredSessionUser, session, sessionHasAuthTokens, status]);
 
   useEffect(() => {
     if (status !== 'unauthenticated') return;
@@ -229,9 +241,14 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
           setBrowserSessionAuthCache(sessionSnapshot);
         }
 
-        let recoveredUser = normalizeAuthUser((sessionSnapshot as any)?.user ?? null);
-        if (!recoveredUser) {
+        const sessionSnapshotHasAuthTokens = hasSessionAuthTokens(sessionSnapshot as any);
+        let recoveredUser = sessionSnapshotHasAuthTokens
+          ? normalizeAuthUser((sessionSnapshot as any)?.user ?? null)
+          : null;
+        let userProfileLookupFailed = false;
+        if (sessionSnapshotHasAuthTokens && !recoveredUser) {
           recoveredUser = await fetchCurrentUser().catch((error) => {
+            userProfileLookupFailed = true;
             console.warn('Failed to recover authenticated user from /api/auth/me:', error);
             return null;
           });
@@ -244,12 +261,14 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
         }
 
         setRecoveredSessionUser(null);
-        clearBrowserSessionAuthCache();
+        if (!sessionSnapshot && !userProfileLookupFailed) {
+          clearBrowserSessionAuthCache();
+        }
       })
-      .catch(() => {
+      .catch((error) => {
         if (cancelled) return;
+        console.warn('Failed to recover authenticated session from Auth.js:', error);
         setRecoveredSessionUser(null);
-        clearBrowserSessionAuthCache();
       })
       .finally(() => {
         if (cancelled) return;
@@ -342,6 +361,18 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
   );
 
   const refreshUser = useCallback(async () => {
+    const sessionSnapshot = await getSession().catch(() => null);
+    setBrowserSessionAuthCache(sessionSnapshot);
+
+    if (!hasSessionAuthTokens(sessionSnapshot as any)) {
+      setUser(null);
+      setRecoveredSessionUser(null);
+      clearBrowserSessionAuthCache();
+      clearSessionPreferenceCookies();
+      await signOut({ redirect: false });
+      return;
+    }
+
     let refreshedUser: AuthUser | null = null;
     try {
       refreshedUser = await fetchCurrentUser();
@@ -349,8 +380,6 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
       console.warn('Failed to refresh authenticated user:', error);
     }
     if (!refreshedUser) {
-      const sessionSnapshot = await getSession().catch(() => null);
-      setBrowserSessionAuthCache(sessionSnapshot);
       refreshedUser = normalizeAuthUser((sessionSnapshot as any)?.user ?? null);
     }
     if (refreshedUser) {

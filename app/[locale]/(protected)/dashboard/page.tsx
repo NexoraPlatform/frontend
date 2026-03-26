@@ -33,7 +33,27 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   if (rawTab) {
     const normalizedTab = rawTab.trim().toLowerCase();
-    const allowedTabs = new Set(['overview', 'projects', 'services', 'messages', 'finance', 'settings']);
+    const allowedTabs = new Set(['overview', 'projects', 'services', 'messages', 'settings']);
+
+    if (normalizedTab === 'finance') {
+      const nextSearchParams = new URLSearchParams();
+
+      for (const [key, value] of Object.entries(resolvedSearchParams)) {
+        if (key === 'tab' || value == null) continue;
+
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            nextSearchParams.append(key, item);
+          }
+        } else {
+          nextSearchParams.set(key, value);
+        }
+      }
+
+      const nextHref = getDashboardTabHref('projects');
+      const query = nextSearchParams.toString();
+      redirect(query ? `${nextHref}?${query}` : nextHref);
+    }
 
     if (allowedTabs.has(normalizedTab) && normalizedTab !== 'overview') {
       const nextSearchParams = new URLSearchParams();
@@ -51,7 +71,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       }
 
       const nextHref = getDashboardTabHref(
-        normalizedTab as 'projects' | 'services' | 'messages' | 'finance' | 'settings'
+        normalizedTab as 'projects' | 'services' | 'messages' | 'settings'
       );
       const query = nextSearchParams.toString();
       redirect(query ? `${nextHref}?${query}` : nextHref);

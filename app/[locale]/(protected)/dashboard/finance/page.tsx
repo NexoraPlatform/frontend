@@ -1,5 +1,5 @@
-import { DashboardRoutePage } from '@/components/dashboard/dashboard-route-page';
+import { redirect } from 'next/navigation';
 
 export default function DashboardFinancePage() {
-  return <DashboardRoutePage section="finance" />;
+  redirect('/dashboard/projects');
 }

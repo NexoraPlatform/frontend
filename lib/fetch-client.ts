@@ -91,6 +91,9 @@ let browserSessionAuthCacheTimestamp = 0;
 let browserSessionAuthPromise: Promise<BrowserSessionAuth> | null = null;
 let browserSessionRefreshPromise: Promise<BrowserSessionAuth> | null = null;
 
+const hasUsableSessionAuthSnapshot = (sessionAuth: BrowserSessionAuth | undefined | null) =>
+  Boolean(sessionAuth?.accessToken || sessionAuth?.hasRefreshToken);
+
 const isAbsoluteUrl = (value: string) =>
   /^https?:\/\//i.test(value) || value.startsWith('//');
 
@@ -438,6 +441,16 @@ const setBrowserSessionAuthUnavailable = () => {
   browserSessionRefreshPromise = null;
 };
 
+const touchBrowserSessionAuthCache = (sessionAuth?: BrowserSessionAuth | null) => {
+  if (!isBrowser || !hasUsableSessionAuthSnapshot(sessionAuth)) {
+    return;
+  }
+
+  browserSessionAuthCache = sessionAuth ?? null;
+  browserSessionAuthCacheTimestamp = Date.now();
+  browserSessionAuthPromise = null;
+};
+
 const shouldRefreshBrowserSessionAuth = (sessionAuth: BrowserSessionAuth) => {
   if (!sessionAuth) {
     return false;
@@ -485,11 +498,17 @@ const resolveBrowserAccessToken = async (): Promise<BrowserSessionAuth> => {
     return browserSessionAuthPromise;
   }
 
+  const fallbackSessionAuth: BrowserSessionAuth = hasUsableSessionAuthSnapshot(
+    browserSessionAuthCache
+  )
+    ? (browserSessionAuthCache ?? null)
+    : null;
+
   browserSessionAuthPromise = getSession()
     .then((session) => setBrowserSessionAuthCache(session))
     .catch(() => {
-      clearBrowserSessionAuthCache();
-      return null;
+      touchBrowserSessionAuthCache(fallbackSessionAuth);
+      return fallbackSessionAuth;
     })
     .finally(() => {
       browserSessionAuthPromise = null;
@@ -561,8 +580,10 @@ const refreshBrowserSessionAuth = async () => {
 
       return nextSessionAuth;
     })
-    .catch(() => {
-      setBrowserSessionAuthUnavailable();
+    .catch((error) => {
+      if (error instanceof FetchError && (error.status === 401 || error.status === 403)) {
+        setBrowserSessionAuthUnavailable();
+      }
       return null;
     })
     .finally(() => {

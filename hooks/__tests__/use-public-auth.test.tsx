@@ -3,12 +3,14 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SWRConfig } from 'swr';
 
-const { signOutMock, updateUserLanguageMock } = vi.hoisted(() => ({
+const { getSessionMock, signOutMock, updateUserLanguageMock } = vi.hoisted(() => ({
+  getSessionMock: vi.fn(),
   signOutMock: vi.fn(),
   updateUserLanguageMock: vi.fn(),
 }));
 
 vi.mock('next-auth/react', () => ({
+  getSession: (...args: any[]) => getSessionMock(...args),
   signOut: (...args: any[]) => signOutMock(...args),
 }));
 
@@ -34,8 +36,10 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 describe('hooks/use-public-auth', () => {
   beforeEach(() => {
+    getSessionMock.mockReset();
     signOutMock.mockReset();
     updateUserLanguageMock.mockReset();
+    getSessionMock.mockResolvedValue(null);
     document.cookie = 'trustora-remember=; Max-Age=0; Path=/';
     document.cookie = 'trustora-browser-session=; Max-Age=0; Path=/';
   });
@@ -47,7 +51,20 @@ describe('hooks/use-public-auth', () => {
     document.cookie = 'trustora-browser-session=; Max-Age=0; Path=/';
   });
 
-  it('fetches public auth data once mounted so public pages use the same session source', async () => {
+  it('does not hit /api/auth/me on public pages when no session exists', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock as typeof fetch);
+
+    const { result } = renderHook(() => usePublicAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.user).toBeNull();
+    expect(getSessionMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('fetches public auth data once mounted when a browser session exists', async () => {
+    getSessionMock.mockResolvedValue({ accessToken: 'public-access-token' });
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
         user: {
@@ -62,6 +79,7 @@ describe('hooks/use-public-auth', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.user).toMatchObject({ id: '1', email: 'public@example.com' });
+    expect(getSessionMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -77,6 +95,7 @@ describe('hooks/use-public-auth', () => {
   });
 
   it('retries public auth resolution on remount after a 401 because auth.js is the single session source', async () => {
+    getSessionMock.mockResolvedValue({ accessToken: 'public-access-token' });
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ message: 'Unauthenticated' }, 401));
     vi.stubGlobal('fetch', fetchMock as typeof fetch);
 

@@ -57,8 +57,7 @@ type DashboardOverviewProps = {
   loadingRecentActivities: boolean;
   recentActivitiesError: string;
   providerServicesCount: number;
-  financeSlotCount: number;
-  onTabChange: (tab: "overview" | "projects" | "services" | "messages" | "settings" | "finance") => void;
+  onTabChange: (tab: "overview" | "projects" | "services" | "messages" | "settings") => void;
   onOpenProject: (projectId: string | number) => void;
 };
 
@@ -218,7 +217,6 @@ export function DashboardOverview({
   loadingRecentActivities,
   recentActivitiesError,
   providerServicesCount,
-  financeSlotCount,
   onTabChange,
   onOpenProject,
 }: DashboardOverviewProps) {
@@ -491,10 +489,6 @@ export function DashboardOverview({
           label: t("dashboard.activity.title"),
           value: recentActivities.length,
         },
-        {
-          label: t("dashboard.tabs.finance"),
-          value: financeSlotCount,
-        },
       ];
     }
 
@@ -518,7 +512,7 @@ export function DashboardOverview({
         value: clientStats?.projects_completed.value ?? 0,
       },
     ];
-  }, [financeSlotCount, isProvider, overviewProjects.length, providerServicesCount, recentActivities, stats, t]);
+  }, [isProvider, overviewProjects.length, providerServicesCount, recentActivities, stats, t]);
 
   const recentProjectRows = useMemo<ProjectTableRow[]>(
     () =>
@@ -563,9 +557,9 @@ export function DashboardOverview({
           action: () => router.push("/tests"),
         },
         {
-          label: t("dashboard.tabs.finance"),
-          icon: "💰",
-          action: () => onTabChange("finance"),
+          label: t("dashboard.tabs.projects"),
+          icon: "📁",
+          action: () => onTabChange("projects"),
         },
       ];
     }

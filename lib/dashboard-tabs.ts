@@ -9,18 +9,12 @@ export const BASE_DASHBOARD_TABS = [
 const PROJECT_SCOPED_QUERY_PARAMS = ['projectId', 'activeMilestoneId'] as const;
 
 export const getAvailableDashboardTabs = ({
-  hasRoleInfo,
-  isProvider,
+  hasRoleInfo: _hasRoleInfo,
+  isProvider: _isProvider,
 }: {
   hasRoleInfo: boolean;
   isProvider: boolean;
-}) => {
-  if (hasRoleInfo && !isProvider) {
-    return [...BASE_DASHBOARD_TABS];
-  }
-
-  return [...BASE_DASHBOARD_TABS, 'finance'];
-};
+}) => [...BASE_DASHBOARD_TABS];
 
 export const getDefaultDashboardTab = (availableTabs: readonly string[]) =>
   availableTabs[0] ?? 'overview';

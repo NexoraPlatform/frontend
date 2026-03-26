@@ -21,7 +21,7 @@ describe('app/api/auth/me route', () => {
     fetchPassportUserProfileMock.mockReset();
   });
 
-  it('returns the current session user even when readable remember-me cookies are missing', async () => {
+  it('returns the current session user when the backend profile endpoint succeeds', async () => {
     authMock.mockResolvedValue({
       user: {
         id: 15,
@@ -31,7 +31,12 @@ describe('app/api/auth/me route', () => {
       },
       accessToken: 'access-token',
     });
-    fetchPassportUserProfileMock.mockResolvedValue(null);
+    fetchPassportUserProfileMock.mockResolvedValue({
+      id: 15,
+      email: 'stale@example.com',
+      firstName: 'Stale',
+      lastName: 'Session',
+    });
 
     const response = await GET(
       new Request('http://localhost/api/auth/me', {
@@ -60,6 +65,7 @@ describe('app/api/auth/me route', () => {
         firstName: 'Remembered',
         lastName: 'User',
       },
+      refreshToken: 'refresh-token',
     });
 
     const response = await GET(new Request('http://localhost/api/auth/me', { method: 'GET' }));
@@ -72,5 +78,22 @@ describe('app/api/auth/me route', () => {
       firstName: 'Remembered',
       lastName: 'User',
     });
+  });
+
+  it('returns 401 when the session has a user but no backend auth tokens', async () => {
+    authMock.mockResolvedValue({
+      user: {
+        id: 17,
+        email: 'ghost@example.com',
+        firstName: 'Ghost',
+        lastName: 'Session',
+      },
+    });
+
+    const response = await GET(new Request('http://localhost/api/auth/me', { method: 'GET' }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(payload.message).toBe('Unauthenticated');
   });
 });

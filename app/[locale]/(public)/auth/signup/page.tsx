@@ -25,7 +25,12 @@ import { buildOAuthRedirectUrl } from "@/lib/backend-url";
 import { Link } from "@/lib/navigation";
 import { sanitizeNavigationTarget } from "@/lib/navigation-security";
 import { cn } from "@/lib/utils";
-import { billingDetailsSchema, type BillingDetailsFormValues } from "@/types/user-forms";
+import {
+  billingDetailsSchema,
+  buildCompanyLegalProfilePayload,
+  createEmptyBillingDetailsValues,
+  type BillingDetailsFormValues,
+} from "@/types/user-forms";
 
 type OAuthProvider = "google" | "github";
 type SignupRole = "CLIENT" | "PROVIDER";
@@ -52,15 +57,7 @@ export default function SignUpPage() {
   });
   const billingForm = useForm<BillingDetailsFormValues>({
     resolver: valibotResolver(billingDetailsSchema),
-    defaultValues: {
-      company_name: "",
-      tax_id: "",
-      trade_registry_number: "",
-      billing_address: "",
-      billing_city: "",
-      billing_state: "",
-      billing_postal_code: "",
-    },
+    defaultValues: createEmptyBillingDetailsValues(),
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -164,6 +161,12 @@ export default function SignUpPage() {
 
     try {
       const billingValues = billingForm.getValues();
+      const companyData = buildCompanyLegalProfilePayload(billingValues, {
+        fallbackCommercialName: formData.company,
+        fallbackLegalName: formData.company,
+        authorizedSignatoryName: `${formData.firstName} ${formData.lastName}`.trim(),
+        authorizedSignatoryEmail: formData.email,
+      });
       await register({
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -171,8 +174,7 @@ export default function SignUpPage() {
         phone: formData.phone,
         password: formData.password,
         role: formData.role,
-        company: formData.company,
-        ...billingValues,
+        company_data: companyData,
       });
       window.location.assign(getSafeCallbackUrl());
     } catch (caughtError: any) {

@@ -22,13 +22,17 @@ describe('Forms components', () => {
 
   it('BillingDetailsForm clears company fields when toggled off', () => {
     const defaultValues = {
-      company_name: 'ACME',
-      tax_id: 'RO123',
-      trade_registry_number: 'J40/1',
-      billing_address: 'Main',
-      billing_city: 'Bucharest',
-      billing_state: 'B',
-      billing_postal_code: '12345',
+      legal_name: 'ACME SRL',
+      commercial_name: 'ACME',
+      registration_number: 'J40/1',
+      tax_identification_number: 'RO123',
+      country_code: 'RO',
+      registered_address_line_1: 'Main',
+      registered_city: 'Bucharest',
+      registered_state: 'B',
+      registered_postal_code: '12345',
+      is_vat_registered: true,
+      vat_number: 'RO123',
     };
 
     let methods: ReturnType<typeof useForm> | null = null;
@@ -46,18 +50,22 @@ describe('Forms components', () => {
     );
 
     // fields should exist when company is enabled
-    expect(screen.getByLabelText('common.billing.company_name_label')).toBeTruthy();
+    expect(
+      screen.getByRole('textbox', { name: /common\.billing\.company_name_label/i })
+    ).toBeTruthy();
 
     const toggle = screen.getByLabelText('common.billing.company_toggle_label');
     fireEvent.click(toggle);
 
     // fields are removed when company disabled
-    expect(screen.queryByLabelText('common.billing.company_name_label')).toBeNull();
+    expect(
+      screen.queryByRole('textbox', { name: /common\.billing\.company_name_label/i })
+    ).toBeNull();
 
     // values are cleared in form state
-    expect(methods?.getValues('company_name')).toBe('');
-    expect(methods?.getValues('tax_id')).toBe('');
-    expect(methods?.getValues('billing_address')).toBe('');
+    expect(methods?.getValues('legal_name')).toBe('');
+    expect(methods?.getValues('tax_identification_number')).toBe('');
+    expect(methods?.getValues('registered_address_line_1')).toBe('');
   });
 
   it('loads country, state and city options from the internal locations API when enabled', async () => {
@@ -102,13 +110,17 @@ describe('Forms components', () => {
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
 
     const defaultValues = {
-      company_name: 'ACME',
-      tax_id: '',
-      trade_registry_number: '',
-      billing_address: '',
-      billing_city: '',
-      billing_state: '',
-      billing_postal_code: '',
+      legal_name: 'ACME',
+      commercial_name: '',
+      registration_number: '',
+      tax_identification_number: '',
+      country_code: '',
+      registered_address_line_1: '',
+      registered_city: '',
+      registered_state: '',
+      registered_postal_code: '',
+      is_vat_registered: false,
+      vat_number: '',
     };
 
     let methods: ReturnType<typeof useForm> | null = null;
@@ -148,7 +160,8 @@ describe('Forms components', () => {
     fireEvent.click(screen.getByRole('combobox', { name: 'common.billing.billing_city_label' }));
     fireEvent.click(await screen.findByText('Otopeni'));
 
-    expect(methods?.getValues('billing_state')).toBe('IF');
-    expect(methods?.getValues('billing_city')).toBe('Otopeni');
+    expect(methods?.getValues('country_code')).toBe('RO');
+    expect(methods?.getValues('registered_state')).toBe('IF');
+    expect(methods?.getValues('registered_city')).toBe('Otopeni');
   });
 });

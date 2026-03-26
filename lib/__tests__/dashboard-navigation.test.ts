@@ -19,13 +19,12 @@ describe('lib/dashboard-navigation', () => {
     expect(getDashboardTabHref('services')).toBe('/dashboard/services');
     expect(getDashboardTabHref('messages')).toBe('/dashboard/messages');
     expect(getDashboardTabHref('settings')).toBe('/dashboard/settings');
-    expect(getDashboardTabHref('finance')).toBe('/dashboard/finance');
   });
 
   it('returns the shared role-dependent dashboard hrefs', () => {
-    expect(getPrimaryDashboardTabHref(true)).toBe('/dashboard/finance');
+    expect(getPrimaryDashboardTabHref(true)).toBe('/dashboard/projects');
     expect(getPrimaryDashboardTabHref(false)).toBe('/dashboard/projects');
-    expect(getSecondaryDashboardTabHref(true)).toBe('/dashboard/projects');
+    expect(getSecondaryDashboardTabHref(true)).toBe('/dashboard/services');
     expect(getSecondaryDashboardTabHref(false)).toBe('/dashboard/services');
   });
 

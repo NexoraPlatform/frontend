@@ -130,6 +130,9 @@ describe('contexts/auth-context', () => {
   });
 
   it('handles unauthenticated session state', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock as any);
+
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <AuthProvider>{children}</AuthProvider>
     );
@@ -138,6 +141,7 @@ describe('contexts/auth-context', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.user).toBeNull();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/me'))).toBe(false);
   });
 
   it('does not clear session-preference cookies for a plain unauthenticated state', async () => {
@@ -162,6 +166,7 @@ describe('contexts/auth-context', () => {
           firstName: 'Expired',
           lastName: 'User',
         },
+        accessToken: 'active-access-token',
         rememberMe: false,
       },
       status: 'authenticated',
@@ -178,8 +183,34 @@ describe('contexts/auth-context', () => {
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
+  it('treats an authenticated Auth.js session without backend tokens as logged out', async () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 12,
+          email: 'broken-session@example.com',
+          firstName: 'Broken',
+          lastName: 'Session',
+        },
+        error: 'RefreshAccessTokenError',
+      },
+      status: 'authenticated',
+      update: mockUpdate,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.user).toBeNull();
+  });
+
   it('recovers the authenticated user from getSession when the client hook starts unauthenticated', async () => {
     mockGetSession.mockResolvedValue({
+      accessToken: 'browser-access-token',
       user: {
         id: 21,
         email: 'browser-session@example.com',
@@ -198,7 +229,7 @@ describe('contexts/auth-context', () => {
     expect(result.current.user?.email).toBe('browser-session@example.com');
   });
 
-  it('falls back to /api/auth/me when getSession does not return the authenticated user', async () => {
+  it('falls back to /api/auth/me when getSession returns auth tokens without a usable user', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
 
@@ -216,7 +247,9 @@ describe('contexts/auth-context', () => {
       return jsonResponse({}, 404);
     });
     vi.stubGlobal('fetch', fetchMock as any);
-    mockGetSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue({
+      accessToken: 'browser-access-token',
+    });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <AuthProvider>{children}</AuthProvider>
@@ -254,6 +287,7 @@ describe('contexts/auth-context', () => {
             firstName: 'Route',
             lastName: 'Snapshot',
           },
+          accessToken: 'navigated-access-token',
         }}
       >
         <Harness />
@@ -276,6 +310,7 @@ describe('contexts/auth-context', () => {
           lastName: 'User',
           language: 'ro',
         },
+        accessToken: 'language-access-token',
         rememberMe: true,
       },
       status: 'authenticated',
@@ -330,6 +365,7 @@ describe('contexts/auth-context', () => {
     });
     vi.stubGlobal('fetch', fetchMock as any);
     mockGetSession.mockResolvedValue({
+      accessToken: 'login-access-token',
       user: {
         id: 7,
         email: 'login@example.com',
@@ -401,6 +437,7 @@ describe('contexts/auth-context', () => {
     });
     vi.stubGlobal('fetch', fetchMock as any);
     mockGetSession.mockResolvedValue({
+      accessToken: 'roles-access-token',
       user: {
         id: 9,
         email: 'roles@example.com',

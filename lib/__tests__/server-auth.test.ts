@@ -22,10 +22,20 @@ describe('lib/server-auth', () => {
   it('getServerUser returns normalized session user', async () => {
     mockAuth.mockResolvedValue({
       user: { id: 1, email: 'a@b.com' },
+      accessToken: 'access-token',
     });
 
     const user = await getServerUser();
     expect(user).toMatchObject({ id: '1', email: 'a@b.com' });
+  });
+
+  it('getServerUser returns null when the session user exists but backend auth tokens are missing', async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: 2, email: 'missing-token@example.com' },
+    });
+
+    const user = await getServerUser();
+    expect(user).toBeNull();
   });
 
   it('requirePermission throws 401 when unauthenticated', async () => {
@@ -36,6 +46,7 @@ describe('lib/server-auth', () => {
 
   it('requirePermission throws 403 when forbidden', async () => {
     mockAuth.mockResolvedValue({
+      accessToken: 'access-token',
       user: {
         id: 1,
         permissions: ['view'],
@@ -48,6 +59,7 @@ describe('lib/server-auth', () => {
 
   it('requirePermission passes for superuser', async () => {
     mockAuth.mockResolvedValue({
+      accessToken: 'access-token',
       user: {
         id: 1,
         is_superuser: true,

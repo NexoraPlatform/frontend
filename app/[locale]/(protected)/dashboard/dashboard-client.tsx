@@ -7,7 +7,7 @@ import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/lib/navigation';
 import {motion} from 'framer-motion';
 import {Button} from '@/components/ui/button';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
@@ -17,11 +17,9 @@ import {
   ArrowDown,
   ArrowUp,
   Briefcase,
-  CheckCircle,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  DollarSign,
   Filter,
   Layers,
   Loader2,
@@ -38,8 +36,7 @@ import {ProjectRequestCard} from '@/components/project-request-card';
 import {apiClient, DashboardStatsResponse, ProviderServiceRecord, RecentActivityQuick} from '@/lib/api';
 import {ensureEcho} from '@/lib/echo';
 import {toast} from 'sonner';
-import {sanitizeExternalRedirectUrl} from '@/lib/navigation-security';
-import { getDashboardHomeHref, getDashboardTabHref } from '@/lib/dashboard-navigation';
+import { getDashboardTabHref } from '@/lib/dashboard-navigation';
 import {
   getProviderServicesSelectHref,
   getProviderServicesTestsHref,
@@ -48,13 +45,6 @@ import ChatLauncher from '@/components/chat/chat-launcher';
 import { DashboardOverview } from '@/components/dashboard/dashboard-overview';
 import { DashboardSectionHeader } from '@/components/dashboard/dashboard-section-header';
 import { TrustoraDashboardShell } from '@/components/dashboard/trustora-dashboard-shell';
-
-const RAPYD_REDIRECT_ALLOWED_HOSTS = (
-  process.env.NEXT_PUBLIC_RAPYD_REDIRECT_ALLOWED_HOSTS || 'rapyd.net'
-)
-  .split(',')
-  .map((value) => value.trim())
-  .filter(Boolean);
 
 const theme = {
   trustAccent: '#1BC47D',
@@ -94,20 +84,11 @@ const CompanyInformationsSettingsDialog = dynamic(
   }
 );
 
-interface WalletData {
-  id: string;
-  currency: string;
-  balance: number | null;
-  received_balance: number | null;
-  on_hold_balance: number | null;
-}
-
 export type DashboardSection =
   | 'overview'
   | 'projects'
   | 'services'
   | 'messages'
-  | 'finance'
   | 'settings';
 
 type DashboardClientProps = {
@@ -115,7 +96,7 @@ type DashboardClientProps = {
 };
 
 export default function DashboardClient({ section = 'overview' }: DashboardClientProps) {
-  const { user, loading, userLoading, updateUser, refreshUser } = useAuth();
+  const { user, loading, userLoading, refreshUser } = useAuth();
   const t = useTranslations();
   const roleRefreshAttemptedRef = useRef(false);
   const [isRefreshingRole, setIsRefreshingRole] = useState(false);
@@ -152,10 +133,7 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
   const hasRoleInfo = roleSlugs.length > 0;
   const isProvider = roleSlugs.includes('provider');
   const isClient = roleSlugs.includes('client');
-  const activeTab = useMemo<DashboardSection>(
-    () => (section === 'finance' && hasRoleInfo && !isProvider ? 'overview' : section),
-    [hasRoleInfo, isProvider, section]
-  );
+  const activeTab = section;
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -172,37 +150,9 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
   const searchParamsString = searchParams.toString();
   const focusedProjectId = searchParams.get('projectId');
   const focusedMilestoneId = searchParams.get('activeMilestoneId');
-  const [wallets, setWallets] = useState<WalletData[]>([]);
-  const [balance, setBalance] = useState<WalletData | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  const [balanceError, setBalanceError] = useState<string | null>(null);
-  const balanceRequestId = useRef(0);
-  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
-  const selectedWalletIdRef = useRef<string | null>(null);
-  const [transferAmount, setTransferAmount] = useState('');
-  const [transferError, setTransferError] = useState<string | null>(null);
-  const [transferLoading, setTransferLoading] = useState(false);
-  const [rapydConnecting, setRapydConnecting] = useState(false);
   const projectCollectionRef = useRef<any[]>([]);
   const projectCollectionLoadedRef = useRef(false);
   const projectCollectionPromiseRef = useRef<Promise<any[]> | null>(null);
-  const hasRapydConnected = Boolean(user?.rapyd_wallet_id);
-  const hasPhoneNumber = Boolean(String(user?.phone ?? '').trim());
-  const hasCompanyProfile = Boolean(
-    user?.company &&
-    (
-      Boolean((user.company as any)?.id) ||
-      (typeof (user.company as any)?.name === 'string' && (user.company as any).name.trim().length > 0)
-    )
-  );
-  const missingRapydRequirementKeys = [
-    !hasPhoneNumber ? 'phone' : null,
-    !hasCompanyProfile ? 'company' : null,
-  ].filter(Boolean) as Array<'phone' | 'company'>;
-  const canConnectRapyd = missingRapydRequirementKeys.length === 0;
-  const rapydRequirementsLabel = missingRapydRequirementKeys
-    .map((key) => t(`dashboard.finance.requirements.${key}`))
-    .join(', ');
 
   useEffect(() => {
     document.title = 'Trustora | Escrow Dashboard';
@@ -275,24 +225,6 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
 
     return normalized;
   }, []);
-
-  const parseBalanceAmount = useCallback((value: unknown) => {
-    if (value === null || value === undefined) return null;
-    const parsed = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }, []);
-
-  const formatBalanceAmount = useCallback((value: number | null | undefined, currency?: string) => {
-    if (value === null || value === undefined || Number.isNaN(value)) return '--';
-    if (!currency) {
-      return new Intl.NumberFormat(locale).format(value);
-    }
-    try {
-      return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
-    } catch (error) {
-      return `${new Intl.NumberFormat(locale).format(value)} ${currency}`;
-    }
-  }, [locale]);
 
   const formatCompactNumber = useCallback((value: number) => {
     return new Intl.NumberFormat(locale, {
@@ -405,82 +337,6 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
   }, [providerServices]);
 
   useEffect(() => {
-    selectedWalletIdRef.current = selectedWalletId;
-  }, [selectedWalletId]);
-
-  const fetchBalance = useCallback(async () => {
-    if (!isProvider || !user?.rapyd_wallet_id) {
-      balanceRequestId.current += 1;
-      setWallets([]);
-      setBalance(null);
-      setSelectedWalletId(null);
-      setBalanceError(null);
-      setBalanceLoading(false);
-      return;
-    }
-
-    const requestId = ++balanceRequestId.current;
-    setBalanceLoading(true);
-    setBalanceError(null);
-    try {
-      const response = await apiClient.rapydGetWalletBalance(locale);
-
-      if (balanceRequestId.current !== requestId) return;
-
-      const rawData = response?.data ?? response;
-      const rawWallets = Array.isArray(rawData) ? rawData : rawData ? [rawData] : [];
-      const normalizedWallets = rawWallets
-        .map((wallet: any) => ({
-          id: String(wallet.id ?? ''),
-          currency: String(wallet.currency ?? wallet.alias ?? ''),
-          balance: parseBalanceAmount(wallet.balance),
-          received_balance: parseBalanceAmount(wallet.received_balance),
-          on_hold_balance: parseBalanceAmount(wallet.on_hold_balance),
-        }))
-        .filter((wallet: WalletData) => wallet.id && wallet.currency);
-
-      if (normalizedWallets.length === 0) {
-        setWallets([]);
-        setBalance(null);
-        setSelectedWalletId(null);
-        setBalanceError(t('dashboard.hero.balance.error'));
-        return;
-      }
-
-      setWallets(normalizedWallets);
-
-      const preferredId = selectedWalletIdRef.current;
-      const nextWallet =
-        (preferredId && normalizedWallets.find((wallet) => wallet.id === preferredId)) ||
-        normalizedWallets[0] ||
-        null;
-
-      setSelectedWalletId(nextWallet?.id ?? null);
-      setBalance(nextWallet);
-    } catch (err: any) {
-      if (balanceRequestId.current !== requestId) return;
-      const message = err?.message ?? t('dashboard.hero.balance.error');
-      setBalance(null);
-      setBalanceError(message);
-      toast.error(t('dashboard.errors.generic', { message }));
-    } finally {
-      if (balanceRequestId.current === requestId) {
-        setBalanceLoading(false);
-      }
-    }
-  }, [isProvider, locale, parseBalanceAmount, t, user?.rapyd_wallet_id]);
-
-  useEffect(() => {
-    if (!isProvider || !user?.rapyd_wallet_id) return;
-    fetchBalance();
-  }, [fetchBalance, isProvider, user?.rapyd_wallet_id]);
-
-  useEffect(() => {
-    if (activeTab !== 'finance' || !isProvider || !user?.rapyd_wallet_id) return;
-    fetchBalance();
-  }, [activeTab, fetchBalance, isProvider, user?.rapyd_wallet_id]);
-
-  useEffect(() => {
     if (activeTab !== 'projects') return;
     if (!focusedProjectId && !focusedMilestoneId) return;
 
@@ -545,13 +401,6 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
     }
   }, [loading, locale, pathname, router, searchParamsString, user, userLoading]);
 
-  useEffect(() => {
-    if (!user || userLoading || isRefreshingRole) return;
-    if (section === 'finance' && hasRoleInfo && !isProvider) {
-      router.replace(getDashboardHomeHref(), { scroll: false });
-    }
-  }, [hasRoleInfo, isProvider, isRefreshingRole, router, section, user, userLoading]);
-
   const handleTabChange = useCallback((value: DashboardSection) => {
     router.push(getDashboardTabHref(value), { scroll: false });
   }, [router]);
@@ -594,85 +443,6 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
     const basePath = getDashboardTabHref('projects');
     router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
   }, [router, searchParams]);
-
-  const handleWalletChange = (walletId: string) => {
-    setSelectedWalletId(walletId);
-    const wallet = wallets.find((item) => item.id === walletId) ?? null;
-    setBalance(wallet);
-    setTransferAmount('');
-    setTransferError(null);
-  };
-
-  const normalizeAmountInput = (value: string) => value.replace(',', '.');
-
-  const handleTransferAmountChange = (value: string) => {
-    if (value === '') {
-      setTransferAmount('');
-      setTransferError(null);
-      return;
-    }
-
-    const normalized = normalizeAmountInput(value);
-    const parsed = Number(normalized);
-    const availableBalance = balance?.balance ?? 0;
-
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setTransferAmount(value);
-      setTransferError(t('dashboard.finance.invalid_amount'));
-      return;
-    }
-
-    if (parsed > availableBalance) {
-      setTransferAmount(availableBalance.toString());
-      setTransferError(t('dashboard.finance.insufficient_balance'));
-      return;
-    }
-
-    setTransferAmount(value);
-    setTransferError(null);
-  };
-
-  const handleTransfer = async () => {
-    const availableBalance = balance?.balance ?? 0;
-    const normalized = normalizeAmountInput(transferAmount);
-    const amount = Number(normalized);
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setTransferError(t('dashboard.finance.invalid_amount'));
-      return;
-    }
-
-    if (amount > availableBalance) {
-      setTransferError(t('dashboard.finance.insufficient_balance'));
-      return;
-    }
-
-    const formattedAmount = balance?.currency
-      ? formatBalanceAmount(amount, balance.currency)
-      : amount.toString();
-
-    const confirmed = window.confirm(
-      t('dashboard.finance.confirm_transfer', { amount: formattedAmount })
-    );
-    if (!confirmed) return;
-
-    setTransferLoading(true);
-    try {
-      await apiClient.rapydCreatePayoutBank(amount, balance?.currency, locale);
-      toast.success(t('dashboard.finance.transfer_success'));
-      setTransferAmount('');
-      setTransferError(null);
-      fetchBalance();
-    } catch (error: any) {
-      toast.error(
-        t('dashboard.finance.transfer_error', {
-          message: error?.message ?? 'Unknown error',
-        })
-      );
-    } finally {
-      setTransferLoading(false);
-    }
-  };
 
   const loadProjects = useCallback(async (force = false) => {
     setLoadingProjects(true);
@@ -902,25 +672,19 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
         rawType.includes('projectstatusupdated');
       const isProviderFinishedNotification =
         isProjectStatusUpdatedEvent && payloadStatus === 'FINISHED';
-      const isRapydEvent = declaredType.startsWith('rapyd.');
       const isFallbackProjectEvent = !declaredType && Boolean(projectId);
       const shouldReloadProjectsForBothRoles =
         isProjectEvent ||
         isProjectStatusUpdatedEvent ||
         isProviderFinishedNotification ||
         isBudgetAcceptedByProvider ||
-        isFallbackProjectEvent ||
-        (isRapydEvent && Boolean(projectId));
-
-      if (isRapydEvent && isProvider) {
-        void fetchBalance();
-      }
+        isFallbackProjectEvent;
 
       const shouldRefetchProjects = shouldReloadProjectsForBothRoles;
 
       const shouldRefreshOverview =
         activeTab === 'overview' &&
-        (isProjectEvent || isBudgetAcceptedByProvider || isRapydEvent);
+        (isProjectEvent || isBudgetAcceptedByProvider);
 
       if (shouldRefetchProjects) {
         void loadProjects(true);
@@ -945,7 +709,7 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
       cancelled = true;
       channel?.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
     };
-  }, [user?.id, isProvider, activeTab, loadProjects, fetchBalance, loadOverviewProjects, loadRecentActivities, loadStats]);
+  }, [user?.id, activeTab, loadProjects, loadOverviewProjects, loadRecentActivities, loadStats]);
 
   useEffect(() => {
     if (user && activeTab === 'overview') {
@@ -1023,72 +787,6 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
       toast.error(t('dashboard.errors.generic', { message: error.message }));
     }
   }, [loadOverviewProjects, loadProjects, loadRecentActivities, locale, t]);
-
-
-
-  const getRapydOnboardingUrl = async () => {
-    if (!canConnectRapyd) {
-      toast.error(
-        t('dashboard.finance.requirements.missing', {
-          items: rapydRequirementsLabel,
-        })
-      );
-      return null;
-    }
-    setRapydConnecting(true);
-    try {
-      if (!user) return;
-      const response = await apiClient.rapydOnboarding(locale);
-
-      const walletId = response?.wallet_id ?? response?.data?.wallet_id;
-      const contactId =
-        response?.rapyd_contact_id ??
-        response?.contact_id ??
-        response?.data?.rapyd_contact_id ??
-        response?.data?.contact_id;
-
-      if (!response || !walletId) {
-        console.error('No wallet id returned from Rapyd onboarding');
-        return null;
-      }
-
-      await updateUser({
-        rapyd_wallet_id: walletId,
-        ...(contactId ? { rapyd_contact_id: contactId } : {}),
-      });
-      refreshUser().catch(() => { });
-
-      const onboardingUrl =
-        (typeof response?.url === 'string' && response.url.trim()
-          ? response.url
-          : typeof response?.data?.url === 'string' && response.data.url.trim()
-            ? response.data.url
-            : null);
-
-      if (onboardingUrl && typeof window !== 'undefined') {
-        const safeOnboardingUrl = sanitizeExternalRedirectUrl(
-          onboardingUrl,
-          RAPYD_REDIRECT_ALLOWED_HOSTS
-        );
-
-        if (safeOnboardingUrl) {
-          window.location.href = safeOnboardingUrl;
-          return;
-        }
-
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('Blocked unsafe Rapyd onboarding redirect URL', onboardingUrl);
-        }
-      }
-
-      await fetchBalance();
-    } catch (error) {
-      console.error('Error fetching Rapyd onboarding URL:', error);
-      return null;
-    } finally {
-      setRapydConnecting(false);
-    }
-  }
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -1226,20 +924,11 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
     );
   }
 
-  const walletAvailableByCurrency = Array.from(
-    wallets.reduce((accumulator, wallet) => {
-      const currency = wallet.currency;
-      if (!currency) return accumulator;
-      const current = accumulator.get(currency) ?? 0;
-      accumulator.set(currency, current + (wallet.balance ?? 0));
-      return accumulator;
-    }, new Map<string, number>())
-  ).map(([currency, amount]) => ({ currency, amount }));
   const userDisplayName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email;
 
   return (
     <TrustoraDashboardShell
-      activeMenu={activeTab === 'finance' ? 'finance' : (activeTab as 'overview' | 'projects' | 'services' | 'messages' | 'settings')}
+      activeMenu={activeTab}
       isProvider={isProvider}
       isClient={isClient}
       onMenuSelect={handleTabChange}
@@ -1258,7 +947,6 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
             loadingRecentActivities={loadingRecentActivities}
             recentActivitiesError={recentActivitiesError}
             providerServicesCount={providerServicesSummary.total}
-            financeSlotCount={walletAvailableByCurrency.length}
             onTabChange={handleTabChange}
             onOpenProject={handleOverviewProjectOpen}
           />
@@ -1779,142 +1467,6 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
                   <h3 className="mb-2 text-lg font-medium">{t('dashboard.messages.empty.title')}</h3>
                   <p className="text-muted-foreground">{t('dashboard.messages.empty.description')}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : null}
-
-        {activeTab === 'finance' && isProvider ? (
-          <div className="space-y-6">
-            <DashboardSectionHeader
-              title={t('dashboard.finance.title')}
-              description={hasRapydConnected
-                ? `${t('dashboard.finance.wallet_balance')}: ${formatBalanceAmount(balance?.balance, balance?.currency)}`
-                : t('dashboard.hero.rapyd.connect')}
-              icon={DollarSign}
-            />
-
-            <Card className="glass-card">
-              <CardContent className="p-6">
-                {!hasRapydConnected ? (
-                  <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
-                    <p className="mb-4 text-sm text-slate-500 dark:text-[#A3ADC2]">
-                      {t('dashboard.hero.balance.error')}
-                    </p>
-                    {!canConnectRapyd ? (
-                      <p className="mb-4 text-sm text-amber-600 dark:text-amber-300">
-                        {t('dashboard.finance.requirements.missing', { items: rapydRequirementsLabel })}
-                      </p>
-                    ) : null}
-                    <Button
-                      type="button"
-                      className="bg-[#1BC47D] text-[#06111A] hover:bg-[#159c63]"
-                      onClick={getRapydOnboardingUrl}
-                      disabled={rapydConnecting || !canConnectRapyd}
-                    >
-                      {rapydConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      {t('dashboard.hero.rapyd.connect')}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
-                      <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
-                        {t('dashboard.finance.wallet_balance')}
-                      </div>
-                      {balanceLoading ? (
-                        <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2]">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          {t('dashboard.hero.balance.loading')}
-                        </div>
-                      ) : balanceError ? (
-                        <div className="mt-3 text-sm text-red-500">{balanceError}</div>
-                      ) : (
-                        wallets.map((item) => (
-                          <div key={item.id} className="mt-3 text-2xl font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            {formatBalanceAmount(item.balance, item.currency)}
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      {wallets.length > 1 ? (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
-                            {t('dashboard.finance.wallet_currency')}
-                          </div>
-                          <Select
-                            value={balance?.id ?? ''}
-                            onValueChange={handleWalletChange}
-                            disabled={balanceLoading || wallets.length === 0}
-                          >
-                            <SelectTrigger className="w-full bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
-                              <SelectValue placeholder={t('dashboard.finance.select_wallet')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {wallets.map((wallet) => (
-                                <SelectItem key={wallet.id} value={wallet.id}>
-                                  {wallet.currency} • {formatBalanceAmount(wallet.balance, wallet.currency)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ) : null}
-
-                      <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
-                        {t('dashboard.finance.transfer_amount')}
-                      </div>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.01"
-                          value={transferAmount}
-                          onChange={(e) => handleTransferAmountChange(e.target.value)}
-                          placeholder="0.00"
-                          className="pr-16 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
-                          disabled={balanceLoading || balance?.balance == null}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-2 top-1/2 h-8 -translate-y-1/2 px-2 text-xs font-semibold"
-                          onClick={() => {
-                            const maxValue = balance?.balance ?? 0;
-                            setTransferAmount(maxValue ? maxValue.toString() : '0');
-                            setTransferError(null);
-                          }}
-                          disabled={balanceLoading || balance?.balance == null}
-                        >
-                          {t('dashboard.finance.max')}
-                        </Button>
-                      </div>
-                      {transferError ? (
-                        <p className="text-xs text-red-500">{transferError}</p>
-                      ) : null}
-                      <Button
-                        variant="default"
-                        className="w-full bg-[#1BC47D] hover:bg-[#159c63]"
-                        onClick={handleTransfer}
-                        disabled={
-                          transferLoading ||
-                          balanceLoading ||
-                          balance?.balance == null ||
-                          !transferAmount ||
-                          Number(normalizeAmountInput(transferAmount)) <= 0 ||
-                          Number(normalizeAmountInput(transferAmount)) > (balance?.balance ?? 0)
-                        }
-                      >
-                        {transferLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        {t('dashboard.finance.transfer')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>

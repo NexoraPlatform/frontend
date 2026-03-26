@@ -2,19 +2,31 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { signOut } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 import useSWR from "swr";
 
 import {
   clearSessionPreferenceCookies,
 } from "@/lib/auth/session-preferences";
+import { hasSessionAuthTokens } from "@/lib/auth/session";
 import { normalizeAuthUser, type AuthUser } from "@/lib/auth/user";
 import { apiClient } from "@/lib/api";
-import { clearBrowserSessionAuthCache } from "@/lib/fetch-client";
+import { clearBrowserSessionAuthCache, setBrowserSessionAuthCache } from "@/lib/fetch-client";
 
 const PUBLIC_AUTH_USER_KEY = "/api/auth/me";
 
 const fetchPublicAuthUser = async (): Promise<AuthUser | null> => {
+  const sessionSnapshot = await getSession().catch(() => null);
+
+  if (sessionSnapshot) {
+    setBrowserSessionAuthCache(sessionSnapshot);
+  }
+
+  if (!hasSessionAuthTokens(sessionSnapshot as any)) {
+    clearBrowserSessionAuthCache();
+    return null;
+  }
+
   const response = await fetch(PUBLIC_AUTH_USER_KEY, {
     method: "GET",
     credentials: "include",

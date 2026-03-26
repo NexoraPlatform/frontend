@@ -1,6 +1,6 @@
 import { BASE_DASHBOARD_TABS } from './dashboard-tabs';
 
-type DashboardNavigationTab = (typeof BASE_DASHBOARD_TABS)[number] | 'finance';
+type DashboardNavigationTab = (typeof BASE_DASHBOARD_TABS)[number];
 
 const DASHBOARD_SECTION_PATHS: Record<DashboardNavigationTab, string> = {
   overview: '/dashboard',
@@ -8,7 +8,6 @@ const DASHBOARD_SECTION_PATHS: Record<DashboardNavigationTab, string> = {
   services: '/dashboard/services',
   messages: '/dashboard/messages',
   settings: '/dashboard/settings',
-  finance: '/dashboard/finance',
 };
 
 export const getDashboardHomeHref = () => '/dashboard';
@@ -16,11 +15,11 @@ export const getDashboardHomeHref = () => '/dashboard';
 export const getDashboardTabHref = (tab: DashboardNavigationTab) =>
   DASHBOARD_SECTION_PATHS[tab];
 
-export const getPrimaryDashboardTabHref = (isProvider: boolean) =>
-  getDashboardTabHref(isProvider ? 'finance' : 'projects');
+export const getPrimaryDashboardTabHref = (_isProvider: boolean) =>
+  getDashboardTabHref('projects');
 
-export const getSecondaryDashboardTabHref = (isProvider: boolean) =>
-  getDashboardTabHref(isProvider ? 'projects' : 'services');
+export const getSecondaryDashboardTabHref = (_isProvider: boolean) =>
+  getDashboardTabHref('services');
 
 export const getProviderProfileHref = () => '/provider/profile';
 

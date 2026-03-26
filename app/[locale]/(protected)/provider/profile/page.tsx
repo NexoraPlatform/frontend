@@ -54,7 +54,14 @@ import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
 import { FetchError } from '@/lib/fetch-client';
-import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-forms';
+import {
+    billingDetailsSchema,
+    buildCompanyLegalProfilePayload,
+    buildLegacyCompanyPayloadAliases,
+    createEmptyBillingDetailsValues,
+    mapCompanySourceToBillingDetailsValues,
+    BillingDetailsFormValues,
+} from '@/types/user-forms';
 import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useForm } from 'react-hook-form';
 import * as v from 'valibot';
@@ -432,15 +439,7 @@ export default function ProviderProfileEditPage() {
     const { data: languages } = useGetLanguages();
     const billingForm = useForm<BillingDetailsFormValues>({
         resolver: valibotResolver(billingDetailsSchema),
-        defaultValues: {
-            company_name: '',
-            tax_id: '',
-            trade_registry_number: '',
-            billing_address: '',
-            billing_city: '',
-            billing_state: '',
-            billing_postal_code: '',
-        },
+        defaultValues: createEmptyBillingDetailsValues(),
     });
     const roleSlugs = useMemo(() => {
         const rolesList: any[] = Array.isArray(user?.roles) ? (user?.roles ?? []) : [];
@@ -665,15 +664,7 @@ export default function ProviderProfileEditPage() {
                 }))
 
             }));
-            billingForm.reset({
-                company_name: providerProfile.company_name || '',
-                tax_id: providerProfile.tax_id || '',
-                trade_registry_number: providerProfile.trade_registry_number || '',
-                billing_address: providerProfile.billing_address || '',
-                billing_city: providerProfile.billing_city || '',
-                billing_state: providerProfile.billing_state || '',
-                billing_postal_code: providerProfile.billing_postal_code || '',
-            });
+            billingForm.reset(mapCompanySourceToBillingDetailsValues(providerProfile));
 
             // profileData.languages.map((language => {
             //     setProfileData(prev => ({
@@ -776,11 +767,18 @@ export default function ProviderProfileEditPage() {
 
         try {
             const billingValues = billingForm.getValues();
+            const companyData = buildCompanyLegalProfilePayload(billingValues, {
+                fallbackCommercialName: profileData.company,
+                fallbackLegalName: profileData.company,
+                authorizedSignatoryName: `${profileData.firstName} ${profileData.lastName}`.trim(),
+                authorizedSignatoryEmail: profileData.email,
+            });
             // Save profile data
             await apiClient.updateProviderProfile({
                 ...profileData,
                 availability: buildAvailabilityPayload(profileData.availability),
-                ...billingValues,
+                ...companyData,
+                ...buildLegacyCompanyPayloadAliases(companyData),
             });
             await refetchProviderProfile();
             setSuccess('Profilul a fost actualizat cu succes!');
@@ -1003,18 +1001,18 @@ export default function ProviderProfileEditPage() {
                         <button
                             type="button"
                             onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
-                            className={sidebarItemClass(isProvider ? 'finance' : 'projects')}
+                            className={sidebarItemClass('projects')}
                         >
                             <Lock size={18} />
-                            {isProvider ? t('dashboard.tabs.finance') : t('dashboard.tabs.projects')}
+                            {t('dashboard.tabs.projects')}
                         </button>
                         <button
                             type="button"
                             onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
-                            className={sidebarItemClass(isProvider ? 'projects' : 'services')}
+                            className={sidebarItemClass('services')}
                         >
                             <Layers size={18} />
-                            {isProvider ? t('dashboard.tabs.projects') : t('dashboard.tabs.services')}
+                            {t('dashboard.tabs.services')}
                         </button>
                         <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={sidebarItemClass('messages')}>
                             <History size={18} />

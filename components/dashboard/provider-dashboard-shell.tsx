@@ -31,14 +31,13 @@ import {
   Settings,
   Sun,
   Users,
-  Wallet,
 } from 'lucide-react';
 
 type ProviderDashboardShellProps = {
   title: string;
   description: string;
   children: React.ReactNode;
-  activeMenu?: 'overview' | 'projects' | 'services' | 'messages' | 'settings' | 'finance' | 'edit-profile';
+  activeMenu?: 'overview' | 'projects' | 'services' | 'messages' | 'settings' | 'edit-profile';
 };
 
 type DashboardThemeVars = {
@@ -168,18 +167,18 @@ export function ProviderDashboardShell({
             <button
               type="button"
               onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
-              className={sidebarItemClass(isProvider ? 'finance' : 'projects')}
+              className={sidebarItemClass('projects')}
             >
               <Lock size={18} />
-              {isProvider ? t('dashboard.tabs.finance') : t('dashboard.tabs.projects')}
+              {t('dashboard.tabs.projects')}
             </button>
             <button
               type="button"
               onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
-              className={sidebarItemClass(isProvider ? 'projects' : 'services')}
+              className={sidebarItemClass('services')}
             >
               <Layers size={18} />
-              {isProvider ? t('dashboard.tabs.projects') : t('dashboard.tabs.services')}
+              {t('dashboard.tabs.services')}
             </button>
             <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={sidebarItemClass('messages')}>
               <History size={18} />
@@ -301,8 +300,8 @@ export function ProviderDashboardShell({
                 onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
                 className="flex items-center gap-2 rounded-lg bg-[#1BC47D] px-5 py-2 text-sm font-semibold text-white shadow-md shadow-[#1BC47D]/20 transition-all hover:bg-[#18A96B]"
               >
-                {isProvider ? <Wallet size={16} /> : <MessageSquare size={16} />}
-                {isProvider ? t('dashboard.tabs.finance') : t('dashboard.tabs.projects')}
+                <Layers size={16} />
+                {t('dashboard.tabs.projects')}
               </Button>
             </div>
           </div>

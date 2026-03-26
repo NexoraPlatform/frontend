@@ -37,7 +37,10 @@ import type {
   LocationCountry,
   LocationState,
 } from "@/types/locations";
-import type { BillingDetailsFormValues } from "@/types/user-forms";
+import {
+  createEmptyBillingDetailsValues,
+  type BillingDetailsFormValues,
+} from "@/types/user-forms";
 
 type BillingDetailsFormProps = {
   className?: string;
@@ -92,9 +95,12 @@ export function BillingDetailsForm({
     setValue,
     clearErrors,
   } = useFormContext<BillingDetailsFormValues>();
-  const companyName = watch("company_name");
-  const billingStateValue = watch("billing_state") ?? "";
-  const [isCompany, setIsCompany] = useState(Boolean(companyName));
+  const legalName = watch("legal_name");
+  const commercialName = watch("commercial_name");
+  const countryCodeValue = watch("country_code") ?? "";
+  const registeredStateValue = watch("registered_state") ?? "";
+  const isVatRegistered = Boolean(watch("is_vat_registered"));
+  const [isCompany, setIsCompany] = useState(Boolean(legalName || commercialName));
   const [openCountry, setOpenCountry] = useState(false);
   const [openState, setOpenState] = useState(false);
   const [openCity, setOpenCity] = useState(false);
@@ -115,10 +121,10 @@ export function BillingDetailsForm({
   const citiesRequestRef = useRef<Map<string, Promise<LocationCity[]>>>(new Map());
 
   useEffect(() => {
-    if (companyName) {
+    if (legalName || commercialName) {
       setIsCompany(true);
     }
-  }, [companyName]);
+  }, [commercialName, legalName]);
 
   const mergeCountries = useCallback((incomingCountries: LocationCountry[]) => {
     if (incomingCountries.length === 0) return;
@@ -248,6 +254,19 @@ export function BillingDetailsForm({
     return request;
   }, [selectedCountryIso, statesByCountry, t]);
 
+  useEffect(() => {
+    if (!countryCodeValue) {
+      setSelectedCountryIso("");
+      return;
+    }
+
+    setSelectedCountryIso(countryCodeValue);
+    if (useLocationApi) {
+      void ensureCountriesLoaded().catch(() => {});
+      void ensureStatesLoaded(countryCodeValue).catch(() => {});
+    }
+  }, [countryCodeValue, ensureCountriesLoaded, ensureStatesLoaded, useLocationApi]);
+
   const ensureCitiesLoaded = useCallback(async (countryIso: string, stateIso: string) => {
     const normalizedCountryIso = countryIso.trim().toUpperCase();
     const normalizedStateIso = stateIso.trim().toUpperCase();
@@ -330,15 +349,20 @@ export function BillingDetailsForm({
     }
 
     const hasMatchingState = availableStates.some(
-      (state) => state.isoCode === billingStateValue
+      (state) => state.isoCode === registeredStateValue
     );
     if (hasMatchingState) {
-      setSelectedStateIso(billingStateValue);
+      setSelectedStateIso(registeredStateValue);
       return;
     }
 
     setSelectedStateIso("");
-  }, [billingStateValue, selectedCountryIso, statesByCountry, useLocationApi]);
+  }, [registeredStateValue, selectedCountryIso, statesByCountry, useLocationApi]);
+
+  useEffect(() => {
+    if (isVatRegistered) return;
+    setValue("vat_number", "", { shouldDirty: true, shouldValidate: true });
+  }, [isVatRegistered, setValue]);
 
   const resetLocationSelection = useCallback(() => {
     setSelectedCountryIso("");
@@ -354,13 +378,10 @@ export function BillingDetailsForm({
   const handleToggleCompany = (checked: boolean) => {
     setIsCompany(checked);
     if (!checked) {
-      setValue("company_name", "");
-      setValue("tax_id", "");
-      setValue("trade_registry_number", "");
-      setValue("billing_address", "");
-      setValue("billing_city", "");
-      setValue("billing_state", "");
-      setValue("billing_postal_code", "");
+      const emptyValues = createEmptyBillingDetailsValues();
+      Object.entries(emptyValues).forEach(([key, value]) => {
+        setValue(key as keyof BillingDetailsFormValues, value as never);
+      });
       clearErrors();
       resetLocationSelection();
     }
@@ -369,9 +390,10 @@ export function BillingDetailsForm({
   const handleCountrySelect = async (countryIso: string) => {
     setSelectedCountryIso(countryIso);
     setSelectedStateIso("");
-    setValue("billing_state", "", { shouldDirty: true, shouldValidate: true });
-    setValue("billing_city", "", { shouldDirty: true, shouldValidate: true });
-    clearErrors(["billing_state", "billing_city"]);
+    setValue("country_code", countryIso, { shouldDirty: true, shouldValidate: true });
+    setValue("registered_state", "", { shouldDirty: true, shouldValidate: true });
+    setValue("registered_city", "", { shouldDirty: true, shouldValidate: true });
+    clearErrors(["country_code", "registered_state", "registered_city"]);
     setOpenCountry(false);
     setOpenState(false);
     setOpenCity(false);
@@ -381,8 +403,8 @@ export function BillingDetailsForm({
   const handleStateSelect = async (stateIso: string, onChange: (value: string) => void) => {
     setSelectedStateIso(stateIso);
     onChange(stateIso);
-    setValue("billing_city", "", { shouldDirty: true, shouldValidate: true });
-    clearErrors(["billing_state", "billing_city"]);
+    setValue("registered_city", "", { shouldDirty: true, shouldValidate: true });
+    clearErrors(["registered_state", "registered_city"]);
     setOpenState(false);
     setOpenCity(false);
     await ensureCitiesLoaded(selectedCountryIso, stateIso).catch(() => []);
@@ -524,10 +546,15 @@ export function BillingDetailsForm({
 
           <FormField
             control={control}
-            name="company_name"
+            name="legal_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("common.billing.company_name_label")}</FormLabel>
+                <FormLabel>
+                  {t("common.billing.company_name_label")}
+                  {(legalName || commercialName) ? (
+                    <span className="text-red-500"> *</span>
+                  ) : null}
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -542,12 +569,48 @@ export function BillingDetailsForm({
 
           <FormField
             control={control}
-            name="tax_id"
+            name="commercial_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("common.billing.commercial_name_label")}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    className={fieldClassName}
+                    placeholder={t("common.billing.commercial_name_placeholder")}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="registration_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("common.billing.trade_registry_number_label")}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    className={fieldClassName}
+                    placeholder={t("common.billing.trade_registry_number_placeholder")}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="tax_identification_number"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
                   {t("common.billing.tax_id_label")}
-                  {companyName ? (
+                  {(legalName || commercialName) ? (
                     <span className="text-red-500"> *</span>
                   ) : null}
                 </FormLabel>
@@ -566,34 +629,50 @@ export function BillingDetailsForm({
             )}
           />
 
-          <FormField
-            control={control}
-            name="trade_registry_number"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  {t("common.billing.trade_registry_number_label")}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    className={fieldClassName}
-                    placeholder={t("common.billing.trade_registry_number_placeholder")}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="md:col-span-2 flex items-center gap-3 rounded-xl border border-border/70 px-4 py-3">
+            <Checkbox
+              id="billing-is-vat-registered"
+              checked={isVatRegistered}
+              onCheckedChange={(checked) =>
+                setValue("is_vat_registered", Boolean(checked), {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
+            <Label htmlFor="billing-is-vat-registered" className="text-sm leading-relaxed">
+              {t("common.billing.vat_registered_label")}
+            </Label>
+          </div>
+
+          {isVatRegistered ? (
+            <FormField
+              control={control}
+              name="vat_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("common.billing.vat_number_label")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      className={fieldClassName}
+                      placeholder={t("common.billing.vat_number_placeholder")}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
 
           <FormField
             control={control}
-            name="billing_address"
+            name="registered_address_line_1"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
                   {t("common.billing.billing_address_label")}
-                  {companyName ? (
+                  {(legalName || commercialName) ? (
                     <span className="text-red-500"> *</span>
                   ) : null}
                 </FormLabel>
@@ -611,7 +690,25 @@ export function BillingDetailsForm({
 
           <FormField
             control={control}
-            name="billing_state"
+            name="registered_address_line_2"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("common.billing.billing_address_line_2_label")}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    className={fieldClassName}
+                    placeholder={t("common.billing.billing_address_line_2_placeholder")}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="registered_state"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t("common.billing.billing_state_label")}</FormLabel>
@@ -713,7 +810,7 @@ export function BillingDetailsForm({
 
           <FormField
             control={control}
-            name="billing_city"
+            name="registered_city"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t("common.billing.billing_city_label")}</FormLabel>
@@ -776,7 +873,7 @@ export function BillingDetailsForm({
                                       value={city.name}
                                       onSelect={() => {
                                         field.onChange(city.name);
-                                        clearErrors("billing_city");
+                                        clearErrors("registered_city");
                                         setOpenCity(false);
                                       }}
                                     >
@@ -801,7 +898,7 @@ export function BillingDetailsForm({
                       {...field}
                       className={fieldClassName}
                       placeholder={t("common.billing.billing_city_placeholder")}
-                      disabled={useLocationApi && !selectedStateIso && !billingStateValue}
+                      disabled={useLocationApi && !selectedStateIso && !registeredStateValue}
                     />
                   )}
                 </FormControl>
@@ -812,7 +909,7 @@ export function BillingDetailsForm({
 
           <FormField
             control={control}
-            name="billing_postal_code"
+            name="registered_postal_code"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
@@ -823,6 +920,24 @@ export function BillingDetailsForm({
                     {...field}
                     className={fieldClassName}
                     placeholder={t("common.billing.billing_postal_code_placeholder")}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="authorized_signatory_title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("common.billing.authorized_signatory_title_label")}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    className={fieldClassName}
+                    placeholder={t("common.billing.authorized_signatory_title_placeholder")}
                   />
                 </FormControl>
                 <FormMessage />

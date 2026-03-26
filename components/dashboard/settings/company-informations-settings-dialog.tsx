@@ -25,6 +25,7 @@ import { postcodeValidator, postcodeValidatorExistsForCountry } from 'postcode-v
 import apiClient from "@/lib/api";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
+import {Checkbox} from "@/components/ui/checkbox";
 import { resolveStateIsoFromOptions, sortByName, toFlagEmoji } from "@/lib/location-utils";
 import type { LocationCity, LocationCountry, LocationState } from "@/types/locations";
 
@@ -36,12 +37,24 @@ interface CompanyInformationsSettingsProps {
 type CompanySearchResult = {
     id: number;
     name: string;
-    tax_id?: string | null;
-    trade_registry_number?: string | null;
-    company_country?: string | null;
-    company_city?: string | null;
-    company_zip?: string | null;
-    company_address?: string | null;
+    legal_profile?: {
+        legal_name?: string | null;
+        commercial_name?: string | null;
+        country_code?: string | null;
+        registration_number?: string | null;
+        tax_identification_number?: string | null;
+        vat_number?: string | null;
+        is_vat_registered?: boolean | null;
+        registered_address_line_1?: string | null;
+        registered_address_line_2?: string | null;
+        registered_city?: string | null;
+        registered_state?: string | null;
+        registered_postal_code?: string | null;
+        authorized_signatory_name?: string | null;
+        authorized_signatory_title?: string | null;
+        authorized_signatory_email?: string | null;
+        default_currency?: string | null;
+    } | null;
 };
 
 type CurrencyOption = {
@@ -56,12 +69,16 @@ type LocationResponse<T> = {
 
 const FIELD_ID_ALIASES: Record<string, string> = {
     identification_value: "id_number",
+    registration_number: "registration_number",
     postcode: "company_zip",
     address: "company_address",
+    address_line_2: "company_address_line_2",
     state: "company_county",
     city: "company_city",
     bank_name: "company_bank_name",
     bic_swift: "company_bank_bic",
+    commercial_name: "commercial_name",
+    signatory_title: "signatory_title",
 };
 
 const buildCityCacheKey = (countryIso: string, stateIso: string) => `${countryIso}:${stateIso}`;
@@ -180,13 +197,19 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
 
     const [formDataCompany, setFormDataCompany] = useState<any>({
         name: "",
+        commercial_name: "",
         represented_by: "",
+        signatory_title: "",
         email: "",
         company_address: "",
+        company_address_line_2: "",
         company_city: "",
         company_county: "",
         company_zip: "",
         company_country: "",
+        registration_number: "",
+        vat_number: "",
+        is_vat_registered: false,
         company_bank_iban: "",
         company_bank_name: "",
         company_bank_bic: "",
@@ -496,23 +519,30 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
             setFormDataCompany({
                 company_id: company?.id,
                 name: company?.name ?? '',
-                represented_by: `${user.firstName} ${user.lastName}`,
-                email: user.email,
+                commercial_name: company?.commercial_name ?? '',
+                represented_by:
+                    company?.authorized_signatory_name ?? `${user.firstName} ${user.lastName}`,
+                signatory_title: company?.authorized_signatory_title ?? '',
+                email: company?.authorized_signatory_email ?? user.email,
                 company_address: company?.company_address ?? '',
+                company_address_line_2: company?.registered_address_line_2 ?? '',
                 company_city: company?.company_city ?? '',
                 company_county: initialCountyValue,
                 company_zip: company?.company_zip ?? '',
                 company_country: companyCountryIso,
+                registration_number: company?.registration_number ?? '',
+                vat_number: company?.vat_number ?? '',
+                is_vat_registered: Boolean(company?.is_vat_registered),
                 company_bank_iban: company?.company_bank_iban ?? '',
                 company_bank_name: company?.company_bank_name ?? '',
                 company_bank_bic: company?.company_bank_bic ?? '',
                 id_type: company?.id_type ?? '',
-                id_number: company?.id_number ?? '',
-                bank_currency: company?.bank_currency ?? '',
+                id_number: company?.tax_identification_number ?? company?.id_number ?? '',
+                bank_currency: company?.default_currency ?? company?.bank_currency ?? '',
             });
 
-            if (company?.bank_currency) {
-                const currencyCode = company.bank_currency as string;
+            if (company?.default_currency || company?.bank_currency) {
+                const currencyCode = (company?.default_currency || company?.bank_currency) as string;
                     setSelectedCurrency({
                         code: currencyCode,
                         name: currencyCode,
@@ -596,13 +626,13 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 qs.set("q", query);
                 qs.set("limit", "10");
 
-                const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://Trustorabe.dacars.ro/api";
-                const response = await fetch(`${baseUrl}/companies/search?${qs.toString()}`, {
+                const response = await fetch(`/api/companies/search?${qs.toString()}`, {
                     method: "GET",
                     headers: {
-                        "Content-Type": "application/json",
+                        "Accept": "application/json",
                     },
-                    credentials: "include",
+                    credentials: "same-origin",
+                    cache: "no-store",
                     signal: controller.signal,
                 });
 
@@ -716,8 +746,26 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         e.preventDefault();
         try {
             const payload = {
-                ...formDataCompany,
-                bank_currency: formDataCompany.bank_currency || selectedCurrency?.code || "",
+                company_id: formDataCompany.company_id,
+                legal_name: formDataCompany.name || "",
+                commercial_name: formDataCompany.commercial_name || formDataCompany.name || "",
+                country_code: formDataCompany.company_country || "",
+                registration_number: formDataCompany.registration_number || "",
+                tax_identification_number: formDataCompany.id_number || "",
+                vat_number: formDataCompany.vat_number || "",
+                is_vat_registered: Boolean(formDataCompany.is_vat_registered),
+                default_currency: formDataCompany.bank_currency || selectedCurrency?.code || "",
+                registered_address_line_1: formDataCompany.company_address || "",
+                registered_address_line_2: formDataCompany.company_address_line_2 || "",
+                registered_city: formDataCompany.company_city || "",
+                registered_state: formDataCompany.company_county || "",
+                registered_postal_code: formDataCompany.company_zip || "",
+                authorized_signatory_name: formDataCompany.represented_by || "",
+                authorized_signatory_title: formDataCompany.signatory_title || "",
+                authorized_signatory_email: formDataCompany.email || "",
+                company_bank_iban: formDataCompany.company_bank_iban || "",
+                company_bank_name: formDataCompany.company_bank_name || "",
+                company_bank_bic: formDataCompany.company_bank_bic || "",
             };
             const updateInfo = await apiClient.updateUserCompanyDetails(payload);
             await refreshUser();
@@ -748,35 +796,49 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
     };
 
     const applyCompanySearchResult = async (company: CompanySearchResult) => {
-        const nextCountryIso = company.company_country || formDataCompany.company_country;
-        const nextPostcode = company.company_zip || formDataCompany.company_zip;
+        const legalProfile = company.legal_profile ?? {};
+        const nextCountryIso = legalProfile.country_code || formDataCompany.company_country;
+        const nextPostcode = legalProfile.registered_postal_code || formDataCompany.company_zip;
         let nextCountyIso = formDataCompany.company_county;
 
-        if (company.company_country) {
-            setSelectedCountryIso(company.company_country);
-            await ensureCountryLoaded(company.company_country);
+        if (legalProfile.country_code) {
+            setSelectedCountryIso(legalProfile.country_code);
+            await ensureCountryLoaded(legalProfile.country_code);
 
-            const availableStates = await ensureStatesLoaded(company.company_country).catch(() => []);
+            const availableStates = await ensureStatesLoaded(legalProfile.country_code).catch(() => []);
             const hasCurrentState = availableStates.some((state) => state.isoCode === formDataCompany.company_county);
             nextCountyIso = hasCurrentState ? formDataCompany.company_county : "";
             setSelectedStateIso(nextCountyIso);
 
             if (nextCountyIso) {
-                void ensureCitiesLoaded(company.company_country, nextCountyIso).catch(() => {});
+                void ensureCitiesLoaded(legalProfile.country_code, nextCountyIso).catch(() => {});
             }
         }
 
         setFormDataCompany((prev: any) => ({
             ...prev,
-            name: company.name || prev.name,
-            id_number: company.tax_id || company.trade_registry_number || prev.id_number,
-            company_address: company.company_address || prev.company_address,
-            company_city: company.company_city || prev.company_city,
-            company_county: company.company_country ? nextCountyIso : prev.company_county,
-            company_zip: company.company_zip || prev.company_zip,
-            company_country: company.company_country || prev.company_country,
-            id_type: company.company_country
-                ? (COUNTRY_ID_TYPES[company.company_country] || prev.id_type)
+            name: legalProfile.legal_name || company.name || prev.name,
+            commercial_name: legalProfile.commercial_name || prev.commercial_name,
+            represented_by: legalProfile.authorized_signatory_name || prev.represented_by,
+            signatory_title: legalProfile.authorized_signatory_title || prev.signatory_title,
+            email: legalProfile.authorized_signatory_email || prev.email,
+            id_number: legalProfile.tax_identification_number || prev.id_number,
+            registration_number: legalProfile.registration_number || prev.registration_number,
+            vat_number: legalProfile.vat_number || prev.vat_number,
+            is_vat_registered:
+                typeof legalProfile.is_vat_registered === "boolean"
+                    ? legalProfile.is_vat_registered
+                    : prev.is_vat_registered,
+            company_address: legalProfile.registered_address_line_1 || prev.company_address,
+            company_address_line_2:
+                legalProfile.registered_address_line_2 || prev.company_address_line_2,
+            company_city: legalProfile.registered_city || prev.company_city,
+            company_county: legalProfile.country_code ? nextCountyIso : prev.company_county,
+            company_zip: legalProfile.registered_postal_code || prev.company_zip,
+            company_country: legalProfile.country_code || prev.company_country,
+            bank_currency: legalProfile.default_currency || prev.bank_currency,
+            id_type: legalProfile.country_code
+                ? (COUNTRY_ID_TYPES[legalProfile.country_code] || prev.id_type)
                 : prev.id_type,
         }));
 
@@ -945,9 +1007,10 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                 <div className="py-1">
                                                     {companySearchResults.map((company) => {
                                                         const meta = [
-                                                            company.tax_id || company.trade_registry_number,
-                                                            company.company_city,
-                                                            company.company_country,
+                                                            company.legal_profile?.tax_identification_number ||
+                                                                company.legal_profile?.registration_number,
+                                                            company.legal_profile?.registered_city,
+                                                            company.legal_profile?.country_code,
                                                         ].filter(Boolean).join(" • ");
 
                                                         return (
@@ -980,10 +1043,24 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="represented_by">{t('dashboard.settings.profile.represented_by')}</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+	                        <div className="space-y-2">
+	                            <Label htmlFor="commercial_name">{t('dashboard.settings.profile.commercial_name')}</Label>
+	                            <div className="relative">
+	                                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+	                                <Input
+	                                    id="commercial_name"
+	                                    value={formDataCompany.commercial_name}
+	                                    onChange={handleChange}
+	                                    placeholder={t('dashboard.settings.profile.placeholders.commercial_name')}
+	                                    className="pl-10"
+	                                />
+	                            </div>
+	                        </div>
+
+	                        <div className="space-y-2">
+	                            <Label htmlFor="represented_by">{t('dashboard.settings.profile.represented_by')}</Label>
+	                            <div className="relative">
+	                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <Input
                                     id="represented_by"
                                     value={formDataCompany.represented_by}
@@ -994,8 +1071,8 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="email">{t('dashboard.settings.profile.contact_email')}</Label>
+	                        <div className="space-y-2">
+	                            <Label htmlFor="email">{t('dashboard.settings.profile.contact_email')}</Label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <Input
@@ -1007,16 +1084,26 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                     className="pl-10"
                                 />
                             </div>
-                        </div>
+	                        </div>
 
-                        {/* MODIFICAT: Grid pentru ID Type și Value */}
-                        <div className="grid grid-cols-3 gap-2">
-                            {/* Identification Type Dropdown (SEARCHABLE) */}
+	                        <div className="space-y-2">
+	                            <Label htmlFor="signatory_title">{t('dashboard.settings.profile.signatory_title')}</Label>
+	                            <div className="relative">
+	                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+	                                <Input
+	                                    id="signatory_title"
+	                                    value={formDataCompany.signatory_title}
+	                                    onChange={handleChange}
+	                                    placeholder={t('dashboard.settings.profile.placeholders.signatory_title')}
+	                                    className="pl-10"
+	                                />
+	                            </div>
+	                        </div>
 
-                            {/* 4. Identification Type Dropdown (SEARCHABLE) */}
-                            <div className="col-span-1 space-y-2">
-                                <Label htmlFor="identification_type">{t('dashboard.settings.profile.id_type')}</Label>
-                                <div className="relative">
+	                        <div className="grid grid-cols-3 gap-2">
+	                            <div className="col-span-1 space-y-2">
+	                                <Label htmlFor="identification_type" className="whitespace-nowrap">{t('dashboard.settings.profile.id_type')}</Label>
+	                                <div className="relative">
                                     <Popover open={openIdType} onOpenChange={setOpenIdType} modal={true}>
                                         <PopoverTrigger asChild>
                                             <Button
@@ -1072,17 +1159,54 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                 </div>
                             </div>
 
-                            <div className="col-span-2 space-y-2">
+                            <div className="col-span-2 space-y-2 ml-8">
                                 <Label htmlFor="identification_value">{t('dashboard.settings.profile.id_code')}</Label>
                                 <Input
                                     id="identification_value"
                                     value={formDataCompany.id_number}
                                     onChange={handleChange}
                                     placeholder={t('dashboard.settings.profile.placeholders.id_code')}
-                                />
-                            </div>
-                        </div>
-                    </div>
+	                                />
+	                            </div>
+	                        </div>
+
+	                        <div className="space-y-2">
+	                            <Label htmlFor="registration_number">{t('dashboard.settings.profile.registration_number')}</Label>
+	                            <Input
+	                                id="registration_number"
+	                                value={formDataCompany.registration_number}
+	                                onChange={handleChange}
+	                                placeholder={t('dashboard.settings.profile.placeholders.registration_number')}
+	                            />
+	                        </div>
+
+	                        <div className="space-y-2">
+	                            <Label htmlFor="vat_number">{t('dashboard.settings.profile.vat_number')}</Label>
+	                            <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3">
+	                                <Checkbox
+	                                    id="is_vat_registered"
+	                                    checked={Boolean(formDataCompany.is_vat_registered)}
+	                                    onCheckedChange={(checked) =>
+	                                        setFormDataCompany((prev: any) => ({
+	                                            ...prev,
+	                                            is_vat_registered: Boolean(checked),
+	                                            vat_number: checked ? prev.vat_number : "",
+	                                        }))
+	                                    }
+	                                />
+	                                <Label htmlFor="is_vat_registered" className="text-sm font-normal">
+	                                    {t('dashboard.settings.profile.vat_registered')}
+	                                </Label>
+	                            </div>
+	                            <Input
+	                                id="vat_number"
+	                                value={formDataCompany.vat_number}
+	                                onChange={handleChange}
+	                                placeholder={t('dashboard.settings.profile.placeholders.vat_number')}
+	                                disabled={!formDataCompany.is_vat_registered}
+	                            />
+	                        </div>
+	                    </div>
 
                     {/* Section 2: Address (inclusiv Country, State, City searchables) */}
                     {/* ... Restul codului pentru adresă și bancă rămâne neschimbat ... */}
@@ -1357,17 +1481,27 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                 )}
                             </div>
 
-                            <div className="md:col-span-2 space-y-2">
-                                <Label htmlFor="address">{t('dashboard.settings.profile.street')}</Label>
-                                <Input
-                                    id="address"
-                                    value={formDataCompany.company_address}
-                                    onChange={handleChange}
-                                    placeholder={t('dashboard.settings.profile.placeholders.address')}
-                                />
-                            </div>
-                        </div>
-                    </div>
+	                            <div className="md:col-span-2 space-y-2">
+	                                <Label htmlFor="address">{t('dashboard.settings.profile.street')}</Label>
+	                                <Input
+	                                    id="address"
+	                                    value={formDataCompany.company_address}
+	                                    onChange={handleChange}
+	                                    placeholder={t('dashboard.settings.profile.placeholders.address')}
+	                                />
+	                            </div>
+
+	                            <div className="md:col-span-2 space-y-2">
+	                                <Label htmlFor="address_line_2">{t('dashboard.settings.profile.address_line_2')}</Label>
+	                                <Input
+	                                    id="address_line_2"
+	                                    value={formDataCompany.company_address_line_2}
+	                                    onChange={handleChange}
+	                                    placeholder={t('dashboard.settings.profile.placeholders.address_line_2')}
+	                                />
+	                            </div>
+	                        </div>
+	                    </div>
 
                     {/* Section 3: Bank Info */}
                     <div className="bg-white/5 pt-6 border-t border-slate-200 dark:border-slate-800">

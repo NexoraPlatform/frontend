@@ -6,6 +6,7 @@ import {
   refreshPassportAccessToken,
   revokePassportAccessToken,
 } from '@/lib/auth/passport';
+import { hasSessionAuthTokens } from '@/lib/auth/session';
 import { normalizeAuthUser } from '@/lib/auth/user';
 
 type InternalAuthUser = Record<string, any> & {
@@ -67,6 +68,10 @@ const buildClearedToken = (token: Record<string, any>, error: string) => ({
   refreshToken: undefined,
   tokenType: undefined,
   accessTokenExpiresAt: undefined,
+  name: undefined,
+  email: undefined,
+  picture: undefined,
+  sub: undefined,
   error,
 });
 
@@ -265,8 +270,10 @@ const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
-      if (token.user) {
+      if (hasSessionAuthTokens(token as any) && token.user) {
         session.user = token.user as any;
+      } else {
+        session.user = undefined as any;
       }
       if (typeof token.accessToken === 'string' && token.accessToken.length > 0) {
         session.accessToken = token.accessToken;

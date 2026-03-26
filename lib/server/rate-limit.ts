@@ -60,6 +60,15 @@ const buildRule = ({
   message,
 });
 
+const RATE_LIMIT_EXEMPT_PATHS = [
+  /^\/api\/auth\/(session|csrf|providers|error|verify-request)(?:\/.*)?$/i,
+  /^\/api\/auth\/(signin|signout|callback)(?:\/.*)?$/i,
+  /^\/api\/auth\/(me|refresh|logout)$/i,
+  /^\/api\/companies\/search$/i,
+  /^\/api\/realtime\/pusher-config$/i,
+  /^\/api\/broadcasting\/auth$/i,
+] as const;
+
 const RATE_LIMIT_RULES: RateLimitRule[] = [
   buildRule({
     id: 'api-auth-login',
@@ -252,6 +261,9 @@ const shouldSkipByMethod = (method: string | undefined) => {
   return normalized === 'HEAD' || normalized === 'OPTIONS';
 };
 
+export const isRateLimitExemptPath = (pathname: string) =>
+  RATE_LIMIT_EXEMPT_PATHS.some((pattern) => pattern.test(pathname));
+
 export async function enforceApiRateLimit(
   req: RequestLike,
 ): Promise<NextResponse | null> {
@@ -259,6 +271,10 @@ export async function enforceApiRateLimit(
   if (shouldSkipByMethod(req.method)) return null;
 
   const pathname = getPathname(req);
+  if (isRateLimitExemptPath(pathname)) {
+    return null;
+  }
+
   const rule = RATE_LIMIT_RULES.find((candidate) =>
     candidate.pattern.test(pathname),
   );

@@ -9,6 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { RuntimeAuthProviders } from "@/components/layout/runtime-auth-providers";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { ThemeProvider } from "@/components/theme-provider";
+import { hasSessionAuthTokens } from "@/lib/auth/session";
 import { normalizeAuthUser } from "@/lib/auth/user";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { loadMessagesForNamespaces, sharedClientNamespaces } from "@/lib/i18n";
@@ -40,8 +41,9 @@ export default async function LocaleLayout({ children, params }: Props) {
     requestHeaders.get("x-nonce") ??
     requestHeaders.get("content-security-policy")?.match(/'nonce-([^']+)'/)?.[1] ??
     undefined;
-  const initialSession = session ?? null;
-  const initialUser = normalizeAuthUser(session?.user ?? null);
+  const hasInitialSessionAuth = hasSessionAuthTokens(session as any);
+  const initialSession = hasInitialSessionAuth ? session : null;
+  const initialUser = hasInitialSessionAuth ? normalizeAuthUser(session?.user ?? null) : null;
 
   if (!locales.includes(locale as (typeof locales)[number])) {
     notFound();

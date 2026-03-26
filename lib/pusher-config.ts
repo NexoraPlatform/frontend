@@ -1,6 +1,11 @@
 let hasWarnedMissingConfig = false;
 let configFetchPromise: Promise<PusherClientConfig | null> | null = null;
 let pusherClientConfig: PusherClientConfig | null = null;
+let pusherConfigUnavailableUntil = 0;
+let pusherConfigPermanentlyDisabled = false;
+
+const PUSHER_CONFIG_RETRY_DELAY_MS = 15_000;
+const PUSHER_CONFIG_AUTH_RETRY_DELAY_MS = 5_000;
 
 export type PusherClientConfig = {
   key: string;
@@ -9,6 +14,14 @@ export type PusherClientConfig = {
 
 export function getPusherClientConfig(): PusherClientConfig | null {
   return pusherClientConfig;
+}
+
+export function resetPusherClientConfigState() {
+  hasWarnedMissingConfig = false;
+  configFetchPromise = null;
+  pusherClientConfig = null;
+  pusherConfigUnavailableUntil = 0;
+  pusherConfigPermanentlyDisabled = false;
 }
 
 function warnPusherDisabled(message: string) {
@@ -24,9 +37,22 @@ function warnPusherDisabled(message: string) {
   console.warn(message);
 }
 
+async function readPusherConfigErrorMessage(response: Response) {
+  try {
+    const payload = await response.json().catch(() => null);
+    if (payload && typeof payload === 'object' && typeof (payload as { message?: unknown }).message === 'string') {
+      return ((payload as { message: string }).message || '').trim();
+    }
+  } catch {}
+
+  return response.statusText?.trim() || '';
+}
+
 export async function ensurePusherClientConfig(): Promise<PusherClientConfig | null> {
   if (pusherClientConfig) return pusherClientConfig;
   if (typeof window === 'undefined') return null;
+  if (pusherConfigPermanentlyDisabled) return null;
+  if (Date.now() < pusherConfigUnavailableUntil) return null;
   if (configFetchPromise) return configFetchPromise;
 
   configFetchPromise = (async () => {
@@ -39,9 +65,23 @@ export async function ensurePusherClientConfig(): Promise<PusherClientConfig | n
       });
 
       if (!response.ok) {
-        if (response.status !== 401 && response.status !== 403) {
-          warnPusherDisabled('Pusher is disabled: missing server-side realtime configuration.');
+        const message = await readPusherConfigErrorMessage(response);
+
+        if (response.status === 401 || response.status === 403) {
+          pusherConfigUnavailableUntil = Date.now() + PUSHER_CONFIG_AUTH_RETRY_DELAY_MS;
+          return null;
         }
+
+        if (response.status === 503 && message === 'Realtime is not configured') {
+          pusherConfigPermanentlyDisabled = true;
+          warnPusherDisabled('Pusher is disabled: missing server-side realtime configuration.');
+          return null;
+        }
+
+        pusherConfigUnavailableUntil = Date.now() + PUSHER_CONFIG_RETRY_DELAY_MS;
+        warnPusherDisabled(
+          `Pusher is disabled: ${message || 'failed to fetch realtime configuration.'}`
+        );
         return null;
       }
 
@@ -50,13 +90,17 @@ export async function ensurePusherClientConfig(): Promise<PusherClientConfig | n
       const cluster = typeof payload?.cluster === 'string' ? payload.cluster.trim() : '';
 
       if (!key || !cluster) {
+        pusherConfigPermanentlyDisabled = true;
         warnPusherDisabled('Pusher is disabled: invalid server-side realtime configuration.');
         return null;
       }
 
+      pusherConfigUnavailableUntil = 0;
+      pusherConfigPermanentlyDisabled = false;
       pusherClientConfig = { key, cluster };
       return pusherClientConfig;
     } catch {
+      pusherConfigUnavailableUntil = Date.now() + PUSHER_CONFIG_RETRY_DELAY_MS;
       warnPusherDisabled('Pusher is disabled: failed to fetch realtime configuration.');
       return null;
     } finally {

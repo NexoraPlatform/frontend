@@ -385,7 +385,7 @@ export function resolveNotificationLink(
   }
 
   if (notification.category === 'escrow') {
-    return '/dashboard?tab=finance';
+    return '/dashboard';
   }
 
   if (notification.category === 'project') {

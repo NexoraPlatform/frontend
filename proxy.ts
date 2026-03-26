@@ -10,6 +10,7 @@ import {
   type Requirement,
 } from '@/lib/access';
 import { enforceApiRateLimit } from '@/lib/server/rate-limit';
+import { hasSessionAuthTokens } from '@/lib/auth/session';
 import { normalizeAuthUser } from '@/lib/auth/user';
 import { buildAllowedInlineScriptHashes } from '@/lib/csp';
 import { defaultLocale } from '@/lib/i18n';
@@ -405,12 +406,15 @@ export const proxy = auth(async (req) => {
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
   const session = (req as any).auth;
+  const hasSessionTokens = hasSessionAuthTokens(session as any);
   const sessionUser = session?.user as AccessUser | null | undefined;
   const user =
-    sessionUser ? ((normalizeAuthUser(sessionUser) as AccessUser | null) ?? sessionUser) : null;
+    hasSessionTokens && sessionUser
+      ? ((normalizeAuthUser(sessionUser) as AccessUser | null) ?? sessionUser)
+      : null;
   const finalizeResponse = <T extends NextResponse>(response: T) => response;
 
-  const isAuthenticated = Boolean(user);
+  const isAuthenticated = Boolean(user && hasSessionTokens);
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;
 

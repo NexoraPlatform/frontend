@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getClientIdentifier, getTrustedClientIp } from '../server/rate-limit';
+import {
+  getClientIdentifier,
+  getTrustedClientIp,
+  isRateLimitExemptPath,
+} from '../server/rate-limit';
 
 describe('lib/server/rate-limit', () => {
   afterEach(() => {
@@ -52,5 +56,18 @@ describe('lib/server/rate-limit', () => {
 
     expect(getTrustedClientIp(headers)).toBe('198.51.100.10');
     expect(getClientIdentifier(headers)).toBe('198.51.100.10');
+  });
+
+  it('skips rate limiting for session-critical auth endpoints', () => {
+    expect(isRateLimitExemptPath('/api/auth/session')).toBe(true);
+    expect(isRateLimitExemptPath('/api/auth/callback/credentials')).toBe(true);
+    expect(isRateLimitExemptPath('/api/auth/refresh')).toBe(true);
+    expect(isRateLimitExemptPath('/api/auth/me')).toBe(true);
+    expect(isRateLimitExemptPath('/api/companies/search')).toBe(true);
+    expect(isRateLimitExemptPath('/api/realtime/pusher-config')).toBe(true);
+    expect(isRateLimitExemptPath('/api/broadcasting/auth')).toBe(true);
+    expect(isRateLimitExemptPath('/api/auth/login')).toBe(false);
+    expect(isRateLimitExemptPath('/api/auth/register')).toBe(false);
+    expect(isRateLimitExemptPath('/api/dashboard/stats')).toBe(false);
   });
 });
