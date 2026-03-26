@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import {
   ArrowDownLeft,
@@ -19,31 +20,41 @@ import {
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/lib/navigation";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { PriceDisplay } from "@/components/PriceDisplay";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
 import type { DashboardStatsResponse, RecentActivityQuick } from "@/lib/api";
 import {
   getNewProjectHref,
   getProviderProfileHref,
 } from "@/lib/dashboard-navigation";
 import { getProviderServicesSelectHref } from "@/lib/provider-services-wizard";
+
+const DashboardPerformanceChartContent = dynamic(
+  () =>
+    import("./dashboard-overview-chart-content").then(
+      (mod) => mod.DashboardPerformanceChartContent
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] w-full animate-pulse rounded-2xl bg-muted/30" />
+    ),
+  }
+);
+
+const DashboardActivityMixChartContent = dynamic(
+  () =>
+    import("./dashboard-overview-chart-content").then(
+      (mod) => mod.DashboardActivityMixChartContent
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] w-full animate-pulse rounded-2xl bg-muted/30" />
+    ),
+  }
+);
 
 type DashboardOverviewProps = {
   isProvider: boolean;
@@ -677,35 +688,10 @@ export function DashboardOverview({
               {t("dashboard.loading.dashboard")}
             </div>
           ) : (
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <LineChart
-                accessibilityLayer
-                data={performanceData}
-                margin={{ left: 8, right: 8, top: 12, bottom: 8 }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={12} />
-                <YAxis tickLine={false} axisLine={false} width={44} />
-                <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Line
-                  type="monotone"
-                  dataKey="previous"
-                  stroke="var(--color-previous)"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-previous)", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="current"
-                  stroke="var(--color-current)"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-current)", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ChartContainer>
+            <DashboardPerformanceChartContent
+              chartConfig={chartConfig}
+              performanceData={performanceData}
+            />
           )}
         </motion.div>
 
@@ -729,20 +715,10 @@ export function DashboardOverview({
               {t("dashboard.loading.projects")}
             </div>
           ) : (
-            <ChartContainer config={mixChartConfig} className="h-[300px] w-full">
-              <BarChart
-                accessibilityLayer
-                data={activityMixData}
-                margin={{ left: 8, right: 8, top: 12, bottom: 8 }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={12} />
-                <YAxis tickLine={false} axisLine={false} width={44} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="value" fill="var(--color-value)" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
+            <DashboardActivityMixChartContent
+              mixChartConfig={mixChartConfig}
+              activityMixData={activityMixData}
+            />
           )}
           {recentActivitiesError ? (
             <p className="mt-4 text-xs text-amber-500">{recentActivitiesError}</p>

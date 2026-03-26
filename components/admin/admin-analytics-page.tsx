@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   Activity,
   BarChart3,
@@ -16,15 +17,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { PriceDisplay } from "@/components/PriceDisplay";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
@@ -39,14 +31,7 @@ import {
   AdminTableLoadingRow,
 } from "@/components/admin/admin-state";
 import { ProjectAdminShell } from "@/components/admin/project-admin-shell";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
 import apiClient from "@/lib/api";
 import {
@@ -54,6 +39,32 @@ import {
   normalizeAdminStats,
   type AdminStats,
 } from "@/lib/admin-stats";
+
+const AdminAnalyticsPerformanceChartContent = dynamic(
+  () =>
+    import("./admin-analytics-chart-content").then(
+      (mod) => mod.AdminAnalyticsPerformanceChartContent
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] w-full animate-pulse rounded-2xl bg-muted/30" />
+    ),
+  }
+);
+
+const AdminAnalyticsDistributionChartContent = dynamic(
+  () =>
+    import("./admin-analytics-chart-content").then(
+      (mod) => mod.AdminAnalyticsDistributionChartContent
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] w-full animate-pulse rounded-2xl bg-muted/30" />
+    ),
+  }
+);
 
 type AnalyticsMetricId = "users" | "services" | "revenue" | "projects" | "calls";
 
@@ -117,13 +128,6 @@ function derivePreviousValue(current: number, change: number) {
 
 function formatNumberValue(value: number, locale: string) {
   return new Intl.NumberFormat(locale).format(value);
-}
-
-function formatCompactValue(value: number, locale: string) {
-  return new Intl.NumberFormat(locale, {
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
 }
 
 function MetricValue({
@@ -512,48 +516,11 @@ export function AdminAnalyticsPage() {
                   ))}
                 </div>
 
-                <ChartContainer
-                  config={performanceChartConfig}
-                  className="h-[300px] w-full"
-                >
-                  <LineChart
-                    accessibilityLayer
-                    data={comparisonChartData}
-                    margin={{ left: 8, right: 8, top: 12, bottom: 8 }}
-                  >
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={12}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={44}
-                      tickFormatter={(value) => formatCompactValue(Number(value), numberLocale)}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="previous"
-                      stroke="var(--color-previous)"
-                      strokeWidth={2}
-                      dot={{ fill: "var(--color-previous)", r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="current"
-                      stroke="var(--color-current)"
-                      strokeWidth={2}
-                      dot={{ fill: "var(--color-current)", r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ChartContainer>
+                <AdminAnalyticsPerformanceChartContent
+                  performanceChartConfig={performanceChartConfig}
+                  comparisonChartData={comparisonChartData}
+                  numberLocale={numberLocale}
+                />
               </>
             )}
           </AdminSectionCard>
@@ -588,40 +555,11 @@ export function AdminAnalyticsPage() {
                   </span>
                 </div>
 
-                <ChartContainer config={pipelineChartConfig} className="h-[300px] w-full">
-                  <BarChart
-                    accessibilityLayer
-                    data={pipelineChartData}
-                    margin={{ left: 8, right: 8, top: 12, bottom: 8 }}
-                    barGap={10}
-                  >
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={12}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={44}
-                      tickFormatter={(value) => formatCompactValue(Number(value), numberLocale)}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar
-                      dataKey="monthly"
-                      fill="var(--color-monthly)"
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="pending"
-                      fill="var(--color-pending)"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ChartContainer>
+                <AdminAnalyticsDistributionChartContent
+                  pipelineChartConfig={pipelineChartConfig}
+                  pipelineChartData={pipelineChartData}
+                  numberLocale={numberLocale}
+                />
               </>
             )}
           </AdminSectionCard>

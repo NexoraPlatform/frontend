@@ -218,14 +218,9 @@ export function TrustoraLandingHeroSection() {
               <span className="text-sm font-medium">{t("hero.badge")}</span>
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1, ease: revealEase }}
-              className="text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl"
-            >
+            <h1 className="text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl">
               {t("hero.title")} <span className="text-gradient">{t("hero.title_highlight")}</span>
-            </motion.h1>
+            </h1>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
