@@ -50,41 +50,20 @@ import { enUS, ro } from 'date-fns/locale';
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
 import BriefCopilot from '@/components/projects/BriefCopilot';
+import ProjectContractWorkspace from '@/components/projects/project-contract-workspace';
 import { getDashboardHomeHref, getNewProjectHref } from '@/lib/dashboard-navigation';
 import { AI_BRIEF_DRAFT_STORAGE_KEY, type AiBriefFormDraft } from '@/types/ai';
 import {
     getProjectMilestoneChangeRequestsForMilestone,
     getProjectMilestoneChangeRequestsForProvider,
 } from '@/lib/milestone-change-requests';
+import { extractProjectContractIdCandidate } from '@/lib/contracts';
 
 
 
 type ClientProjectRequestsProps = {
     withLayout?: boolean;
 };
-
-interface ContractClauses {
-    category: string;
-    identifier: string;
-    priority: number;
-    selection: string;
-    text: string;
-    title: string;
-}
-
-interface ContractMeta {
-    client_country: string;
-    client_country_code: string;
-    client_legal_system: string;
-    freelancer_country: string;
-    freelancer_country_code: string;
-    freelancer_legal_system: string;
-}
-
-interface ContractResponse {
-    clauses: ContractClauses[];
-    meta: ContractMeta[];
-}
 
 const createEmptyBriefDraft = (): AiBriefFormDraft => ({
     title: '',
@@ -95,6 +74,19 @@ const createEmptyBriefDraft = (): AiBriefFormDraft => ({
     technologies: [],
     team_structure: [],
 });
+
+const readCachedProjectContractId = (projectId: string) => {
+    if (typeof window === 'undefined' || !projectId) {
+        return null;
+    }
+
+    try {
+        const raw = window.sessionStorage.getItem(`project-contract:${projectId}`);
+        return raw && raw.trim() ? raw : null;
+    } catch {
+        return null;
+    }
+};
 
 export default function ClientProjectRequests({ withLayout = true }: ClientProjectRequestsProps) {
     const { user, loading, userLoading, refreshUser } = useAuth();
@@ -117,8 +109,13 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [isRefreshingRole, setIsRefreshingRole] = useState(false);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
     const [releasingId, setReleasingId] = useState<string | null>(null);
-    const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
-    const [openContractDialog, setOpenContractDialog] = useState(false);
+    const [contractDialogContext, setContractDialogContext] = useState<{
+        projectId: string;
+        projectTitle?: string | null;
+        projectClientId?: string | number | null;
+        initialContractId?: string | number | null;
+        autoGenerate?: boolean;
+    } | null>(null);
     const [openReplacementDialog, setOpenReplacementDialog] = useState(false);
     const [replacementContext, setReplacementContext] = useState<{
         projectId: string;
@@ -823,10 +820,19 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         }
     }, [applyProjectUpdate, locale, t]);
 
-    const generateContract = async (projectId: string, clientId: string, providerId: string) => {
-        const response = await apiClient.generateProjectContract(projectId, clientId, providerId);
-        setContractResponse(response);
-        setOpenContractDialog(true);
+    const openContractWorkspace = (project: any, options?: { autoGenerate?: boolean }) => {
+        const projectId = String(project?.id ?? '');
+        const initialContractId =
+            extractProjectContractIdCandidate(project) ??
+            readCachedProjectContractId(projectId);
+
+        setContractDialogContext({
+            projectId,
+            projectTitle: project?.title ?? null,
+            projectClientId: project?.client_id ?? project?.client?.id ?? null,
+            initialContractId,
+            autoGenerate: Boolean(options?.autoGenerate) && !initialContractId,
+        });
     };
 
     const handleReleaseFunds = useCallback(async (projectId: string, milestoneId?: string) => {
@@ -1752,7 +1758,11 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                         {project.status === 'ACCEPTED' && (
                                                                             <Button
                                                                                 size="sm"
-                                                                                onClick={() => generateContract(project.id, project.client_id, provider.id)}
+                                                                                onClick={() =>
+                                                                                    openContractWorkspace(project, {
+                                                                                        autoGenerate: true,
+                                                                                    })
+                                                                                }
                                                                                 className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                                                                             >
                                                                                 Contract
@@ -2722,38 +2732,40 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={openContractDialog} onOpenChange={setOpenContractDialog}>
-                <DialogContent className="max-w-3xl mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[90vh]">
-                    <div className="bg-[#0B1C2D] p-6 text-white">
-                        <div className="flex items-center space-x-3 mb-4">
-                            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                                <Shield className="w-6 h-6 text-[#1BC47D]" />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-xl font-bold text-white">
-                                    Contract
-                                </DialogTitle>
-                                <DialogDescription className="text-sm text-blue-100">
-                                    Contractul pentru proiect x
-                                </DialogDescription>
-                            </div>
-                        </div>
+            <Dialog
+                open={Boolean(contractDialogContext)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setContractDialogContext(null);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-6xl bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[92vh]">
+                    <DialogHeader className="border-b border-slate-200 px-6 py-5 dark:border-[#1E2A3D]">
+                        <DialogTitle className="text-xl font-bold text-[#0B1C2D] dark:text-white">
+                            {t('projects.detail.contracts.title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                            {contractDialogContext?.projectTitle ??
+                                t('projects.detail.contracts.project_fallback')}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        <div className="bg-white/5 rounded-lg p-4 backdrop-blur-sm">
-                            <div className="flex items-center flex-col justify-between text-sm mt-2 max-h-[70vh] overflow-y-auto">
-                                {contractResponse?.clauses?.map((clause: any, idx: any) => (
-                                    <div key={idx} className="mb-6">
-                                        <h3 className="font-bold text-gray-700 text-sm mb-1">{clause.title}</h3>
-                                        <p className="text-gray-800 leading-relaxed bg-gray-50 p-3 rounded border-l-4 border-blue-400">
-                                            {clause.text}
-                                        </p>
-                                        {/*                          <span className="text-xs text-green-600 font-mono">*/}
-                                        {/*  [Engine Logic: {clause.logic_source}]*/}
-                                        {/*</span>*/}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    <div className="overflow-y-auto px-6 py-5">
+                        {contractDialogContext ? (
+                            <ProjectContractWorkspace
+                                key={`${contractDialogContext.projectId}:${String(
+                                    contractDialogContext.initialContractId ?? 'none'
+                                )}`}
+                                variant="dialog"
+                                projectId={contractDialogContext.projectId}
+                                projectTitle={contractDialogContext.projectTitle}
+                                projectClientId={contractDialogContext.projectClientId}
+                                initialContractId={contractDialogContext.initialContractId}
+                                locale={locale}
+                                autoGenerate={contractDialogContext.autoGenerate}
+                            />
+                        ) : null}
                     </div>
                 </DialogContent>
             </Dialog>

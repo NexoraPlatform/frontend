@@ -76,6 +76,11 @@
         "description": "Resolve user disputes",
         "stats": "Disputes and complaints"
       },
+      "legal_service_categories": {
+        "title": "Legal Service Categories",
+        "description": "Manage contract defaults and risk profiles for service categories",
+        "stats": "Legal service taxonomy"
+      },
       "legal_clauses": {
         "title": "Legal Clauses",
         "description": "Manage contract clauses and translations",
@@ -114,8 +119,10 @@
         "users": "Users",
         "services": "Services",
         "projects": "Projects",
+        "contracts": "Contracts",
         "calls": "Calls",
         "disputes": "Disputes",
+        "legal_service_categories": "Legal Categories",
         "legal_clauses": "Legal Clauses",
         "newsletter": "Newsletter",
         "activity": "Activity",

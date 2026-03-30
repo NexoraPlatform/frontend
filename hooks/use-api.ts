@@ -98,6 +98,32 @@ export function useAdminCategories() {
   return useApi(() => apiClient.getAllCategories(), []);
 }
 
+export function useAdminLegalServiceCategories(params?: {
+  search?: string;
+  service_group?: string;
+  default_contract_type?: 'SERVICES' | 'WORK_FOR_RESULT' | 'MIXED';
+  ip_transfer_expected?: boolean;
+  dpa_required_by_default?: boolean;
+  personal_data_processing_likely?: boolean;
+  service_levels_required?: boolean;
+  regulated_activity_risk?: boolean;
+  export_control_risk?: boolean;
+  is_active?: boolean;
+  sort_by?:
+    | 'service_code'
+    | 'service_name'
+    | 'service_group'
+    | 'sort_order'
+    | 'created_at'
+    | 'updated_at';
+  page?: number;
+}) {
+  return useApi(
+    () => apiClient.getAdminLegalServiceCategories(params),
+    [JSON.stringify(params)]
+  );
+}
+
 export function useGetServicesGroupedByCategory(
   params?: { page?: number; limit?: number; search?: string }
 ) {
@@ -189,4 +215,3 @@ export function useProjects(params?: any) {
 export function useProject(id: string) {
   return useApi(() => apiClient.getProject(id), [id]);
 }
-

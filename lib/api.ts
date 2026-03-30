@@ -50,6 +50,99 @@ export type LegalClause = {
   updated_at: string;
 };
 
+export type AdminServiceCategoryContractType =
+  | 'SERVICES'
+  | 'WORK_FOR_RESULT'
+  | 'MIXED';
+
+export type AdminServiceCategorySortField =
+  | 'service_code'
+  | 'service_name'
+  | 'service_group'
+  | 'sort_order'
+  | 'created_at'
+  | 'updated_at';
+
+export type AdminServiceCategory = {
+  id: number | null;
+  service_code: string;
+  service_name: string;
+  service_group: string;
+  description: string;
+  default_contract_type: AdminServiceCategoryContractType;
+  milestone_recommended: boolean;
+  acceptance_testing_required: boolean;
+  delivery_spec_required: boolean;
+  ip_transfer_expected: boolean;
+  background_ip_expected: boolean;
+  open_source_risk: boolean;
+  third_party_material_risk: boolean;
+  moral_rights_sensitive: boolean;
+  nda_recommended: boolean;
+  dpa_required_by_default: boolean;
+  personal_data_processing_likely: boolean;
+  security_clause_required: boolean;
+  warranty_period_days: number | null;
+  bug_fix_period_days: number | null;
+  service_levels_required: boolean;
+  professional_standards_clause_required: boolean;
+  regulated_activity_risk: boolean;
+  export_control_risk: boolean;
+  default_acceptance_rule: string;
+  default_delivery_definition: string;
+  internal_legal_note: string;
+  is_active: boolean;
+  sort_order: number;
+  version: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  code: string;
+  name: string;
+  group: string;
+  requires_ip_assignment: boolean;
+};
+
+export type AdminServiceCategoryPayload = Pick<
+  AdminServiceCategory,
+  | 'service_code'
+  | 'service_name'
+  | 'service_group'
+  | 'description'
+  | 'default_contract_type'
+  | 'milestone_recommended'
+  | 'acceptance_testing_required'
+  | 'delivery_spec_required'
+  | 'ip_transfer_expected'
+  | 'background_ip_expected'
+  | 'open_source_risk'
+  | 'third_party_material_risk'
+  | 'moral_rights_sensitive'
+  | 'nda_recommended'
+  | 'dpa_required_by_default'
+  | 'personal_data_processing_likely'
+  | 'security_clause_required'
+  | 'warranty_period_days'
+  | 'bug_fix_period_days'
+  | 'service_levels_required'
+  | 'professional_standards_clause_required'
+  | 'regulated_activity_risk'
+  | 'export_control_risk'
+  | 'default_acceptance_rule'
+  | 'default_delivery_definition'
+  | 'internal_legal_note'
+  | 'is_active'
+  | 'sort_order'
+  | 'version'
+>;
+
+export type AdminServiceCategoryListResponse = {
+  current_page: number;
+  data: AdminServiceCategory[];
+  last_page: number;
+  per_page: number;
+  total: number;
+};
+
 export type MilestoneEntry = {
   title: string;
   amount: number;
@@ -311,6 +404,137 @@ const normalizeProviderServiceCategory = (value: unknown): ProviderServiceCatego
     created_at: typeof category.created_at === 'string' ? category.created_at : null,
     updated_at: typeof category.updated_at === 'string' ? category.updated_at : null,
     deleted_at: typeof category.deleted_at === 'string' ? category.deleted_at : null,
+  };
+};
+
+const normalizeAdminServiceCategory = (value: unknown): AdminServiceCategory | null => {
+  const category = asObject(value);
+  if (!category) {
+    return null;
+  }
+
+  const serviceCode =
+    typeof category.service_code === 'string'
+      ? category.service_code
+      : typeof category.code === 'string'
+        ? category.code
+        : '';
+  const serviceName =
+    typeof category.service_name === 'string'
+      ? category.service_name
+      : typeof category.name === 'string'
+        ? category.name
+        : '';
+  const serviceGroup =
+    typeof category.service_group === 'string'
+      ? category.service_group
+      : typeof category.group === 'string'
+        ? category.group
+        : '';
+  const contractTypeValue =
+    typeof category.default_contract_type === 'string'
+      ? category.default_contract_type.trim().toUpperCase()
+      : '';
+  const defaultContractType: AdminServiceCategoryContractType =
+    contractTypeValue === 'WORK_FOR_RESULT' || contractTypeValue === 'MIXED'
+      ? contractTypeValue
+      : 'SERVICES';
+  const ipTransferExpected = toBoolean(
+    category.ip_transfer_expected ?? category.requires_ip_assignment
+  );
+
+  return {
+    id: toFiniteNumber(category.id),
+    service_code: serviceCode,
+    service_name: serviceName,
+    service_group: serviceGroup,
+    description: typeof category.description === 'string' ? category.description : '',
+    default_contract_type: defaultContractType,
+    milestone_recommended: toBoolean(category.milestone_recommended),
+    acceptance_testing_required: toBoolean(category.acceptance_testing_required),
+    delivery_spec_required: toBoolean(category.delivery_spec_required),
+    ip_transfer_expected: ipTransferExpected,
+    background_ip_expected: toBoolean(category.background_ip_expected),
+    open_source_risk: toBoolean(category.open_source_risk),
+    third_party_material_risk: toBoolean(category.third_party_material_risk),
+    moral_rights_sensitive: toBoolean(category.moral_rights_sensitive),
+    nda_recommended: toBoolean(category.nda_recommended),
+    dpa_required_by_default: toBoolean(category.dpa_required_by_default),
+    personal_data_processing_likely: toBoolean(category.personal_data_processing_likely),
+    security_clause_required: toBoolean(category.security_clause_required),
+    warranty_period_days: toFiniteNumber(category.warranty_period_days),
+    bug_fix_period_days: toFiniteNumber(category.bug_fix_period_days),
+    service_levels_required: toBoolean(category.service_levels_required),
+    professional_standards_clause_required: toBoolean(
+      category.professional_standards_clause_required
+    ),
+    regulated_activity_risk: toBoolean(category.regulated_activity_risk),
+    export_control_risk: toBoolean(category.export_control_risk),
+    default_acceptance_rule:
+      typeof category.default_acceptance_rule === 'string'
+        ? category.default_acceptance_rule
+        : '',
+    default_delivery_definition:
+      typeof category.default_delivery_definition === 'string'
+        ? category.default_delivery_definition
+        : '',
+    internal_legal_note:
+      typeof category.internal_legal_note === 'string' ? category.internal_legal_note : '',
+    is_active: toBoolean(category.is_active ?? true),
+    sort_order: toFiniteNumber(category.sort_order) ?? 0,
+    version: toFiniteNumber(category.version),
+    created_at: typeof category.created_at === 'string' ? category.created_at : null,
+    updated_at: typeof category.updated_at === 'string' ? category.updated_at : null,
+    code: serviceCode,
+    name: serviceName,
+    group: serviceGroup,
+    requires_ip_assignment: ipTransferExpected,
+  };
+};
+
+const extractAdminServiceCategory = (value: unknown): AdminServiceCategory | null => {
+  const response = asObject(value);
+  const candidates = [
+    response?.data,
+    response?.service_category,
+    response?.category,
+    value,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeAdminServiceCategory(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+};
+
+const normalizeAdminServiceCategoryListResponse = (
+  value: unknown
+): AdminServiceCategoryListResponse => {
+  const response = asObject(value);
+  const responseData = response?.data;
+  const responseServiceCategories = response?.service_categories;
+  const responseItems = response?.items;
+  const sourceItems = Array.isArray(responseData)
+    ? responseData
+    : Array.isArray(responseServiceCategories)
+      ? responseServiceCategories
+      : Array.isArray(responseItems)
+        ? responseItems
+        : asArray(value);
+  const data = sourceItems
+    .map(normalizeAdminServiceCategory)
+    .filter((item): item is AdminServiceCategory => item !== null);
+
+  return {
+    current_page: toFiniteNumber(response?.current_page) ?? 1,
+    data,
+    last_page: toFiniteNumber(response?.last_page) ?? 1,
+    per_page: toFiniteNumber(response?.per_page) ?? data.length,
+    total: toFiniteNumber(response?.total) ?? data.length,
   };
 };
 
@@ -1307,6 +1531,105 @@ export class ApiClient {
     });
   }
 
+  // Legal service categories endpoints
+  async getAdminLegalServiceCategories(params?: {
+    search?: string;
+    service_group?: string;
+    default_contract_type?: AdminServiceCategoryContractType;
+    ip_transfer_expected?: boolean;
+    dpa_required_by_default?: boolean;
+    personal_data_processing_likely?: boolean;
+    service_levels_required?: boolean;
+    regulated_activity_risk?: boolean;
+    export_control_risk?: boolean;
+    is_active?: boolean;
+    sort_by?: AdminServiceCategorySortField;
+    page?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+
+    if (params) {
+      if (params.search) searchParams.append('search', params.search);
+      if (params.service_group) searchParams.append('service_group', params.service_group);
+      if (params.default_contract_type) {
+        searchParams.append('default_contract_type', params.default_contract_type);
+      }
+      if (params.ip_transfer_expected !== undefined) {
+        searchParams.append('ip_transfer_expected', String(params.ip_transfer_expected));
+      }
+      if (params.dpa_required_by_default !== undefined) {
+        searchParams.append(
+          'dpa_required_by_default',
+          String(params.dpa_required_by_default)
+        );
+      }
+      if (params.personal_data_processing_likely !== undefined) {
+        searchParams.append(
+          'personal_data_processing_likely',
+          String(params.personal_data_processing_likely)
+        );
+      }
+      if (params.service_levels_required !== undefined) {
+        searchParams.append(
+          'service_levels_required',
+          String(params.service_levels_required)
+        );
+      }
+      if (params.regulated_activity_risk !== undefined) {
+        searchParams.append(
+          'regulated_activity_risk',
+          String(params.regulated_activity_risk)
+        );
+      }
+      if (params.export_control_risk !== undefined) {
+        searchParams.append('export_control_risk', String(params.export_control_risk));
+      }
+      if (params.is_active !== undefined) {
+        searchParams.append('is_active', String(params.is_active));
+      }
+      if (params.sort_by) searchParams.append('sort_by', params.sort_by);
+      if (params.page) searchParams.append('page', String(params.page));
+    }
+
+    const qs = searchParams.toString();
+    const response = await this.request<any>(
+      `/admin/legal/service-categories${qs ? `?${qs}` : ''}`
+    );
+    return normalizeAdminServiceCategoryListResponse(response);
+  }
+
+  async getAdminLegalServiceCategory(categoryId: string | number) {
+    const response = await this.request<any>(`/admin/legal/service-categories/${categoryId}`);
+    return extractAdminServiceCategory(response);
+  }
+
+  async createAdminLegalServiceCategory(payload: AdminServiceCategoryPayload) {
+    const response = await this.request<any>('/admin/legal/service-categories', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    return extractAdminServiceCategory(response) ?? response;
+  }
+
+  async updateAdminLegalServiceCategory(
+    categoryId: string | number,
+    payload: Partial<AdminServiceCategoryPayload>
+  ) {
+    const response = await this.request<any>(`/admin/legal/service-categories/${categoryId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+
+    return extractAdminServiceCategory(response) ?? response;
+  }
+
+  async deleteAdminLegalServiceCategory(categoryId: string | number) {
+    return this.request<any>(`/admin/legal/service-categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Legal clauses endpoints
   async getAdminLegalClauses(params?: {
     search?: string;
@@ -2185,13 +2508,13 @@ export class ApiClient {
     });
   }
 
-  async generateProjectContract(projectId: string, clientId: string, providerId: string) {
+  async generateProjectContract(projectId: string | number) {
     return this.request<any>(`/contract/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ project_id: projectId, client_id: clientId, provider_id: providerId }),
+      body: JSON.stringify({ project_id: projectId }),
     });
   }
 

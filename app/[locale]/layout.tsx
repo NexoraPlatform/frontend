@@ -65,7 +65,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       <JsonLdScript id="global" json={globalJsonLd} />
       {shouldLoadGtm && gtmId && (
         // <GoogleTagManagerLoader gtmId={gtmId} nonce={nonce} />
-          <GoogleTagManager gtmId={gtmId} />
+          <GoogleTagManager gtmId={gtmId} nonce={nonce} />
       )}
       {nonce ? <meta name="csp-nonce" content={nonce} /> : null}
       {/*{shouldLoadGtm && gtmId && (*/}

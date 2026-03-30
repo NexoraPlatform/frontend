@@ -74,6 +74,11 @@
         "description": "Rezolvă disputele între utilizatori",
         "stats": "Dispute și reclamații"
       },
+      "legal_service_categories": {
+        "title": "Categorii Juridice de Servicii",
+        "description": "Administrează regulile contractuale și profilurile de risc pentru categoriile de servicii",
+        "stats": "Taxonomie juridică de servicii"
+      },
       "legal_clauses": {
         "title": "Clauze Legale",
         "description": "Gestionează clauzele contractuale și traducerile",
@@ -112,8 +117,10 @@
         "users": "Utilizatori",
         "services": "Servicii",
         "projects": "Proiecte",
+        "contracts": "Contracte",
         "calls": "Call-uri",
         "disputes": "Dispute",
+        "legal_service_categories": "Categorii Juridice",
         "legal_clauses": "Clauze Legale",
         "newsletter": "Newsletter",
         "activity": "Activitate",

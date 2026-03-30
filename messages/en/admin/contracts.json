@@ -1,0 +1,285 @@
+{
+  "contracts": {
+    "locale": "en",
+    "title": "Contract operations",
+    "description": "Monitor contract workload, inspect legal state and work the review and signature queues from one place.",
+    "actions": {
+      "refresh": "Refresh"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "contracts": "Contracts",
+      "reviews": "Review queue",
+      "signatures": "Signature queue"
+    },
+    "errors": {
+      "unauthenticated": "Your session is no longer valid. Sign in again to continue.",
+      "forbidden": "This account does not have permission for the requested contract action.",
+      "not_found": "The requested contract resource or document could not be found.",
+      "validation": "The request could not be processed. Check the fields and try again."
+    },
+    "common": {
+      "all": "All",
+      "yes": "Yes",
+      "no": "No",
+      "view": "View",
+      "previous": "Previous",
+      "next": "Next",
+      "pagination": "Page {current} of {total}",
+      "unavailable": "Unavailable",
+      "ok": "OK",
+      "failed": "Failed"
+    },
+    "overview": {
+      "errors": {
+        "title": "Contracts dashboard error",
+        "load": "Couldn't load the contracts dashboard overview."
+      },
+      "cards": {
+        "contracts": "Contracts",
+        "reviews": "Open-like reviews",
+        "urgent_badge": "{count} urgent",
+        "signatures": "Active signatures",
+        "stalled_badge": "{count} stalled",
+        "obligations": "Overdue obligations",
+        "due_soon_badge": "{count} due soon"
+      },
+      "operational": {
+        "title": "Operational notes",
+        "description": "Frontend-facing reminders from the contract workflow documentation.",
+        "flow_status_title": "Trust flow status first",
+        "flow_status_body": "For the new signing flow, treat flow_status as the operational source of truth instead of the compatibility status field.",
+        "upload_title": "Generic upload auto-dispatches",
+        "upload_body": "The admin signed PDF upload endpoint routes the file automatically depending on whether the flow is waiting for the client, the provider or a legacy final upload.",
+        "backfill_title": "HTML/PDF can backfill",
+        "backfill_body": "Contract HTML and final PDF endpoints may regenerate missing current rows or missing storage files when operators request the document.",
+        "business_title": "Surface business errors clearly",
+        "business_body": "Wrong flow state, missing FINAL_PDF or invalid signed uploads should be shown directly to operators, not hidden behind generic failures."
+      },
+      "error_reference": {
+        "title": "Error reference",
+        "description": "The most common API outcomes to expect on admin contract screens.",
+        "unauthenticated": "Missing or expired auth token for protected API routes.",
+        "forbidden": "Missing role, permission or policy access on admin contract endpoints.",
+        "not_found": "Route model binding or document lookup did not find the requested contract, review, signature or file.",
+        "validation": "Invalid payload, missing file or wrong mimetype for review and signature actions."
+      }
+    },
+    "contracts_tab": {
+      "errors": {
+        "title": "Contracts list error",
+        "load": "Couldn't load the admin contracts list."
+      },
+      "filters": {
+        "title": "Contracts filters",
+        "description": "Filter the admin contracts list by reference, legal status or review pressure.",
+        "search": "Search by contract, project or party",
+        "status": "Contract status",
+        "risk": "Overall risk",
+        "manual_review": "Requires manual review"
+      },
+      "list": {
+        "title": "Contracts",
+        "description": "{count} contracts in the current result set."
+      },
+      "table": {
+        "reference": "Reference",
+        "project": "Project",
+        "status": "Status",
+        "risk": "Risk",
+        "signature_level": "Signature level",
+        "generated_at": "Generated",
+        "actions": "Actions"
+      },
+      "empty_title": "No contracts matched the current filters",
+      "empty_description": "Adjust the search or filter values to inspect a different legal slice."
+    },
+    "contract_detail": {
+      "title": "Contract detail",
+      "description": "Audit the legal package, inspect generated documents and keep internal notes for the selected contract.",
+      "errors": {
+        "title": "Contract detail error",
+        "load": "Couldn't load the selected contract detail.",
+        "preview": "Couldn't open the current contract HTML preview.",
+        "download": "Couldn't download the contract PDF.",
+        "note_create": "Couldn't save the internal contract note."
+      },
+      "actions": {
+        "preview_html": "Preview HTML",
+        "download_pdf": "Download PDF",
+        "add_note": "Add note"
+      },
+      "badges": {
+        "manual_review": "Manual review",
+        "qes": "QES required"
+      },
+      "labels": {
+        "reference": "Reference",
+        "project": "Project",
+        "value": "Value",
+        "updated_at": "Updated"
+      },
+      "risk_title": "Risk snapshot",
+      "risk_description": "Latest stored risk assessment and blockers for the selected contract.",
+      "warnings": "Warnings",
+      "blocking_reasons": "Blocking reasons",
+      "no_risk": "No risk assessment is available on this contract yet.",
+      "documents_title": "Generated documents",
+      "documents_description": "Current generated documents known by the admin detail endpoint.",
+      "current_document": "Current",
+      "backfill_note": "Previewing HTML or downloading the PDF may backfill a missing current document row or file on the backend.",
+      "notes_title": "Internal notes",
+      "notes_description": "Operator notes visible from the admin contract detail.",
+      "note_placeholder": "Write an internal note for legal, compliance or signature follow-up.",
+      "no_notes": "No notes have been recorded for this contract yet."
+    },
+    "reviews_tab": {
+      "errors": {
+        "title": "Review queue error",
+        "load": "Couldn't load the manual review queue."
+      },
+      "filters": {
+        "title": "Review queue filters",
+        "description": "Focus on the review work that matters right now.",
+        "search": "Search by contract reference or review summary",
+        "status": "Review status",
+        "priority": "Priority",
+        "contract_status": "Contract status"
+      },
+      "list": {
+        "title": "Manual review queue",
+        "description": "{count} review items in the current result set."
+      },
+      "table": {
+        "contract": "Contract",
+        "status": "Status",
+        "priority": "Priority",
+        "assigned_to": "Assigned to",
+        "due_at": "Due at",
+        "comments": "Comments",
+        "actions": "Actions"
+      },
+      "empty_title": "No reviews matched the current filters",
+      "empty_description": "Try a broader search or clear the priority and status filters.",
+      "no_summary": "Review without explicit summary"
+    },
+    "review_detail": {
+      "title": "Review detail",
+      "description": "Handle legal review, leave comments and move the queue item through its decision flow.",
+      "errors": {
+        "title": "Review detail error",
+        "load": "Couldn't load the selected review.",
+        "comment_create": "Couldn't save the review comment.",
+        "action": "Couldn't complete the selected review action.",
+        "assigned_user_required": "An assigned user ID is required before assigning the review.",
+        "requested_changes_required": "Add at least one requested change before sending the request."
+      },
+      "labels": {
+        "contract": "Contract",
+        "assigned_to": "Assigned to",
+        "opened_at": "Opened at",
+        "due_at": "Due at",
+        "requested_changes": "Requested changes"
+      },
+      "actions": {
+        "assign": "Assign",
+        "start": "Start review",
+        "request_changes": "Request changes",
+        "approve": "Approve",
+        "reject": "Reject",
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "add_comment": "Add comment"
+      },
+      "action_description": "The action is executed immediately against the backend queue item.",
+      "placeholders": {
+        "assigned_user_id": "Assigned user ID",
+        "comment": "Add internal context for this action.",
+        "requested_changes": "List the requested changes, one per line.",
+        "notes": "Decision notes"
+      },
+      "comments_title": "Review comments",
+      "comments_description": "Recent conversation and system notes stored for the selected review.",
+      "no_summary": "Review without explicit summary",
+      "no_comments": "No comments are available for this review yet."
+    },
+    "signatures_tab": {
+      "errors": {
+        "title": "Signature queue error",
+        "load": "Couldn't load the signature queue."
+      },
+      "filters": {
+        "title": "Signature queue filters",
+        "description": "Track the manual signing flow and inspect stalled or incomplete signatures.",
+        "search": "Search by contract reference or flow reference",
+        "status": "Signature status",
+        "signature_level": "Signature level",
+        "contract_status": "Contract status"
+      },
+      "list": {
+        "title": "Signature queue",
+        "description": "{count} signature items in the current result set."
+      },
+      "table": {
+        "contract": "Contract",
+        "flow_status": "Flow status",
+        "status": "Status",
+        "sent_at": "Sent at",
+        "last_event_at": "Last event",
+        "events": "Events",
+        "actions": "Actions"
+      },
+      "empty_title": "No signatures matched the current filters",
+      "empty_description": "Try a broader search or inspect a different contract state."
+    },
+    "signature_detail": {
+      "title": "Signature detail",
+      "description": "Audit the manual signature flow, validations and uploaded documents.",
+      "errors": {
+        "title": "Signature detail error",
+        "load": "Couldn't load the selected signature flow.",
+        "upload": "Couldn't process the signed PDF upload.",
+        "download": "Couldn't download the signed PDF.",
+        "file_required": "Choose a PDF before submitting the upload."
+      },
+      "operational_title": "Operational reminder",
+      "operational_body": "Use flow_status to understand what the queue expects next. The generic admin upload endpoint will dispatch the PDF according to the current flow state.",
+      "labels": {
+        "contract": "Contract",
+        "validation_policy": "Validation policy",
+        "sent_at": "Sent at",
+        "completed_at": "Completed at"
+      },
+      "actions": {
+        "download_signed_pdf": "Download signed PDF",
+        "upload_client": "Upload client-signed PDF",
+        "upload_provider": "Upload fully signed PDF",
+        "upload_generic": "Upload signed PDF"
+      },
+      "upload_title": "Signed PDF upload",
+      "upload_description": "Use the admin upload endpoint when the flow is waiting for the next signer or for a legacy signed document.",
+      "no_file_selected": "No PDF selected yet.",
+      "no_upload_permission": "This account does not have permission to upload signed PDFs.",
+      "documents_title": "Documents",
+      "documents_description": "Persisted documents known by the current signature detail payload.",
+      "signers_title": "Signer sequence",
+      "signers_description": "Expected signers and field names configured for the flow.",
+      "signer_order": "Order {value}",
+      "no_signers": "No signer sequence is available for this signature.",
+      "events_title": "Recent events",
+      "events_description": "Operational events emitted by the current signature flow.",
+      "no_events": "No events are available for this signature yet.",
+      "validations_title": "Latest validation",
+      "validations_description": "Surface validation results instead of relying on events alone when auditing signature quality.",
+      "no_validations": "No validation result is available for this signature yet.",
+      "validation": {
+        "signature_count": "Signature count",
+        "detected_level": "Detected level",
+        "best_time": "Best signature time",
+        "integrity": "Integrity",
+        "valid": "Valid",
+        "invalid": "Invalid"
+      }
+    }
+  }
+}

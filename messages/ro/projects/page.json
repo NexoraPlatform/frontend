@@ -68,6 +68,260 @@
       "title_with_project": "{title} | Proiect detaliat",
       "description": "Vezi detalii despre proiectul selectat, inclusiv informații despre prestatori și tehnologiile utilizate.",
       "description_with_project": "Vezi detalii despre {title}, inclusiv servicii oferite și evaluări."
+    },
+    "contracts": {
+      "title": "Workspace contractual",
+      "description": "Generează contractul proiectului, verifică pachetul juridic curent și accesează documentele HTML și PDF actuale.",
+      "project_fallback": "acest proiect",
+      "unauthenticated": {
+        "title": "Autentifică-te pentru contracte",
+        "description": "Contractele sunt disponibile doar pentru participanții proiectului și rolurile juridice privilegiate.",
+        "cta": "Autentificare"
+      },
+      "restricted": {
+        "title": "Acest cont nu poate genera contracte",
+        "description": "Doar clientul proiectului sau rolurile juridice privilegiate pot genera un contract. După generare, părțile proiectului pot deschide workspace-ul și descărca documentele produse."
+      },
+      "errors": {
+        "title": "Eroare în workspace-ul contractual",
+        "load": "Nu am putut încărca workspace-ul contractual.",
+        "generate": "Nu am putut genera contractul pentru acest proiect.",
+        "preview": "Nu am putut deschide previzualizarea HTML curentă.",
+        "download": "Nu am putut descărca PDF-ul final."
+      },
+      "empty": {
+        "title": "Nu există încă un contract generat",
+        "description": "Generează contractul când proiectul este pregătit. Backend-ul va persista versiunea DRAFT_HTML, documentul FINAL_PDF și va deschide automat manual review dacă riscul o cere."
+      },
+      "actions": {
+        "generate": "Generează contract",
+        "generate_new_version": "Generează versiune nouă",
+        "refresh": "Reîncarcă",
+        "preview_html": "Previzualizează HTML",
+        "download_pdf": "Descarcă PDF"
+      },
+      "statuses": {
+        "draft": "Draft",
+        "pending_review": "În review manual",
+        "blocked": "Blocat",
+        "ready_for_signature": "Pregătit pentru semnare",
+        "sent_for_signature": "Trimis la semnare",
+        "awaiting_client_signature": "Așteaptă semnătura clientului",
+        "awaiting_provider_signature": "Așteaptă semnătura providerului",
+        "signed": "Semnat",
+        "cancelled": "Anulat"
+      },
+      "flags": {
+        "manual_review": "Review manual",
+        "qes": "Necesită QES"
+      },
+      "summary": {
+        "generated": "Generat",
+        "documents": "Documente",
+        "milestones": "Milestones",
+        "risk": "Risc",
+        "unavailable": "Indisponibil"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "documents": "Documente",
+        "risk": "Risc",
+        "review": "Review",
+        "signature": "Semnare"
+      },
+      "overview": {
+        "title": "Overview contractual",
+        "description": "Metadatele juridice esențiale și părțile curente capturate pentru acest contract.",
+        "reference": "Referință",
+        "reference_fallback": "Referința contractului este în curs de generare",
+        "reference_description": "Ultimul pachet contractual pentru {project}.",
+        "signature_level": "Nivel de semnare",
+        "governing_law": "Lege aplicabilă",
+        "jurisdiction": "Jurisdicție",
+        "currency": "Monedă",
+        "template": "Template",
+        "parties_title": "Părți contractuale",
+        "parties_description": "Snapshot-ul părților juridice stocat împreună cu contractul generat.",
+        "unavailable_party": "Parte fără nume",
+        "no_parties": "Nu există părți disponibile în payload-ul curent."
+      },
+      "documents": {
+        "title": "Documente generate",
+        "description": "Fișierele contractuale curente plus intrările regenerate sau istorice întoarse de backend.",
+        "current": "Curent",
+        "unnamed": "Document fără nume",
+        "empty": "Nu există încă documente contractuale.",
+        "backfill_note": "Deschiderea HTML-ului sau descărcarea PDF-ului pornesc automat backfill în backend dacă lipsește entry-ul curent sau fișierul stocat."
+      },
+      "risk": {
+        "title": "Evaluare de risc",
+        "description": "Cea mai recentă evaluare contractuală întoarsă de pipeline-ul de generare.",
+        "warnings": "Avertismente",
+        "blocking_reasons": "Motive de blocare",
+        "empty": "Nu există încă o evaluare de risc disponibilă.",
+        "labels": {
+          "overall": "General",
+          "misclassification": "Misclassification",
+          "gdpr": "GDPR",
+          "ip": "IP",
+          "tax": "Tax"
+        }
+      },
+      "risk_levels": {
+        "low": "Scăzut",
+        "medium": "Mediu",
+        "high": "Ridicat",
+        "blocked": "Blocat",
+        "critical": "Critic"
+      },
+      "preview": {
+        "title": "Previzualizare HTML contract",
+        "description": "Previzualizarea curentă a contractului",
+        "empty": "Nu există o previzualizare HTML disponibilă."
+      },
+      "review": {
+        "title": "Manual review",
+        "description": "Starea review-ului juridic și acțiunile disponibile pentru echipa legală.",
+        "pending_title": "Contractul este în zona de review",
+        "pending_description": "Review-ul manual este necesar sau deja în desfășurare. Echipa juridică poate continua acest flux din workspace.",
+        "empty": "Nu există un manual review deschis pentru acest contract.",
+        "empty_summary": "Review fără sumar explicit",
+        "empty_comments": "Nu există comentarii de review încă.",
+        "open_description": "Deschide un review manual și atașează contextul juridic de bază pentru contractul curent.",
+        "labels": {
+          "priority": "Prioritate",
+          "assigned_to": "Asignat către",
+          "contract_status": "Status contract",
+          "reason_codes": "Motive review",
+          "requested_changes": "Schimbări cerute",
+          "final_notes": "Note finale",
+          "comments": "Comentarii"
+        },
+        "actions": {
+          "open": "Deschide review",
+          "assign": "Asignează",
+          "start": "Pornește review",
+          "request_changes": "Cere modificări",
+          "approve": "Aprobă",
+          "reject": "Respinge",
+          "cancel": "Renunță",
+          "submit": "Trimite"
+        },
+        "form": {
+          "summary": "Sumar review",
+          "priority": "Prioritate (ex: HIGH)",
+          "reason_codes": "Coduri motiv separate prin virgulă sau linie nouă",
+          "comment": "Comentariu intern",
+          "assigned_to_user_id": "ID utilizator pentru asignare",
+          "requested_changes": "Schimbări cerute, câte una pe rând",
+          "notes": "Note finale"
+        },
+        "statuses": {
+          "open": "Deschis",
+          "in_review": "În review",
+          "changes_requested": "Modificări cerute",
+          "approved": "Aprobat",
+          "rejected": "Respins",
+          "closed": "Închis"
+        },
+        "errors": {
+          "title": "Eroare manual review",
+          "load": "Nu am putut încărca manual review-ul curent.",
+          "open": "Nu am putut deschide manual review-ul.",
+          "assign": "Nu am putut asigna review-ul.",
+          "start": "Nu am putut porni review-ul.",
+          "request_changes": "Nu am putut trimite cererea de modificări.",
+          "approve": "Nu am putut aproba review-ul.",
+          "reject": "Nu am putut respinge review-ul.",
+          "assigned_user_required": "ID-ul utilizatorului asignat este obligatoriu.",
+          "requested_changes_required": "Adaugă cel puțin o modificare cerută."
+        }
+      },
+      "signature": {
+        "title": "Flux de semnare",
+        "description": "Starea operațională a semnării secvențiale și documentele folosite în fiecare pas.",
+        "awaiting_issue": "Fluxul de semnare nu este încă emis.",
+        "ready_to_issue": "Contractul este pregătit pentru emiterea fluxului manual de semnare.",
+        "empty": "Nu există încă un flux activ de semnare pentru acest contract.",
+        "no_file_selected": "Nu ai selectat încă un PDF.",
+        "labels": {
+          "contract_status": "Status contract",
+          "flow_status": "Status flow",
+          "signature_level": "Nivel semnare",
+          "completed_at": "Finalizat la"
+        },
+        "actions": {
+          "issue_flow": "Emite flow-ul de semnare",
+          "download_client_packet": "Descarcă pachet client",
+          "upload_client_signed_pdf": "Încarcă PDF semnat de client",
+          "download_provider_packet": "Descarcă pachet provider",
+          "upload_provider_signed_pdf": "Încarcă PDF semnat final",
+          "download_signed_pdf": "Descarcă PDF semnat"
+        },
+        "form": {
+          "validation_policy_code": "Cod policy de validare"
+        },
+        "steps": {
+          "client": "Pasul client",
+          "client_description": "Clientul descarcă FINAL_PDF-ul curent, îl semnează și îl reîncarcă.",
+          "provider": "Pasul provider",
+          "provider_description": "Providerul descarcă PDF-ul semnat de client, îl co-semnează și îl reîncarcă."
+        },
+        "statuses": {
+          "draft": "Draft",
+          "sent": "Trimis",
+          "partially_signed": "Parțial semnat",
+          "signed": "Semnat",
+          "failed": "Eșuat",
+          "cancelled": "Anulat",
+          "declined": "Respins"
+        },
+        "flow_statuses": {
+          "awaiting_client_upload": "Așteaptă upload-ul clientului",
+          "client_upload_received": "Upload client primit",
+          "client_signature_validated": "Semnătura clientului a fost validată",
+          "client_signature_rejected": "Semnătura clientului a fost respinsă",
+          "awaiting_provider_upload": "Așteaptă upload-ul providerului",
+          "provider_upload_received": "Upload provider primit",
+          "provider_signature_validated": "Semnătura providerului a fost validată",
+          "provider_signature_rejected": "Semnătura providerului a fost respinsă",
+          "fully_signed_accepted": "Contract complet semnat și acceptat"
+        },
+        "validation": {
+          "title": "Ultima validare DSS",
+          "empty": "Nu există încă o validare de semnătură disponibilă.",
+          "valid": "Validă",
+          "invalid": "Invalidă",
+          "statuses": {
+            "valid": "Validă",
+            "invalid": "Invalidă",
+            "pending": "În așteptare"
+          },
+          "labels": {
+            "stage": "Etapă",
+            "signature_count": "Semnături detectate",
+            "detected_level": "Nivel detectat",
+            "best_signature_time": "Moment semnare",
+            "signers": "Semnatari detectați"
+          }
+        },
+        "hints": {
+          "awaiting_client_signature": "Contractul așteaptă semnătura clientului. Fluxul este activ și echipa juridică poate continua pașii de upload.",
+          "awaiting_provider_signature": "Contractul așteaptă semnătura providerului după validarea documentului clientului.",
+          "signed": "Contractul este marcat ca semnat. Dacă există un flow descoperit, PDF-ul final poate fi descărcat."
+        },
+        "errors": {
+          "title": "Eroare flux de semnare",
+          "load": "Nu am putut încărca detaliile flow-ului de semnare.",
+          "issue": "Nu am putut emite flow-ul manual de semnare.",
+          "client_upload": "Nu am putut procesa PDF-ul semnat de client.",
+          "provider_upload": "Nu am putut procesa PDF-ul semnat de provider.",
+          "client_download": "Nu am putut descărca pachetul pentru client.",
+          "provider_download": "Nu am putut descărca pachetul pentru provider.",
+          "signed_download": "Nu am putut descărca PDF-ul semnat.",
+          "file_required": "Selectează mai întâi un fișier PDF."
+        }
+      }
     }
   },
   "new": {

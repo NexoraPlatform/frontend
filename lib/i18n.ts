@@ -72,6 +72,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
         admin: [
             () => import("@/locales/ro/admin/loading.json"),
             () => import("@/locales/ro/admin/dashboard.json"),
+            () => import("@/locales/ro/admin/contracts.json"),
             () => import("@/locales/ro/admin/early_access.json"),
             () => import("@/locales/ro/admin/categories.json"),
             () => import("@/locales/ro/admin/calls.json"),
@@ -82,6 +83,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/admin/services.json"),
             () => import("@/locales/ro/admin/settings.json"),
             () => import("@/locales/ro/admin/legal_clauses.json"),
+            () => import("@/locales/ro/admin/legal_service_categories.json"),
             () => import("@/locales/ro/admin/tests.json"),
             () => import("@/locales/ro/admin/users.json"),
             () => import("@/locales/ro/admin/newsletter.json"),
@@ -148,6 +150,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
         admin: [
             () => import("@/locales/en/admin/loading.json"),
             () => import("@/locales/en/admin/dashboard.json"),
+            () => import("@/locales/en/admin/contracts.json"),
             () => import("@/locales/en/admin/early_access.json"),
             () => import("@/locales/en/admin/categories.json"),
             () => import("@/locales/en/admin/calls.json"),
@@ -158,6 +161,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/admin/services.json"),
             () => import("@/locales/en/admin/settings.json"),
             () => import("@/locales/en/admin/legal_clauses.json"),
+            () => import("@/locales/en/admin/legal_service_categories.json"),
             () => import("@/locales/en/admin/tests.json"),
             () => import("@/locales/en/admin/users.json"),
             () => import("@/locales/en/admin/newsletter.json"),

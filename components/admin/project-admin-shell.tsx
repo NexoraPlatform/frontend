@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   Activity,
   BarChart3,
+  FileSignature,
   History,
   FileText,
   FolderKanban,
@@ -70,8 +71,10 @@ export function ProjectAdminShell({ children }: ProjectAdminShellProps) {
     { href: "/admin/users", icon: Users, label: t("admin.dashboard.shell.menu.users") },
     { href: "/admin/services", icon: FileText, label: t("admin.dashboard.shell.menu.services") },
     { href: "/admin/orders", icon: FolderKanban, label: t("admin.dashboard.shell.menu.projects") },
+    { href: "/admin/contracts", icon: FileSignature, label: t("admin.dashboard.shell.menu.contracts") },
     { href: "/admin/calls", icon: PhoneCall, label: t("admin.dashboard.shell.menu.calls") },
     { href: "/admin/disputes", icon: ShieldAlert, label: t("admin.dashboard.shell.menu.disputes") },
+    { href: "/admin/legal/service-categories", icon: ScrollText, label: t("admin.dashboard.shell.menu.legal_service_categories") },
     { href: "/admin/legal/clauses", icon: ScrollText, label: t("admin.dashboard.shell.menu.legal_clauses") },
     { href: "/admin/newsletter", icon: Mail, label: t("admin.dashboard.shell.menu.newsletter") },
     { href: "/admin/activity", icon: Activity, label: t("admin.dashboard.shell.menu.activity") },

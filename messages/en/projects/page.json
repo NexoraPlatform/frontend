@@ -68,6 +68,260 @@
       "title_with_project": "{title} | Project details",
       "description": "See details about the selected project, including providers and used technologies.",
       "description_with_project": "See details about {title}, including offered services and reviews."
+    },
+    "contracts": {
+      "title": "Contract workspace",
+      "description": "Generate the project contract, inspect its latest legal package and access the current HTML and PDF documents.",
+      "project_fallback": "this project",
+      "unauthenticated": {
+        "title": "Sign in to access contracts",
+        "description": "Contracts are available only to project participants and privileged legal roles.",
+        "cta": "Sign in"
+      },
+      "restricted": {
+        "title": "This account cannot generate contracts",
+        "description": "Only the project client or privileged legal roles can generate a contract. Once created, project parties can open the workspace and download the generated documents."
+      },
+      "errors": {
+        "title": "Contract workspace error",
+        "load": "Couldn't load the contract workspace.",
+        "generate": "Couldn't generate the contract for this project.",
+        "preview": "Couldn't open the current HTML preview.",
+        "download": "Couldn't download the final PDF."
+      },
+      "empty": {
+        "title": "No contract generated yet",
+        "description": "Generate the contract when the project is ready. The backend will persist a DRAFT_HTML version, a FINAL_PDF document and automatically open manual review when risk requires it."
+      },
+      "actions": {
+        "generate": "Generate contract",
+        "generate_new_version": "Generate new version",
+        "refresh": "Refresh",
+        "preview_html": "Preview HTML",
+        "download_pdf": "Download PDF"
+      },
+      "statuses": {
+        "draft": "Draft",
+        "pending_review": "Pending review",
+        "blocked": "Blocked",
+        "ready_for_signature": "Ready for signature",
+        "sent_for_signature": "Sent for signature",
+        "awaiting_client_signature": "Awaiting client signature",
+        "awaiting_provider_signature": "Awaiting provider signature",
+        "signed": "Signed",
+        "cancelled": "Cancelled"
+      },
+      "flags": {
+        "manual_review": "Manual review",
+        "qes": "QES required"
+      },
+      "summary": {
+        "generated": "Generated",
+        "documents": "Documents",
+        "milestones": "Milestones",
+        "risk": "Risk",
+        "unavailable": "Unavailable"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "documents": "Documents",
+        "risk": "Risk",
+        "review": "Review",
+        "signature": "Signature"
+      },
+      "overview": {
+        "title": "Contract overview",
+        "description": "Core legal metadata and the current parties captured for this contract.",
+        "reference": "Reference",
+        "reference_fallback": "Contract reference pending",
+        "reference_description": "Latest contract package for {project}.",
+        "signature_level": "Signature level",
+        "governing_law": "Governing law",
+        "jurisdiction": "Jurisdiction",
+        "currency": "Currency",
+        "template": "Template",
+        "parties_title": "Contract parties",
+        "parties_description": "Snapshot of the legal parties stored with the generated contract.",
+        "unavailable_party": "Unnamed party",
+        "no_parties": "No parties are available in the current payload."
+      },
+      "documents": {
+        "title": "Generated documents",
+        "description": "Current contract files plus any regenerated or historical entries returned by the backend.",
+        "current": "Current",
+        "unnamed": "Unnamed document",
+        "empty": "No contract documents are available yet.",
+        "backfill_note": "Opening HTML or downloading the PDF automatically triggers backend backfill if the current entry or stored file is missing."
+      },
+      "risk": {
+        "title": "Risk assessment",
+        "description": "Latest contractual risk evaluation returned by the generation pipeline.",
+        "warnings": "Warnings",
+        "blocking_reasons": "Blocking reasons",
+        "empty": "No risk assessment is available yet.",
+        "labels": {
+          "overall": "Overall",
+          "misclassification": "Misclassification",
+          "gdpr": "GDPR",
+          "ip": "IP",
+          "tax": "Tax"
+        }
+      },
+      "risk_levels": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "blocked": "Blocked",
+        "critical": "Critical"
+      },
+      "preview": {
+        "title": "HTML contract preview",
+        "description": "Current contract preview",
+        "empty": "No HTML preview is available."
+      },
+      "review": {
+        "title": "Manual review",
+        "description": "Legal review status and the actions available to privileged legal operators.",
+        "pending_title": "This contract is in review",
+        "pending_description": "Manual review is required or already in progress. The legal team can continue the workflow from this workspace.",
+        "empty": "No manual review is open for this contract.",
+        "empty_summary": "Review without explicit summary",
+        "empty_comments": "No review comments are available yet.",
+        "open_description": "Open a manual review and attach the basic legal context for the current contract.",
+        "labels": {
+          "priority": "Priority",
+          "assigned_to": "Assigned to",
+          "contract_status": "Contract status",
+          "reason_codes": "Review reasons",
+          "requested_changes": "Requested changes",
+          "final_notes": "Final notes",
+          "comments": "Comments"
+        },
+        "actions": {
+          "open": "Open review",
+          "assign": "Assign",
+          "start": "Start review",
+          "request_changes": "Request changes",
+          "approve": "Approve",
+          "reject": "Reject",
+          "cancel": "Cancel",
+          "submit": "Submit"
+        },
+        "form": {
+          "summary": "Review summary",
+          "priority": "Priority (e.g. HIGH)",
+          "reason_codes": "Reason codes separated by comma or newline",
+          "comment": "Internal comment",
+          "assigned_to_user_id": "Assigned user ID",
+          "requested_changes": "Requested changes, one per line",
+          "notes": "Final notes"
+        },
+        "statuses": {
+          "open": "Open",
+          "in_review": "In review",
+          "changes_requested": "Changes requested",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "closed": "Closed"
+        },
+        "errors": {
+          "title": "Manual review error",
+          "load": "Couldn't load the current manual review.",
+          "open": "Couldn't open the manual review.",
+          "assign": "Couldn't assign the review.",
+          "start": "Couldn't start the review.",
+          "request_changes": "Couldn't send the changes request.",
+          "approve": "Couldn't approve the review.",
+          "reject": "Couldn't reject the review.",
+          "assigned_user_required": "An assigned user ID is required.",
+          "requested_changes_required": "Add at least one requested change."
+        }
+      },
+      "signature": {
+        "title": "Signature flow",
+        "description": "Operational status of the sequential signing flow and the documents used at each step.",
+        "awaiting_issue": "The signing flow has not been issued yet.",
+        "ready_to_issue": "The contract is ready for issuing the manual signing flow.",
+        "empty": "No active signature flow exists for this contract yet.",
+        "no_file_selected": "No PDF has been selected yet.",
+        "labels": {
+          "contract_status": "Contract status",
+          "flow_status": "Flow status",
+          "signature_level": "Signature level",
+          "completed_at": "Completed at"
+        },
+        "actions": {
+          "issue_flow": "Issue signature flow",
+          "download_client_packet": "Download client packet",
+          "upload_client_signed_pdf": "Upload client-signed PDF",
+          "download_provider_packet": "Download provider packet",
+          "upload_provider_signed_pdf": "Upload fully signed PDF",
+          "download_signed_pdf": "Download signed PDF"
+        },
+        "form": {
+          "validation_policy_code": "Validation policy code"
+        },
+        "steps": {
+          "client": "Client step",
+          "client_description": "The client downloads the current FINAL_PDF, signs it, and uploads it back.",
+          "provider": "Provider step",
+          "provider_description": "The provider downloads the client-signed PDF, co-signs it, and uploads it back."
+        },
+        "statuses": {
+          "draft": "Draft",
+          "sent": "Sent",
+          "partially_signed": "Partially signed",
+          "signed": "Signed",
+          "failed": "Failed",
+          "cancelled": "Cancelled",
+          "declined": "Declined"
+        },
+        "flow_statuses": {
+          "awaiting_client_upload": "Awaiting client upload",
+          "client_upload_received": "Client upload received",
+          "client_signature_validated": "Client signature validated",
+          "client_signature_rejected": "Client signature rejected",
+          "awaiting_provider_upload": "Awaiting provider upload",
+          "provider_upload_received": "Provider upload received",
+          "provider_signature_validated": "Provider signature validated",
+          "provider_signature_rejected": "Provider signature rejected",
+          "fully_signed_accepted": "Fully signed and accepted"
+        },
+        "validation": {
+          "title": "Latest DSS validation",
+          "empty": "No signature validation is available yet.",
+          "valid": "Valid",
+          "invalid": "Invalid",
+          "statuses": {
+            "valid": "Valid",
+            "invalid": "Invalid",
+            "pending": "Pending"
+          },
+          "labels": {
+            "stage": "Stage",
+            "signature_count": "Detected signatures",
+            "detected_level": "Detected level",
+            "best_signature_time": "Signing time",
+            "signers": "Detected signers"
+          }
+        },
+        "hints": {
+          "awaiting_client_signature": "The contract is awaiting the client signature. The flow is active and the legal team can continue the upload steps.",
+          "awaiting_provider_signature": "The contract is awaiting the provider signature after validating the client-uploaded document.",
+          "signed": "The contract is marked as signed. If the flow is discoverable, the final signed PDF can be downloaded."
+        },
+        "errors": {
+          "title": "Signature flow error",
+          "load": "Couldn't load the signature flow details.",
+          "issue": "Couldn't issue the manual signature flow.",
+          "client_upload": "Couldn't process the client-signed PDF.",
+          "provider_upload": "Couldn't process the provider-signed PDF.",
+          "client_download": "Couldn't download the packet for the client.",
+          "provider_download": "Couldn't download the packet for the provider.",
+          "signed_download": "Couldn't download the signed PDF.",
+          "file_required": "Select a PDF file first."
+        }
+      }
     }
   },
   "new": {

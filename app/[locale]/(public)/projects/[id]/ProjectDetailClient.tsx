@@ -16,6 +16,8 @@ import { formatDeadline } from '@/lib/projects';
 import type { Locale } from '@/types/locale';
 import { getTranslations } from 'next-intl/server';
 import ProviderService from './provider-service';
+import ProjectContractWorkspace from '@/components/projects/project-contract-workspace';
+import { extractProjectContractIdCandidate } from '@/lib/contracts';
 
 
 export default async function ProjectDetailClient({ id, locale }: {  id: string; locale: Locale; }) {
@@ -48,6 +50,10 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
             </div>
         );
     }
+
+    const projectId = String(project.id ?? id);
+    const projectClientId = project.client_id ?? project.client?.id ?? null;
+    const initialContractId = extractProjectContractIdCandidate(project);
 
     return (
         <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
@@ -165,6 +171,16 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                             </ul>
                                         </div>
                                     )}
+
+                                    <div className="my-6">
+                                        <ProjectContractWorkspace
+                                            projectId={projectId}
+                                            projectTitle={project.title ?? null}
+                                            projectClientId={projectClientId}
+                                            initialContractId={initialContractId}
+                                            locale={locale}
+                                        />
+                                    </div>
 
                                     <div className="my-6">
                                         <ProviderService project={project} />

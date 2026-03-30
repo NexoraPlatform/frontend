@@ -21,7 +21,8 @@ import {
   BookOpen,
   IdCardLanyard,
   History,
-  MoreVertical
+  MoreVertical,
+  ScrollText
 } from 'lucide-react';
 import CallIcon from '@mui/icons-material/Call';
 import apiClient from '@/lib/api';
@@ -88,6 +89,9 @@ export default function AdminDashboard() {
   const disputesSectionTitle = t('admin.dashboard.sections.disputes.title');
   const disputesSectionDescription = t('admin.dashboard.sections.disputes.description');
   const disputesSectionStats = t('admin.dashboard.sections.disputes.stats');
+  const legalServiceCategoriesSectionTitle = t('admin.dashboard.sections.legal_service_categories.title');
+  const legalServiceCategoriesSectionDescription = t('admin.dashboard.sections.legal_service_categories.description');
+  const legalServiceCategoriesSectionStats = t('admin.dashboard.sections.legal_service_categories.stats');
   const legalClausesSectionTitle = t('admin.dashboard.sections.legal_clauses.title');
   const legalClausesSectionDescription = t('admin.dashboard.sections.legal_clauses.description');
   const legalClausesSectionStats = t('admin.dashboard.sections.legal_clauses.stats');
@@ -279,6 +283,15 @@ export default function AdminDashboard() {
       role: 'admin'
     },
     {
+      title: legalServiceCategoriesSectionTitle,
+      description: legalServiceCategoriesSectionDescription,
+      icon: ScrollText,
+      href: '/admin/legal/service-categories',
+      stats: legalServiceCategoriesSectionStats,
+      pending: 0,
+      roles: ['admin', 'legal']
+    },
+    {
       title: legalClausesSectionTitle,
       description: legalClausesSectionDescription,
       icon: FileText,
@@ -352,6 +365,9 @@ export default function AdminDashboard() {
     disputesSectionTitle,
     disputesSectionDescription,
     disputesSectionStats,
+    legalServiceCategoriesSectionTitle,
+    legalServiceCategoriesSectionDescription,
+    legalServiceCategoriesSectionStats,
     legalClausesSectionTitle,
     legalClausesSectionDescription,
     legalClausesSectionStats,
