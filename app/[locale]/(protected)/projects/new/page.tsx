@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
 import { NotificationBell } from '@/components/notification-bell';
+import { TrustoraLogo } from '@/components/branding/trustora-logo';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 import { ChatButton } from '@/components/chat/chat-button';
@@ -5534,13 +5535,13 @@ export default function NewProjectPage() {
       <aside className="w-64 bg-[#0B1C2D] border-r border-[#152B42] flex flex-col justify-between hidden md:flex shrink-0 z-20">
         <div>
           <div className="h-20 flex items-center px-6 border-b border-white/5">
-            <div className="flex items-center gap-3">
-              <img src="/trustora-logo2.png" alt="Trustora Logo" className="w-8 h-8 object-contain rounded border border-white/10" />
-              <div className="flex flex-col">
-                <span className="font-bold text-lg tracking-tight text-white leading-none">TRUSTORA</span>
-                <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-[#1BC47D] mt-0.5">{tDashboard('hero.badge')}</span>
-              </div>
-            </div>
+            <TrustoraLogo
+              alt="Trustora projects logo"
+              imageClassName="h-14 w-auto"
+              priority
+              sizes="190px"
+              variant="dark"
+            />
           </div>
 
           <nav className="p-4 space-y-1">

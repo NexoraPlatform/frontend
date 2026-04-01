@@ -137,6 +137,38 @@ export function useProfile() {
   return useApi(() => apiClient.getProfile(), []);
 }
 
+export function useBadgeCatalog(enabled: boolean = true) {
+  return useApi(() => apiClient.getBadgeCatalog(), [], enabled);
+}
+
+export function useMyBadges(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyBadges(), [], enabled);
+}
+
+export function useMyBadgeProgress(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyBadgeProgress(), [], enabled);
+}
+
+export function useMyBadgeRewards(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyBadgeRewards(), [], enabled);
+}
+
+export function useMyReviewOpportunities(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyReviewOpportunities(), [], enabled);
+}
+
+export function useMyReviews(
+  params?: {
+    scope?: 'all' | 'authored' | 'received';
+    status?: string;
+    per_page?: number;
+    page?: number;
+  },
+  enabled: boolean = true
+) {
+  return useApi(() => apiClient.getMyReviews(params), [JSON.stringify(params)], enabled);
+}
+
 export function useTestExamDetails() {
   return useApi(() => apiClient.getTestExamsDetails(), []);
 }
@@ -197,6 +229,43 @@ export function useProviderProfile(enabled: boolean = true) {
 
 export function useGetProviderProfileByUrl(url: string) {
   return useApi(() => apiClient.getProviderProfileByUrl(url), [url]);
+}
+
+export function usePublicUserBadges(
+  userId: string | number | null | undefined,
+  enabled: boolean = true
+) {
+  return useApi(
+    () => apiClient.getPublicUserBadges(String(userId)),
+    [String(userId ?? '')],
+    enabled && Boolean(userId)
+  );
+}
+
+export function usePublicUserReviews(
+  userId: string | number | null | undefined,
+  params?: {
+    per_page?: number;
+    page?: number;
+  },
+  enabled: boolean = true
+) {
+  return useApi(
+    () => apiClient.getPublicUserReviews(String(userId), params),
+    [String(userId ?? ''), JSON.stringify(params)],
+    enabled && Boolean(userId)
+  );
+}
+
+export function usePublicUserFeaturedBadges(
+  userId: string | number | null | undefined,
+  enabled: boolean = true
+) {
+  return useApi(
+    () => apiClient.getPublicUserFeaturedBadges(String(userId)),
+    [String(userId ?? '')],
+    enabled && Boolean(userId)
+  );
 }
 
 export function useProviderServices(providerId: string) {

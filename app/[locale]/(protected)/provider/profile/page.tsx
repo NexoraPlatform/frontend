@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
+import { TrustoraLogo } from '@/components/branding/trustora-logo';
 import {
     User,
     Save,
@@ -972,13 +973,13 @@ export default function ProviderProfileEditPage() {
             <aside className="z-20 hidden w-64 shrink-0 flex-col justify-between border-r border-[#152B42] bg-[#0B1C2D] md:flex">
                 <div>
                     <div className="flex h-20 items-center border-b border-white/5 px-6">
-                        <div className="flex items-center gap-3">
-                            <img src="/trustora-logo2.png" alt="Trustora Logo" className="h-8 w-8 object-contain" />
-                            <div className="flex flex-col">
-                                <span className="leading-none text-lg font-bold tracking-tight text-white">TRUSTORA</span>
-                                <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.2em] text-[#1BC47D]">{t('dashboard.hero.badge')}</span>
-                            </div>
-                        </div>
+                        <TrustoraLogo
+                            alt="Trustora provider profile logo"
+                            imageClassName="h-14 w-auto"
+                            priority
+                            sizes="190px"
+                            variant="dark"
+                        />
                     </div>
 
                     <nav className="space-y-1 p-4">

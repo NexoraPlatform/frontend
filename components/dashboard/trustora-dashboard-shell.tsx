@@ -2,7 +2,6 @@
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import {
   FileText,
   History,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { TrustoraLogo } from "@/components/branding/trustora-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatButton } from "@/components/chat/chat-button";
@@ -205,25 +205,17 @@ export function TrustoraDashboardShell({
       <div className="border-b border-border p-8">
         <Link
           href="/dashboard"
-          className="group flex items-center space-x-3"
+          className="group flex items-center"
           onClick={() => setIsMobileOpen(false)}
         >
-          <div className="flex h-10 items-center justify-center transition-transform group-hover:scale-105">
-            <Image
-              src="/trustora-logo2-60.webp"
-              alt="Trustora Logo"
-              width={60}
-              height={75}
-              className="h-10 w-auto"
-              style={{ width: "auto", height: "2.5rem" }}
-              priority
-              quality={90}
-            />
-          </div>
-          <div>
-            <div className="text-lg font-bold">Trustora</div>
-            <div className="text-xs text-muted-foreground">{t("dashboard.hero.badge")}</div>
-          </div>
+          <TrustoraLogo
+            alt="Trustora dashboard logo"
+            className="transition-transform group-hover:scale-[1.02]"
+            imageClassName="h-14 w-auto"
+            priority
+            sizes="190px"
+            variant="dark"
+          />
         </Link>
       </div>
 

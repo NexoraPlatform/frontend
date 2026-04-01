@@ -22,7 +22,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/lib/navigation";
 
 import { PriceDisplay } from "@/components/PriceDisplay";
+import { DashboardBadgesPanel } from "@/components/badges/dashboard-badges-panel";
 import type { ChartConfig } from "@/components/ui/chart";
+import type {
+  BadgeCounts,
+  BadgeProgressRecord,
+  BadgeRewardLogRecord,
+  UserBadgeRecord,
+} from "@/lib/badges";
 import type { DashboardStatsResponse, RecentActivityQuick } from "@/lib/api";
 import {
   getNewProjectHref,
@@ -68,6 +75,13 @@ type DashboardOverviewProps = {
   loadingRecentActivities: boolean;
   recentActivitiesError: string;
   providerServicesCount: number;
+  badgeCounts: BadgeCounts;
+  featuredBadges: UserBadgeRecord[];
+  awardedBadges: UserBadgeRecord[];
+  badgeProgress: BadgeProgressRecord[];
+  badgeRewards: BadgeRewardLogRecord[];
+  loadingBadgeData: boolean;
+  badgeDataError: string | null;
   onTabChange: (tab: "overview" | "projects" | "services" | "messages" | "settings") => void;
   onOpenProject: (projectId: string | number) => void;
 };
@@ -228,6 +242,13 @@ export function DashboardOverview({
   loadingRecentActivities,
   recentActivitiesError,
   providerServicesCount,
+  badgeCounts,
+  featuredBadges,
+  awardedBadges,
+  badgeProgress,
+  badgeRewards,
+  loadingBadgeData,
+  badgeDataError,
   onTabChange,
   onOpenProject,
 }: DashboardOverviewProps) {
@@ -623,6 +644,16 @@ export function DashboardOverview({
           <MoreVertical className="h-5 w-5 text-muted-foreground" />
         </motion.button>
       </motion.div>
+
+      <DashboardBadgesPanel
+        badgeCounts={badgeCounts}
+        featuredBadges={featuredBadges}
+        awardedBadges={awardedBadges}
+        badgeProgress={badgeProgress}
+        badgeRewards={badgeRewards}
+        loading={loadingBadgeData}
+        error={badgeDataError}
+      />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card, index) => {

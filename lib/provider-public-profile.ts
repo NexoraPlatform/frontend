@@ -1,3 +1,5 @@
+import { normalizeUserBadgeCollection, type UserBadgeRecord } from '@/lib/badges';
+
 export type PublicProviderLanguageOption = {
   id?: number;
   name: string;
@@ -34,6 +36,7 @@ export type ProviderProfileViewModel = {
     workingHours: Record<string, { start: string; end: string; enabled: boolean } | null>;
     nextAvailable: string | null;
   };
+  featuredBadges: UserBadgeRecord[];
   languages: Array<{ name: string; level: string; flag: string }>;
   certifications: Array<{ name: string; issuer: string; date: string; credentialId: string; verified: boolean }>;
   education: Array<{ degree: string; institution: string; attended_from: string; attended_to: string; study_area: string; period: string; description: string }>;
@@ -198,6 +201,7 @@ export function mapPublicProviderProfile(
   const firstJob =
     asNullableString(providerData?.oldest_work_experience) ??
     asNullableString(workHistory[0]?.start_date);
+  const featuredBadges = normalizeUserBadgeCollection(providerData?.featured_badges);
 
   return {
     id: providerData?.id ?? profileUrl,
@@ -226,6 +230,7 @@ export function mapPublicProviderProfile(
       workingHours: buildWorkingHours(profile),
       nextAvailable: asNullableString(providerData?.next_available_job),
     },
+    featuredBadges,
     languages: mappedLanguages,
     certifications,
     education,

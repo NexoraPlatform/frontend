@@ -6,6 +6,9 @@
     "more_label": "+{count} more",
     "providers_more_label": "+{count} more",
     "providers_available": "{count} providers available",
-    "no_providers": "No providers yet"
+    "no_providers": "No providers yet",
+    "provider_badges_title": "Featured badges",
+    "badges_loading": "Loading badges...",
+    "badges_none": "No featured badges yet"
   }
 }

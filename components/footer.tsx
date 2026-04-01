@@ -5,7 +5,7 @@ import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, type Lucid
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import Image from 'next/image';
+import { TrustoraLogo } from '@/components/branding/trustora-logo';
 import dynamic from 'next/dynamic';
 import { useTranslations } from "next-intl";
 import useSWR from 'swr';
@@ -84,7 +84,6 @@ export function Footer() {
   const allRightsReservedText = t("common.all_rights_reserved");
   const cookiePolicyText = t("common.cookie_policy");
   const readCookiePolicyText = t("common.read_cookie_policy");
-  const trustoraTaglineText = t("common.trustora_tagline");
   const contactTitleText = t("common.contact_title");
   const contactDescriptionText = t("common.contact_description");
   const newsletterTitleText = t("common.newsletter_title");
@@ -204,25 +203,11 @@ export function Footer() {
         ) : (
           <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <div className="relative w-8 h-8 flex flex-col-reverse">
-                  <Image
-                    src="/trustora-logo2-60.webp"
-                    alt="Trustoria Logo"
-                    width={140}
-                    height={175}
-                    className="h-10 w-auto"
-                    style={{ maxWidth: 'unset', height: '2.5rem', width: 'auto' }}
-                  />
-                </div>
-                <div className="flex flex-col items-start ps-4">
-                  <span className="text-xl font-bold text-primary">Trustora</span>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    {trustoraTaglineText}
-                  </span>
-                </div>
-
-              </div>
+              <TrustoraLogo
+                alt="Trustora logo"
+                imageClassName="h-14 w-auto"
+                sizes="200px"
+              />
               <p className="text-sm text-muted-foreground">
                 {footerPlatformDescriptionText}
               </p>

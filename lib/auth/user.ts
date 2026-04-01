@@ -1,4 +1,10 @@
 import type { AccessRole } from '@/lib/access';
+import {
+  normalizeBadgeCounts,
+  normalizeUserBadgeCollection,
+  type BadgeCounts,
+  type UserBadgeRecord,
+} from '@/lib/badges';
 import type { ConnectedAccount } from '@/types/auth';
 
 export interface AuthCompany {
@@ -96,6 +102,8 @@ export interface AuthUser {
   github_connected?: boolean;
   github_nickname?: string;
   connected_accounts?: ConnectedAccount[];
+  badge_counts?: BadgeCounts;
+  featured_badges?: UserBadgeRecord[];
   user_permissions?: Record<string, any> | any[];
   oldest_work_experience?: string | null;
   next_available_job?: string | null;
@@ -421,5 +429,7 @@ export const normalizeAuthUser = (input: any): AuthUser | null => {
     company,
     permissions,
     github_connected: githubConnected,
+    badge_counts: normalizeBadgeCounts(input.badge_counts),
+    featured_badges: normalizeUserBadgeCollection(input.featured_badges),
   } as AuthUser;
 };

@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
 import {
@@ -34,7 +33,6 @@ import {
     Users,
     Loader2,
     AlertCircle,
-    Eye,
     Calendar as CalendarIcon,
     Verified, ShieldAlert
 } from 'lucide-react';
@@ -45,6 +43,10 @@ import { usePublicAuth } from '@/hooks/use-public-auth';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { sanitizeHttpUrl } from '@/lib/navigation-security';
 import { mapPublicProviderProfile } from '@/lib/provider-public-profile';
+import { usePublicUserBadges } from '@/hooks/use-api';
+import { BadgeCard } from '@/components/badges/badge-card';
+import { resolveBadgeIcon, resolveBadgePalette } from '@/lib/badges';
+import { PublicUserReviewsPanel } from '@/components/reviews/public-user-reviews-panel';
 
 interface ProviderProfileProps {
     id: any;
@@ -103,7 +105,6 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
     const user = authContext?.user ?? publicAuth.user;
     const [provider, setProvider] = useState<any>(null);
     const [services, setServices] = useState<any[]>([]);
-    const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
@@ -111,6 +112,11 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
     const router = useRouter();
     // const { data: profileData, loading: profileLoading, error: profileError } = useGetProviderProfileByUrl(id);
     const { data: languages, loading: languagesLoading } = useGetLanguages();
+    const {
+        data: publicBadgesData,
+        loading: loadingPublicBadges,
+        error: publicBadgesError,
+    } = usePublicUserBadges(provider?.id, Boolean(provider?.id));
 
     const loadProviderData = useCallback(async () => {
         try {
@@ -132,37 +138,8 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                 deliveryTime: 14
             }));
 
-            // Mock reviews data
-            const reviews = [
-                {
-                    id: '1',
-                    rating: 5,
-                    comment: 'Excelent! Alexandru a livrat exact ce am cerut, în timp record. Comunicarea a fost perfectă pe tot parcursul proiectului.',
-                    reviewer: {
-                        name: 'Maria Popescu',
-                        avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=100'
-                    },
-                    project: 'Website E-commerce',
-                    date: '2024-01-10',
-                    verified: true
-                },
-                {
-                    id: '2',
-                    rating: 5,
-                    comment: 'Profesionist de top! A înțeles perfect cerințele și a implementat soluții creative. Recomand cu încredere!',
-                    reviewer: {
-                        name: 'Andrei Radu',
-                        avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100'
-                    },
-                    project: 'Aplicație Mobile',
-                    date: '2024-01-05',
-                    verified: true
-                }
-            ];
-
             setProvider(providerInfo);
             setServices(services);
-            setReviews(reviews);
         } catch (error: any) {
             console.error(error)
             setError('Nu s-au putut încărca datele prestatorului');
@@ -308,6 +285,8 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
         isViewingOwnProviderProfile && sessionCompanyName
             ? sessionCompanyName
             : provider.company;
+    const providerFeaturedBadges = Array.isArray(provider.featuredBadges) ? provider.featuredBadges : [];
+    const publicBadges = publicBadgesData ?? [];
 
     return (
         <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
@@ -390,6 +369,31 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             <span className="font-bold text-lg">{provider.rating}</span>
                                             <span className="text-muted-foreground">({provider.reviewCount} recenzii)</span>
                                         </div>
+
+                                        {providerFeaturedBadges.length > 0 && (
+                                            <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                                                {providerFeaturedBadges.map((featuredBadge: any, index: number) => {
+                                                    const badgeDefinition = featuredBadge.badge;
+                                                    const Icon = resolveBadgeIcon(badgeDefinition);
+                                                    const palette = resolveBadgePalette(badgeDefinition);
+
+                                                    return (
+                                                        <div
+                                                            key={String(featuredBadge.id ?? badgeDefinition?.code ?? `featured-badge-${index}`)}
+                                                            className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-sm"
+                                                            style={{
+                                                                color: palette.color,
+                                                                backgroundColor: palette.backgroundColor,
+                                                                borderColor: palette.borderColor,
+                                                            }}
+                                                        >
+                                                            <Icon className="h-3.5 w-3.5" />
+                                                            <span>{badgeDefinition?.name ?? 'Badge'}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -499,6 +503,44 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                     {/* Overview Tab */}
                     <TabsContent value="overview" className="space-y-6">
                         <div className={`grid xs:grid-cols-1 ${cardClass} gap-6`}>
+                            {(loadingPublicBadges || publicBadgesError || publicBadges.length > 0) && (
+                                <Card className="glass-card lg:col-span-2">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2">
+                                            <Award className="w-5 h-5" />
+                                            <span>Badge-uri Publice</span>
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Reputația și milestone-urile validate automat pentru acest prestator.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {loadingPublicBadges ? (
+                                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Se încarcă badge-urile...
+                                            </div>
+                                        ) : publicBadgesError ? (
+                                            <Alert variant="destructive">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>{publicBadgesError}</AlertDescription>
+                                            </Alert>
+                                        ) : (
+                                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                                {publicBadges.map((badgeRecord: any, index: number) => (
+                                                    <BadgeCard
+                                                        key={String(badgeRecord.id ?? badgeRecord.badge?.code ?? `public-badge-${index}`)}
+                                                        record={badgeRecord}
+                                                        compact
+                                                        locale="ro-RO"
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+
                             {/*/!* Skills *!/*/}
                             {/*<Card>*/}
                             {/*    <CardHeader>*/}
@@ -794,98 +836,10 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                     {/* Reviews Tab */}
                     <TabsContent value="reviews" className="space-y-6">
-                        <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Reviews Summary */}
-                            <Card className="glass-card">
-                                <CardHeader>
-                                    <CardTitle>Rezumat Recenzii</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-center mb-6">
-                                        <div className="text-4xl font-bold text-yellow-600 mb-2">
-                                            {provider.rating}
-                                        </div>
-                                        <div className="flex justify-center mb-2">
-                                            {[...Array(5)].map((_, i) => (
-                                                <Star
-                                                    key={i}
-                                                    className={`w-5 h-5 ${
-                                                        i < Math.floor(provider.rating)
-                                                            ? 'fill-yellow-400 text-yellow-400'
-                                                            : 'text-gray-300'
-                                                    }`}
-                                                />
-                                            ))}
-                                        </div>
-                                        <p className="text-muted-foreground">{provider.reviewCount} recenzii</p>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        {[5, 4, 3, 2, 1].map(rating => {
-                                            const count = Math.floor(Math.random() * 30) + (rating === 5 ? 80 : rating === 4 ? 30 : 5);
-                                            const percentage = (count / provider.reviewCount) * 100;
-                                            return (
-                                                <div key={rating} className="flex items-center space-x-2 text-sm">
-                                                    <span className="w-8">{rating} ⭐</span>
-                                                    <Progress value={percentage} className="flex-1 h-2" />
-                                                    <span className="w-8 text-right">{count}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Recent Reviews */}
-                            <div className="lg:col-span-2 space-y-4">
-                                {reviews.map((review: any) => (
-                                    <Card key={review.id} className="glass-card">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-start space-x-4">
-                                                <Avatar className="w-12 h-12">
-                                                    <AvatarImage src={review.reviewer.avatar} />
-                                                    <AvatarFallback>
-                                                        {review.reviewer.name.split(' ').map((n: string) => n[0]).join('')}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div>
-                                                            <h4 className="font-semibold">{review.reviewer.name}</h4>
-                                                            <p className="text-sm text-muted-foreground">{review.project}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <div className="flex items-center space-x-1 mb-1">
-                                                                {[...Array(review.rating)].map((_, i) => (
-                                                                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                ))}
-                                                            </div>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {new Date(review.date).toLocaleDateString('ro-RO')}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-muted-foreground mb-2">{review.comment}</p>
-                                                    {review.verified && (
-                                                        <Badge className="bg-emerald-100 text-emerald-800 text-xs">
-                                                            <CheckCircle className="w-3 h-3 mr-1" />
-                                                            Comandă Verificată
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-
-                                <div className="text-center">
-                                    <Button variant="outline">
-                                        <Eye className="w-4 h-4 mr-2" />
-                                        Vezi Toate Recenziile
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
+                        <PublicUserReviewsPanel
+                            userId={provider.id}
+                            currentUserId={user?.id ?? null}
+                        />
                     </TabsContent>
 
                     {/* Availability Tab */}

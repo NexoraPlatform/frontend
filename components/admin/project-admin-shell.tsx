@@ -24,9 +24,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 
+import { TrustoraLogo } from "@/components/branding/trustora-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -94,25 +94,17 @@ export function ProjectAdminShell({ children }: ProjectAdminShellProps) {
       <div className="border-b border-border p-8">
         <Link
           href="/admin"
-          className="flex items-center space-x-3 group"
+          className="group flex items-center"
           onClick={() => setIsMobileOpen(false)}
         >
-          <div className="flex h-10 items-center justify-center transition-transform group-hover:scale-105">
-            <Image
-              src="/trustora-logo2-60.webp"
-              alt="Trustora Logo"
-              width={60}
-              height={75}
-              className="h-10 w-auto"
-              style={{ width: "auto", height: "2.5rem" }}
-              priority
-              quality={90}
-            />
-          </div>
-          <div>
-            <div className="text-lg font-bold">Trustora</div>
-            <div className="text-xs text-muted-foreground">{t("admin.dashboard.shell.brand_label")}</div>
-          </div>
+          <TrustoraLogo
+            alt="Trustora admin logo"
+            className="transition-transform group-hover:scale-[1.02]"
+            imageClassName="h-14 w-auto"
+            priority
+            sizes="190px"
+            variant="dark"
+          />
         </Link>
       </div>
 

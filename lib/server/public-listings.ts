@@ -1,5 +1,6 @@
 import type { ProjectWithClient } from '@/lib/projects';
 import type { Locale } from '@/types/locale';
+import type { UserBadgeRecord } from '@/lib/badges';
 
 export type LocalizedText = string | Record<string, string>;
 
@@ -14,6 +15,8 @@ export interface ServiceProvider {
   lastName: string;
   avatar: string;
   rating: string;
+  featuredBadges?: UserBadgeRecord[];
+  featured_badges?: unknown[];
 }
 
 export interface Service {

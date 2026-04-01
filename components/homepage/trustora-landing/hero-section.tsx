@@ -414,7 +414,7 @@ export function TrustoraLandingHeroSection() {
                       <motion.div
                         aria-hidden="true"
                         className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 blur-xl"
-                        animate={shouldReduceMotion ? { x: "10%" } : { x: ["-30%", "240%"] }}
+                        animate={shouldReduceMotion ? { x: "10%" } : { x: ["-150%", "600%"] }}
                         transition={{ duration: 3.8, repeat: Infinity, ease: "linear" }}
                       />
 

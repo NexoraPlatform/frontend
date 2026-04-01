@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Heart, Loader2, Share2 } from 'lucide-react';
-import Image from 'next/image';
 
 import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
+import { ProviderFeaturedBadgesPreview } from '@/components/badges/provider-featured-badges-preview';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import apiClient from '@/lib/api';
 import {
@@ -332,20 +332,8 @@ function ServiceCard({
               <>
                 <div className="flex -space-x-2">
                   {providerPreview.map((provider) => {
-                    const providerName = `${provider.firstName} ${provider.lastName}`;
                     return (
-                      <div key={provider.id} className="relative group">
-                        <Image
-                          src={provider.avatar || '/placeholder-avatar.png'}
-                          alt={providerName}
-                          width={32}
-                          height={32}
-                          className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                        />
-                        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100">
-                          {providerName}
-                        </span>
-                      </div>
+                      <ProviderFeaturedBadgesPreview key={provider.id} provider={provider} />
                     );
                   })}
                 </div>

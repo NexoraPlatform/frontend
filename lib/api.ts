@@ -1,5 +1,31 @@
 import { apiFetch, FetchError, type ApiFetchOptions } from '@/lib/fetch-client';
+import {
+  normalizeBadgeDefinitionCollection,
+  normalizeBadgeProgressCollection,
+  normalizeBadgeRewardLogCollection,
+  normalizeUserBadgeCollection,
+  type BadgeDefinitionRecord,
+  type BadgeProgressRecord,
+  type BadgeRewardLogRecord,
+  type UserBadgeRecord,
+} from '@/lib/badges';
 import { normalizeMilestoneChangeRequest } from '@/lib/milestone-change-requests';
+import {
+  buildProjectReviewMutationPayload,
+  normalizeMyProjectReviewsResponse,
+  normalizeProjectReview,
+  normalizeProjectReviewFlag,
+  normalizePublicUserReviewsResponse,
+  normalizeReviewOpportunityCollection,
+  type FlagProjectReviewPayload,
+  type MyProjectReviewsResponse,
+  type ProjectReviewFlagRecord,
+  type ProjectReviewRecord,
+  type PublicUserReviewsResponse,
+  type ReviewOpportunityRecord,
+  type SubmitProjectReviewPayload,
+  type UpdateProjectReviewPayload,
+} from '@/lib/reviews';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 
@@ -1105,6 +1131,26 @@ export class ApiClient {
     });
   }
 
+  async getBadgeCatalog(): Promise<BadgeDefinitionRecord[]> {
+    const response = await this.request<any>('/badges/catalog');
+    return normalizeBadgeDefinitionCollection(response);
+  }
+
+  async getMyBadges(): Promise<UserBadgeRecord[]> {
+    const response = await this.request<any>('/me/badges');
+    return normalizeUserBadgeCollection(response);
+  }
+
+  async getMyBadgeProgress(): Promise<BadgeProgressRecord[]> {
+    const response = await this.request<any>('/me/badges/progress');
+    return normalizeBadgeProgressCollection(response);
+  }
+
+  async getMyBadgeRewards(): Promise<BadgeRewardLogRecord[]> {
+    const response = await this.request<any>('/me/badges/rewards');
+    return normalizeBadgeRewardLogCollection(response);
+  }
+
   async register(userData: {
     email: string;
     password: string;
@@ -2127,6 +2173,132 @@ export class ApiClient {
 
   async getProviderProfileByUrl(url: string) {
     return this.request<any>(`/provider/${url}`);
+  }
+
+  async getPublicUserBadges(userId: string | number) {
+    const response = await this.request<any>(`/users/${userId}/badges`);
+    return normalizeUserBadgeCollection(response);
+  }
+
+  async getPublicUserFeaturedBadges(userId: string | number) {
+    const response = await this.request<any>(`/users/${userId}/featured-badges`);
+    return normalizeUserBadgeCollection(response);
+  }
+
+  async getMyReviewOpportunities(): Promise<ReviewOpportunityRecord[]> {
+    const response = await this.request<any>('/me/review-opportunities');
+    return normalizeReviewOpportunityCollection(response);
+  }
+
+  async getMyReviews(params?: {
+    scope?: 'all' | 'authored' | 'received';
+    status?: string;
+    per_page?: number;
+    page?: number;
+  }): Promise<MyProjectReviewsResponse> {
+    const searchParams = new URLSearchParams();
+
+    if (params?.scope) {
+      searchParams.set('scope', params.scope);
+    }
+
+    if (params?.status) {
+      searchParams.set('status', params.status);
+    }
+
+    if (typeof params?.per_page === 'number' && Number.isFinite(params.per_page)) {
+      searchParams.set('per_page', String(params.per_page));
+    }
+
+    if (typeof params?.page === 'number' && Number.isFinite(params.page)) {
+      searchParams.set('page', String(params.page));
+    }
+
+    const qs = searchParams.toString();
+    const response = await this.request<any>(`/me/reviews${qs ? `?${qs}` : ''}`);
+    return normalizeMyProjectReviewsResponse(response);
+  }
+
+  async submitProjectReview(
+    projectId: string | number,
+    payload: SubmitProjectReviewPayload
+  ): Promise<ProjectReviewRecord> {
+    const response = await this.request<any>(`/projects/${projectId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(buildProjectReviewMutationPayload(payload)),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const review = normalizeProjectReview(asObject(response)?.data ?? response);
+    if (!review) {
+      throw new Error('Project review payload is missing the review entity.');
+    }
+
+    return review;
+  }
+
+  async updateProjectReview(
+    reviewId: string | number,
+    payload: UpdateProjectReviewPayload
+  ): Promise<ProjectReviewRecord> {
+    const response = await this.request<any>(`/project-reviews/${reviewId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(buildProjectReviewMutationPayload(payload)),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const review = normalizeProjectReview(asObject(response)?.data ?? response);
+    if (!review) {
+      throw new Error('Project review payload is missing the updated review entity.');
+    }
+
+    return review;
+  }
+
+  async flagProjectReview(
+    reviewId: string | number,
+    payload: FlagProjectReviewPayload
+  ): Promise<ProjectReviewFlagRecord> {
+    const response = await this.request<any>(`/project-reviews/${reviewId}/flag`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const flag = normalizeProjectReviewFlag(asObject(response)?.data ?? response);
+    if (!flag) {
+      throw new Error('Project review flag payload is missing the created flag entity.');
+    }
+
+    return flag;
+  }
+
+  async getPublicUserReviews(
+    userId: string | number,
+    params?: {
+      per_page?: number;
+      page?: number;
+    }
+  ): Promise<PublicUserReviewsResponse> {
+    const searchParams = new URLSearchParams();
+
+    if (typeof params?.per_page === 'number' && Number.isFinite(params.per_page)) {
+      searchParams.set('per_page', String(params.per_page));
+    }
+
+    if (typeof params?.page === 'number' && Number.isFinite(params.page)) {
+      searchParams.set('page', String(params.page));
+    }
+
+    const qs = searchParams.toString();
+    const response = await this.request<any>(`/users/${userId}/reviews${qs ? `?${qs}` : ''}`);
+    return normalizePublicUserReviewsResponse(response);
   }
 
   // Projects endpoints

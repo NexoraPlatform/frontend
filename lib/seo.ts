@@ -253,11 +253,11 @@ export function buildRootMetadata(locale?: Locale | string | null): Metadata {
     },
     icons: {
       icon: [
-        { url: "/trustora-logo2-60.avif", type: "image/avif" },
-        { url: "/trustora-logo2-60.webp", type: "image/webp" },
+        { url: "/trustora-icon-dark.svg", type: "image/svg+xml" },
+        { url: "/icons/trustora-icon-96x96.png", sizes: "96x96", type: "image/png" },
       ],
-      apple: [{ url: "/trustora-logo2-120.avif", type: "image/avif" }],
-      shortcut: ["/trustora-logo2-60.webp"],
+      apple: [{ url: "/icons/trustora-icon-192x192.png", sizes: "192x192", type: "image/png" }],
+      shortcut: ["/trustora-icon-dark.svg"],
     },
     manifest: "/manifest.json",
   };
@@ -456,7 +456,7 @@ export function buildGlobalKnowledgeGraph(locale?: Locale | string): JsonLdNode[
       name: SITE_NAME,
       url: baseUrl,
       image: toAbsoluteUrl("/og-image.jpg"),
-      logo: toAbsoluteUrl("/trustora-logo2-120.avif"),
+      logo: toAbsoluteUrl("/trustora-logo-light.svg"),
       description: SERVICE_DESCRIPTIONS[resolvedLocale],
       inLanguage: resolvedLocale,
       areaServed: ["RO", "EU"],

@@ -10,7 +10,7 @@ import { Menu, Moon, Sun, LogOut, Mail, Phone, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SearchBar } from '@/components/search-bar';
-import Image from 'next/image';
+import { TrustoraLogo } from '@/components/branding/trustora-logo';
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
@@ -219,7 +219,6 @@ export function Header() {
         ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
         : 'bg-background/95 border-b border-border/50 backdrop-blur-md supports-[backdrop-filter]:bg-background/60')
   );
-  const secondaryTextClass = useDarkHeaderSurface ? 'text-slate-400' : 'text-muted-foreground';
   const navInactiveClass = useDarkHeaderSurface ? 'text-slate-200/85' : 'text-muted-foreground';
   const navHoverSurfaceClass = useDarkHeaderSurface
     ? 'bg-white/5'
@@ -270,30 +269,17 @@ export function Header() {
           <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
             <Link
               href="/"
-              className="flex items-center space-x-4 group"
+              className="group flex items-center"
               aria-label={`Trustora - ${homeText}`}
             >
-              <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                <div className="absolute inset-0 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-                <Image
-                  src="/trustora-logo2-60.webp"
-                  alt="Trustora Logo"
-                  width={60}
-                  height={75}
-                  className="relative z-10 rounded-xl h-13 w-auto"
-                  priority
-                  quality={90}
-                />
-
-              </div>
-              <div className="flex flex-col">
-                <span className="text-2xl font-black bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] bg-clip-text text-transparent">
-                  Trustora
-                </span>
-                <span className={cn("text-xs font-medium -mt-1", secondaryTextClass)}>
-                  Where work meets trust.
-                </span>
-              </div>
+              <TrustoraLogo
+                alt="Trustora logo"
+                className="transition-transform duration-300 group-hover:scale-[1.02]"
+                imageClassName="h-14 w-auto"
+                priority
+                sizes="(max-width: 640px) 180px, 220px"
+                variant={useDarkHeaderSurface ? 'dark' : 'light'}
+              />
             </Link>
 
             <div className="flex items-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -423,30 +409,17 @@ export function Header() {
         <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
           <Link
             href="/"
-            className="flex items-center space-x-4 group"
+            className="group flex items-center"
             aria-label={`Trustora - ${homeText}`}
           >
-            <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-              <div className="absolute inset-0 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-              <Image
-                src="/trustora-logo2-60.webp"
-                alt="Trustora Logo"
-                width={60}
-                height={75}
-                className="relative z-10 rounded-xl h-13 w-auto"
-                priority
-                quality={90}
-              />
-
-            </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-black bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] bg-clip-text text-transparent">
-                Trustora
-              </span>
-              <span className={cn("text-xs font-medium -mt-1", secondaryTextClass)}>
-                Where work meets trust.
-              </span>
-            </div>
+            <TrustoraLogo
+              alt="Trustora logo"
+              className="transition-transform duration-300 group-hover:scale-[1.02]"
+              imageClassName="h-14 w-auto"
+              priority
+              sizes="(max-width: 640px) 180px, 220px"
+              variant={useDarkHeaderSurface ? 'dark' : 'light'}
+            />
           </Link>
 
           <nav

@@ -1,5 +1,9 @@
 import type { Locale } from '@/types/locale';
 import type { ProjectWithClient } from '@/lib/projects';
+import {
+  normalizeUserBadgeCollection,
+  type UserBadgeRecord,
+} from '@/lib/badges';
 
 export const AI_SEARCH_NAMESPACES = [
   'services',
@@ -97,6 +101,8 @@ export interface ProviderResource {
   bio?: string | null;
   profile_url?: string | null;
   services?: ProviderServiceResource[];
+  featured_badges?: unknown[];
+  featuredBadges?: UserBadgeRecord[];
   score?: number;
   [key: string]: unknown;
 }
@@ -122,6 +128,7 @@ export interface ProviderCardModel {
   bio?: string;
   profile_url?: string;
   services: ProviderServiceResource[];
+  featuredBadges: UserBadgeRecord[];
 }
 
 export type AiSearchResponseByNamespace = {
@@ -355,6 +362,9 @@ export function mapProviderResource(resource: ProviderResource): ProviderCardMod
           categoryIcon: service?.categoryIcon,
         }))
       : [],
+    featuredBadges: normalizeUserBadgeCollection(
+      resource.featuredBadges ?? resource.featured_badges
+    ),
   };
 }
 

@@ -45,6 +45,8 @@ import ChatLauncher from '@/components/chat/chat-launcher';
 import { DashboardOverview } from '@/components/dashboard/dashboard-overview';
 import { DashboardSectionHeader } from '@/components/dashboard/dashboard-section-header';
 import { TrustoraDashboardShell } from '@/components/dashboard/trustora-dashboard-shell';
+import { DashboardProjectReviewsPanel } from '@/components/reviews/dashboard-project-reviews-panel';
+import { useMyBadgeProgress, useMyBadgeRewards, useMyBadges } from '@/hooks/use-api';
 
 const theme = {
   trustAccent: '#1BC47D',
@@ -134,6 +136,22 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
   const isProvider = roleSlugs.includes('provider');
   const isClient = roleSlugs.includes('client');
   const activeTab = section;
+  const shouldLoadBadgeData = Boolean(user) && activeTab === 'overview';
+  const {
+    data: myBadgesData,
+    loading: loadingMyBadges,
+    error: myBadgesError,
+  } = useMyBadges(shouldLoadBadgeData);
+  const {
+    data: myBadgeProgressData,
+    loading: loadingMyBadgeProgress,
+    error: myBadgeProgressError,
+  } = useMyBadgeProgress(shouldLoadBadgeData);
+  const {
+    data: myBadgeRewardsData,
+    loading: loadingMyBadgeRewards,
+    error: myBadgeRewardsError,
+  } = useMyBadgeRewards(shouldLoadBadgeData);
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -443,6 +461,87 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
     const basePath = getDashboardTabHref('projects');
     router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
   }, [router, searchParams]);
+
+  const resolveReviewMilestoneOptions = useCallback(
+    async (projectId: string, eligibleMilestoneIds: string[]) => {
+      const normalizedEligibleIds = eligibleMilestoneIds
+        .map((entry) => String(entry).trim())
+        .filter(Boolean);
+
+      if (normalizedEligibleIds.length === 0) {
+        return [];
+      }
+
+      const projectsCollection = await fetchProjectCollection();
+      const project = projectsCollection.find(
+        (entry: any) => String(entry?.id ?? '') === String(projectId)
+      );
+
+      if (!project) {
+        return normalizedEligibleIds.map((milestoneId) => ({
+          id: milestoneId,
+          title: t('dashboard.reviews.composer.milestone_fallback', { id: milestoneId }),
+          status: null,
+          service_name: null,
+        }));
+      }
+
+      const milestoneSource = Array.isArray(project.project_line_milestones) &&
+        project.project_line_milestones.length > 0
+          ? project.project_line_milestones
+          : Array.isArray(project.project_lines)
+            ? project.project_lines.flatMap((line: any) =>
+                Array.isArray(line?.milestones) ? line.milestones : []
+              )
+            : [];
+
+      const optionsById = new Map<string, {
+        id: string;
+        title: string;
+        status: string | null;
+        service_name: string | null;
+      }>();
+
+      milestoneSource.forEach((milestone: any) => {
+        const milestoneId = String(milestone?.id ?? '').trim();
+        if (!milestoneId) {
+          return;
+        }
+
+        const serviceName =
+          typeof milestone?.projectLine?.service?.name === 'string'
+            ? milestone.projectLine.service.name
+            : typeof milestone?.project_line?.service?.name === 'string'
+              ? milestone.project_line.service.name
+              : null;
+
+        optionsById.set(milestoneId, {
+          id: milestoneId,
+          title:
+            typeof milestone?.title === 'string' && milestone.title.trim()
+              ? milestone.title
+              : t('dashboard.reviews.composer.milestone_fallback', { id: milestoneId }),
+          status:
+            typeof milestone?.status === 'string' && milestone.status.trim()
+              ? milestone.status
+              : null,
+          service_name: serviceName,
+        });
+      });
+
+      return normalizedEligibleIds.map((milestoneId) => {
+        return (
+          optionsById.get(milestoneId) ?? {
+            id: milestoneId,
+            title: t('dashboard.reviews.composer.milestone_fallback', { id: milestoneId }),
+            status: null,
+            service_name: null,
+          }
+        );
+      });
+    },
+    [fetchProjectCollection, t]
+  );
 
   const loadProjects = useCallback(async (force = false) => {
     setLoadingProjects(true);
@@ -925,6 +1024,13 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
   }
 
   const userDisplayName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email;
+  const badgeCounts = user.badge_counts ?? { awarded: 0, in_progress: 0 };
+  const featuredBadges = Array.isArray(user.featured_badges) ? user.featured_badges : [];
+  const myBadges = myBadgesData ?? [];
+  const myBadgeProgress = myBadgeProgressData ?? [];
+  const myBadgeRewards = myBadgeRewardsData ?? [];
+  const loadingBadgeData = loadingMyBadges || loadingMyBadgeProgress || loadingMyBadgeRewards;
+  const badgeDataError = myBadgesError ?? myBadgeProgressError ?? myBadgeRewardsError ?? null;
 
   return (
     <TrustoraDashboardShell
@@ -947,6 +1053,13 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
             loadingRecentActivities={loadingRecentActivities}
             recentActivitiesError={recentActivitiesError}
             providerServicesCount={providerServicesSummary.total}
+            badgeCounts={badgeCounts}
+            featuredBadges={featuredBadges}
+            awardedBadges={myBadges}
+            badgeProgress={myBadgeProgress}
+            badgeRewards={myBadgeRewards}
+            loadingBadgeData={loadingBadgeData}
+            badgeDataError={badgeDataError}
             onTabChange={handleTabChange}
             onOpenProject={handleOverviewProjectOpen}
           />
@@ -966,6 +1079,12 @@ export default function DashboardClient({ section = 'overview' }: DashboardClien
                   </Link>
                 </Button>
               ) : undefined}
+            />
+
+            <DashboardProjectReviewsPanel
+              isClient={isClient}
+              isProvider={isProvider}
+              resolveMilestoneOptions={resolveReviewMilestoneOptions}
             />
 
             {isClient && !isProvider ? (

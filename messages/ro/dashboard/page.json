@@ -202,6 +202,28 @@
       "empty_description": "Proiectele vor apărea aici imediat ce ajunge activitate în dashboard."
     }
   },
+  "badges": {
+    "title": "Badge-uri",
+    "headline": "Reputația ta prinde contur",
+    "description": "Vezi badge-urile deja deblocate și progresul evaluat automat din backend pentru următoarele praguri importante.",
+    "awarded": "Acordate",
+    "in_progress": "În progres",
+    "featured": "Badge-uri în prim-plan",
+    "latest": "Deblocate recent",
+    "all_unlocked": "{count} badge-uri deblocate",
+    "loading": "Se încarcă badge-urile...",
+    "error": "Nu am putut încărca badge-urile.",
+    "empty_title": "Badge-urile tale vor apărea aici",
+    "empty_description": "Pe măsură ce finalizezi proiecte, milestone-uri și verificări, sistemul va acorda automat badge-uri noi.",
+    "progress_title": "Progres activ",
+    "progress_headline": "Urmărește următoarele badge-uri",
+    "progress_description": "Aceste obiective sunt calculate automat pe baza activității tale din platformă.",
+    "progress_empty": "Momentan nu există badge-uri în progres.",
+    "criteria_complete": "criterii îndeplinite",
+    "next_step": "Pas următor",
+    "rewards_title": "Beneficii active",
+    "untitled_badge": "Badge fără titlu"
+  },
   "filters": {
     "search_placeholder": "Caută proiecte după titlu sau descriere...",
     "active": "Filtre active:",
@@ -431,6 +453,118 @@
       "title": "Finalizează verificarea KYB",
       "description": "Finalizează verificarea KYB în Escrow.com pentru a termina onboardingul și pentru a putea încasa banii.",
       "action": "Continuă KYB"
+    }
+  },
+  "reviews": {
+    "title": "Reviews de proiect",
+    "description": "Trimite feedback după proiectele eligibile și urmărește ce a fost publicat către și despre tine.",
+    "tabs": {
+      "opportunities": "Eligibile ({count})",
+      "authored": "Trimise ({count})",
+      "received": "Primite ({count})"
+    },
+    "status": {
+      "submitted": "Trimis",
+      "published": "Publicat",
+      "removed": "Eliminat"
+    },
+    "double_blind": {
+      "description": "Review-urile trimise rămân ascunse până când contrapartea trimite și ea review-ul sau expiră fereastra de publicare."
+    },
+    "opportunity": {
+      "review_target": "Poți evalua {role}: {name}",
+      "provider": "prestatorul",
+      "client": "clientul",
+      "milestones": "{count} milestone-uri eligibile"
+    },
+    "labels": {
+      "person_fallback": "Utilizator Trustora",
+      "reviewee": "Destinatar",
+      "reviewer": "Autor",
+      "project_fallback": "Proiect",
+      "flags": "{count} raportări",
+      "rating": "{value}/5",
+      "submitted_at": "Trimis la",
+      "published_at": "Publicat la",
+      "milestone": "Milestone",
+      "service": "Serviciu",
+      "project_status_fallback": "Status proiect indisponibil"
+    },
+    "dimensions": {
+      "communication": "Comunicare",
+      "quality": "Calitate",
+      "timeliness": "Respectarea termenelor",
+      "professionalism": "Profesionalism",
+      "scope_clarity": "Claritatea scope-ului",
+      "payment_reliability": "Fiabilitatea plății",
+      "would_work_again": "Ar colabora din nou",
+      "would_work_again_yes": "Da",
+      "would_work_again_no": "Nu"
+    },
+    "notes": {
+      "submitted": "Review-ul este încă ascuns și va deveni vizibil după publicarea double-blind.",
+      "removed": "Acest review nu mai este public după o intervenție de moderare."
+    },
+    "empty": {
+      "opportunities_title": "Momentan nu există review-uri de trimis",
+      "opportunities_provider": "După ce finalizezi milestone-uri sau proiecte eligibile, oportunitățile de review vor apărea aici.",
+      "opportunities_client": "După ce un proiect devine eligibil pentru feedback, vei putea evalua aici prestatorii cu care ai lucrat.",
+      "authored_title": "Nu ai trimis încă review-uri",
+      "authored_description": "Review-urile pe care le trimiți vor apărea aici cu statusul lor curent.",
+      "received_title": "Încă nu ai review-uri primite",
+      "received_description": "Review-urile publicate despre tine vor apărea aici."
+    },
+    "actions": {
+      "edit": "Editează",
+      "write": "Scrie review",
+      "view_profile": "Vezi profilul"
+    },
+    "composer": {
+      "new_title_provider": "Evaluează prestatorul",
+      "new_title_client": "Evaluează clientul",
+      "edit_title": "Editează review-ul",
+      "description_create": "Feedback-ul tău intră în flow-ul de publicare double-blind configurat în backend.",
+      "description_edit": "Poți actualiza review-ul cât timp rămâne în statusul trimis.",
+      "reviewee_label": "Evaluezi",
+      "reviewee_fallback": "Utilizatorul selectat",
+      "rating_label": "Rating general",
+      "rating_value": "{value} din 5",
+      "rating_empty": "Selectează un rating",
+      "milestone_label": "Asociază un milestone",
+      "loading_milestones": "Se încarcă milestone-urile eligibile...",
+      "milestone_placeholder": "Selectează milestone-ul relevant",
+      "milestone_none": "Fără milestone specific",
+      "no_milestones": "Nu există milestone-uri eligibile de asociat pentru acest review.",
+      "headline_label": "Headline",
+      "headline_placeholder": "Rezumat scurt, opțional",
+      "body_label": "Feedback public",
+      "body_placeholder_client": "Descrie cum a mers colaborarea, comunicarea, claritatea și plățile din proiect.",
+      "body_placeholder_provider": "Descrie rezultatul livrat, calitatea, comunicarea și punctualitatea din proiect.",
+      "private_feedback_label": "Feedback privat",
+      "private_feedback_placeholder": "Note interne care nu se publică.",
+      "private_feedback_placeholder_edit": "Lasă gol ca să păstrezi feedback-ul privat existent.",
+      "private_feedback_hint": "Feedback-ul privat nu apare public în profilurile utilizatorilor.",
+      "private_feedback_hint_edit": "Dacă lași câmpul gol, frontendul nu va suprascrie feedback-ul privat deja salvat.",
+      "score_section_title": "Scoruri detaliate",
+      "score_section_description": "Adaugă criterii suplimentare pentru un review mai util.",
+      "would_work_again_label": "Ai colabora din nou?",
+      "would_work_again_unset": "Prefer să nu răspund",
+      "would_work_again_yes": "Da",
+      "would_work_again_no": "Nu",
+      "cancel": "Renunță",
+      "submit": "Trimite review-ul",
+      "save": "Salvează modificările",
+      "success_published": "Review-ul a fost publicat.",
+      "success_submitted": "Review-ul a fost trimis cu succes.",
+      "success_updated": "Review-ul a fost actualizat.",
+      "milestone_fallback": "Milestone #{id}",
+      "errors": {
+        "review_missing": "Review-ul selectat nu mai este disponibil pentru editare.",
+        "reviewee_missing": "Nu am putut determina utilizatorul evaluat pentru acest review.",
+        "rating_required": "Selectează un rating de la 1 la 5.",
+        "body_too_short": "Feedback-ul public trebuie să aibă cel puțin 10 caractere.",
+        "generic": "Nu am putut salva review-ul."
+      }
     }
   },
   "actions": {

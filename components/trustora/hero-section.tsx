@@ -1,6 +1,6 @@
-import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
+import { TrustoraMark } from "@/components/branding/trustora-logo";
 import { Link } from "@/lib/navigation";
 import type { Locale } from "@/types/locale";
 import { TrustoraHeroSecurityVisual } from "@/components/trustora/hero-security-visual";
@@ -50,14 +50,12 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
       <div className="relative z-10 mx-auto grid h-full max-w-7xl items-center gap-8 py-24 sm:py-28 lg:grid-cols-2 lg:gap-12">
         <article>
           <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-100">
-            <Image
-              src="/trustora-logo2-120.avif"
-              width={30}
-              height={30}
+            <TrustoraMark
+              alt={logoAlt}
+              imageClassName="h-[30px] w-[30px] rounded-md"
               priority
               sizes="30px"
-              alt={logoAlt}
-              className="h-[30px] w-[30px] rounded-md"
+              variant="dark"
             />
             <span className="relative flex h-2 w-2" aria-hidden="true">
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />

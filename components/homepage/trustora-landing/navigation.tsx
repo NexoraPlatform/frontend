@@ -159,7 +159,7 @@ export function TrustoraLandingNavigation() {
             className="flex items-center"
           >
             <Link href="/" aria-label={`Trustora - ${t("navigation.home")}`} className="flex items-center">
-              <TrustoraLandingBrand priority textClassName="text-xl font-bold tracking-tight" />
+              <TrustoraLandingBrand priority logoClassName="h-14 w-auto" />
             </Link>
           </motion.div>
 

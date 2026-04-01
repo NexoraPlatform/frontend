@@ -38,7 +38,10 @@
   },
   "provider_card": {
     "avatar_alt": "Imagine prestator {firstName} {lastName}",
-    "location_fallback": "România"
+    "location_fallback": "România",
+    "badges_label": "Badge verificat",
+    "badges_loading": "Se încarcă badge-urile...",
+    "more_badges": "+{count} badge-uri"
   },
   "detail": {
     "not_found": "Proiectul nu a fost găsit",

@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Image from "next/image";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { TrustoraLogo } from "@/components/branding/trustora-logo";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowRightIcon, CheckCircle,
@@ -106,18 +106,12 @@ export default function OpenSoonPage() {
       <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#0B1C2D]/30 blur-[80px] dark:bg-[#0B1C2D]/60" />
 
       <nav className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/trustora-logo2.svg"
-            alt="Trustora Logo"
-            width={32}
-            height={32}
-            className="h-8 w-8"
-          />
-          <span className="text-xl font-extrabold tracking-tight text-[#0B1C2D] dark:text-white">
-            TRUSTORA
-          </span>
-        </div>
+        <TrustoraLogo
+          alt="Trustora logo"
+          imageClassName="h-14 w-auto"
+          priority
+          sizes="(max-width: 640px) 160px, 190px"
+        />
         <div className="flex items-center gap-3 text-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200">
             <LocaleSwitcher className="h-10 w-10 px-0" />
@@ -134,7 +128,7 @@ export default function OpenSoonPage() {
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
           <a
-            href="mailto:contact@trustora.com"
+            href="mailto:contact@trustora.ro"
             className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-[#0B1C2D] dark:text-slate-300 dark:hover:text-white md:inline-flex"
           >
             {support}

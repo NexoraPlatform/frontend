@@ -38,7 +38,10 @@
   },
   "provider_card": {
     "avatar_alt": "Provider image {firstName} {lastName}",
-    "location_fallback": "Romania"
+    "location_fallback": "Romania",
+    "badges_label": "Verified badge",
+    "badges_loading": "Loading badges...",
+    "more_badges": "+{count} badges"
   },
   "detail": {
     "not_found": "Project not found",

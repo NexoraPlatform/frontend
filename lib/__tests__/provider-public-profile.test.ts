@@ -17,6 +17,29 @@ describe('mapPublicProviderProfile', () => {
         website: 'https://ada.dev',
         oldest_work_experience: '2021-01-01',
         next_available_job: '2026-04-01',
+        featured_badges: [
+          {
+            id: 501,
+            status: 'awarded',
+            awarded_at: '2026-03-01 10:30:00',
+            badge: {
+              id: 91,
+              code: 'provider_trusted',
+              name: 'Trusted Provider',
+              short_description: 'Trusted by the platform',
+              category: 'trust',
+              color: '#2563eb',
+              background_color: '#dbeafe',
+              border_color: '#93c5fd',
+              reward_config: {},
+            },
+            tier: {
+              id: 5,
+              tier_code: 'gold',
+              tier_name: 'Gold',
+            },
+          },
+        ],
         profile: {
           bio: 'Backend engineer',
           location: 'Bucharest',
@@ -80,6 +103,17 @@ describe('mapPublicProviderProfile', () => {
       company: 'Trustora',
       period: '2021-01-01 - Prezent',
       type: 'Curent',
+    });
+    expect(result.featuredBadges).toHaveLength(1);
+    expect(result.featuredBadges[0]).toMatchObject({
+      id: 501,
+      badge: {
+        code: 'provider_trusted',
+        name: 'Trusted Provider',
+      },
+      tier: {
+        tier_name: 'Gold',
+      },
     });
     expect(result.availability.status).toBe('AVAILABLE');
     expect(result.availability.hoursPerWeek).toBe(35);
