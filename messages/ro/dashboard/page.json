@@ -457,7 +457,7 @@
   },
   "reviews": {
     "title": "Reviews de proiect",
-    "description": "Trimite feedback după proiectele eligibile și urmărește ce a fost publicat către și despre tine.",
+    "description": "Trimite feedback doar după proiectele finalizate și urmărește ce a fost publicat către și despre tine.",
     "tabs": {
       "opportunities": "Eligibile ({count})",
       "authored": "Trimise ({count})",
@@ -507,8 +507,8 @@
     },
     "empty": {
       "opportunities_title": "Momentan nu există review-uri de trimis",
-      "opportunities_provider": "După ce finalizezi milestone-uri sau proiecte eligibile, oportunitățile de review vor apărea aici.",
-      "opportunities_client": "După ce un proiect devine eligibil pentru feedback, vei putea evalua aici prestatorii cu care ai lucrat.",
+      "opportunities_provider": "După ce proiectul ajunge într-un status final, oportunitățile de review vor apărea aici.",
+      "opportunities_client": "Vei putea lăsa review aici doar după ce proiectul este finalizat.",
       "authored_title": "Nu ai trimis încă review-uri",
       "authored_description": "Review-urile pe care le trimiți vor apărea aici cu statusul lor curent.",
       "received_title": "Încă nu ai review-uri primite",
@@ -561,6 +561,7 @@
       "errors": {
         "review_missing": "Review-ul selectat nu mai este disponibil pentru editare.",
         "reviewee_missing": "Nu am putut determina utilizatorul evaluat pentru acest review.",
+        "project_not_finished": "Poți trimite review doar după ce proiectul este finalizat.",
         "rating_required": "Selectează un rating de la 1 la 5.",
         "body_too_short": "Feedback-ul public trebuie să aibă cel puțin 10 caractere.",
         "generic": "Nu am putut salva review-ul."

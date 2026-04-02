@@ -90,33 +90,18 @@ const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   passport_error: 'Authentication with Passport failed.',
 };
 
-const extractLoginErrorMessage = async (email: string, password: string, fallbackCode?: string) => {
-  try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const payload = await response.json().catch(() => null);
-    const message =
-      payload && typeof payload === 'object'
-        ? payload.message || payload.error_description || payload.error
-        : null;
-
-    if (typeof message === 'string' && message.trim().length > 0) {
-      return message;
-    }
-  } catch (error) {
-    console.warn('Failed to retrieve detailed login error:', error);
+const resolveLoginErrorMessage = (authResult?: { code?: string | null; error?: string | null } | null) => {
+  const errorCode = authResult?.code?.trim();
+  if (errorCode && LOGIN_ERROR_MESSAGES[errorCode]) {
+    return LOGIN_ERROR_MESSAGES[errorCode];
   }
 
-  if (fallbackCode && LOGIN_ERROR_MESSAGES[fallbackCode]) {
-    return LOGIN_ERROR_MESSAGES[fallbackCode];
+  const errorKey = authResult?.error?.trim();
+  if (errorKey && LOGIN_ERROR_MESSAGES[errorKey]) {
+    return LOGIN_ERROR_MESSAGES[errorKey];
+  }
+  if (errorKey && !/^[A-Za-z][A-Za-z0-9_]*$/.test(errorKey)) {
+    return errorKey;
   }
 
   return 'Login failed';
@@ -299,12 +284,7 @@ function AuthProviderInner({ children, initialSession = null, initialUser = null
 
       if (!authResult || authResult.error) {
         clearSessionPreferenceCookies();
-        const detailedMessage = await extractLoginErrorMessage(
-          email,
-          password,
-          authResult?.code
-        );
-        throw new Error(detailedMessage);
+        throw new Error(resolveLoginErrorMessage(authResult));
       }
 
       const sessionAfterLogin = await getSession().catch(() => null);

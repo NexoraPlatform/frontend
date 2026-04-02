@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
+import {useState, useEffect, useRef, useCallback} from 'react';
 import {useSearchParams} from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter } from '@/lib/navigation';
@@ -16,7 +16,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
-import { TrustoraLogo } from '@/components/branding/trustora-logo';
 import {
     User,
     Save,
@@ -34,16 +33,6 @@ import {
     Calendar,
     Target,
     Eye,
-    LayoutDashboard,
-    Layers,
-    Lock,
-    History,
-    FileText,
-    Users,
-    CheckCircle2,
-    Settings,
-    Moon,
-    Sun,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages, useProviderProfile} from "@/hooks/use-api";
@@ -67,13 +56,8 @@ import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useForm } from 'react-hook-form';
 import * as v from 'valibot';
 import { sanitizeHttpUrl } from '@/lib/navigation-security';
-import { useAppTheme } from '@/hooks/use-app-theme';
 import {
     getDashboardTabHref,
-    getNewProjectHref,
-    getPrimaryDashboardTabHref,
-    getProviderProfileHref,
-    getSecondaryDashboardTabHref,
 } from '@/lib/dashboard-navigation';
 import {
     buildProviderProfileSearchParams,
@@ -81,6 +65,7 @@ import {
     resolveProviderProfileTab,
     type ProviderProfileTab,
 } from '@/lib/provider-profile-tabs';
+import { ProviderDashboardShell } from '@/components/dashboard/provider-dashboard-shell';
 
 type Languages = {
     id: number;
@@ -415,7 +400,6 @@ const providerProfileErrorPathMap: Record<string, string> = {
 export default function ProviderProfileEditPage() {
     const t = useTranslations();
     const { user, loading, userLoading } = useAuth();
-    const { isDarkMode, toggleTheme } = useAppTheme();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -442,24 +426,10 @@ export default function ProviderProfileEditPage() {
         resolver: valibotResolver(billingDetailsSchema),
         defaultValues: createEmptyBillingDetailsValues(),
     });
-    const roleSlugs = useMemo(() => {
-        const rolesList: any[] = Array.isArray(user?.roles) ? (user?.roles ?? []) : [];
-        const fromRoles = rolesList.map((role: any) => role?.slug).filter(Boolean);
-        const fromRoleSlugs = (Array.isArray(user?.role_slugs) ? user?.role_slugs : []) ?? [];
-        const fromSingleRole = user?.role ? [user.role] : [];
-        return Array.from(
-            new Set(
-                [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
-                    .filter(Boolean)
-                    .map((slug) => String(slug).toLowerCase()),
-            ),
-        );
-    }, [user?.roles, user?.role_slugs, user?.role]);
-
     const updateSectionQuery = useCallback((value: ProviderProfileTab) => {
         const params = buildProviderProfileSearchParams(searchParams, value, defaultTab);
         const query = params.toString();
-        const basePath = pathname || getProviderProfileHref();
+        const basePath = pathname || '/provider/profile';
         const nextUrl = query ? `${basePath}?${query}` : basePath;
         const currentQuery = searchParams.toString();
         const currentUrl = currentQuery ? `${basePath}?${currentQuery}` : basePath;
@@ -944,190 +914,46 @@ export default function ProviderProfileEditPage() {
             profileData.firstName.trim() !== String(providerProfile.firstName || '').trim() ||
             profileData.lastName.trim() !== String(providerProfile.lastName || '').trim()
         );
-    // This page is provider-only; keep provider dashboard menu behavior even if role payload is partial.
-    const isProviderFromRoute = true;
-    const isProvider = isProviderFromRoute || roleSlugs.includes('provider');
-    const isClient = roleSlugs.includes('client');
-    const currentTheme = isDarkMode ? dashboardThemes.dark : dashboardThemes.light;
-    const userInitials = `${(user.firstName?.[0] ?? '')}${(user.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
-    const userDisplayName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email;
-    const userAvatarSrc = user.avatar ?? user.profile_photo_url ?? user.avatar_url ?? undefined;
-    const activeDashboardMenuItem = 'edit-profile';
-    const sidebarItemClass = (item: string) => `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors w-full text-left ${
-        activeDashboardMenuItem === item
-            ? 'bg-[#1BC47D]/10 text-[#1BC47D] border border-[#1BC47D]/20'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
-    }`;
-    const servicesTitle = isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client');
-    const headerControlStyle = {
-        borderColor: 'var(--border-color)',
-        backgroundColor: 'var(--input-bg)',
-        color: 'var(--text-main)',
-    };
 
     return (
-        <div
-            className="flex h-screen w-full overflow-hidden font-sans transition-colors duration-300"
-            style={{ ...currentTheme, backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' }}
-        >
-            <aside className="z-20 hidden w-64 shrink-0 flex-col justify-between border-r border-[#152B42] bg-[#0B1C2D] md:flex">
-                <div>
-                    <div className="flex h-20 items-center border-b border-white/5 px-6">
-                        <TrustoraLogo
-                            alt="Trustora provider profile logo"
-                            imageClassName="h-14 w-auto"
-                            priority
-                            sizes="190px"
-                            variant="dark"
-                        />
-                    </div>
-
-                    <nav className="space-y-1 p-4">
-                        <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{t('dashboard.quick_actions.title')}</p>
-
-                        <button type="button" onClick={() => router.push(getDashboardTabHref('overview'))} className={sidebarItemClass('overview')}>
-                            <LayoutDashboard size={18} />
-                            {t('dashboard.tabs.overview')}
-                        </button>
-                        {isClient && !isProvider ? (
-                            <button
-                                type="button"
-                                onClick={() => router.push(getNewProjectHref())}
-                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
-                            >
-                                <Plus size={18} />
-                                {t('dashboard.projects.new_project')}
-                            </button>
-                        ) : null}
-                        <button
-                            type="button"
-                            onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
-                            className={sidebarItemClass('projects')}
-                        >
-                            <Lock size={18} />
-                            {t('dashboard.tabs.projects')}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
-                            className={sidebarItemClass('services')}
-                        >
-                            <Layers size={18} />
-                            {t('dashboard.tabs.services')}
-                        </button>
-                        <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={sidebarItemClass('messages')}>
-                            <History size={18} />
-                            {t('dashboard.tabs.messages')}
-                        </button>
-                        {isProvider ? (
-                            <button
-                                type="button"
-                                onClick={() => router.push(getProviderProfileHref())}
-                                className={sidebarItemClass('edit-profile')}
-                            >
-                                <FileText size={18} />
-                                {t('navigation.edit_profile')}
-                            </button>
-                        ) : null}
-
-                        {isProvider && (
+        <ProviderDashboardShell
+            title="Editează Profilul"
+            description="Completează informațiile pentru a atrage mai mulți clienți"
+            activeMenu="edit-profile"
+            headerActions={
+                <>
+                    <Button
+                        variant="outline"
+                        className="hidden sm:inline-flex"
+                        onClick={() => router.push(`/provider/${user.profile_url}`)}
+                    >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Previzualizare
+                    </Button>
+                    <Button className="btn-primary" onClick={handleSave} disabled={saving}>
+                        {saving ? (
                             <>
-                                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">{servicesTitle}</p>
-                                <button type="button" onClick={() => router.push(getDashboardTabHref('services'))} className={sidebarItemClass('services')}>
-                                    <Users size={18} />
-                                    {t('dashboard.tabs.services')}
-                                </button>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Se salvează...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Salvează
                             </>
                         )}
-                    </nav>
-                </div>
-
-                <div className="p-4 border-t border-white/5">
-                    <button type="button" onClick={() => router.push(getDashboardTabHref('settings'))} className={`${sidebarItemClass('settings')} mb-2`}>
-                        <Settings size={18} />
-                        {t('dashboard.tabs.settings')}
-                    </button>
-                    <div className="flex items-center gap-3 px-3 py-2 mt-2 bg-[#152B42] rounded-xl border border-white/5">
-                        <div className="relative">
-                            <Avatar className="w-8 h-8 border border-white/10">
-                                <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
-                                <AvatarFallback className="bg-gradient-to-tr from-[#1BC47D] to-[#0B1C2D] text-white text-xs font-bold">
-                                    {userInitials}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1BC47D] rounded-full border-2 border-[#152B42]" />
-                        </div>
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-bold text-white truncate">{userDisplayName}</p>
-                            <p className="text-[10px] text-[#1BC47D] uppercase font-bold flex items-center gap-1">
-                                <CheckCircle2 size={10} /> {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            <main className="relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300">
-                <header
-                    className="z-10 flex h-20 shrink-0 items-center justify-between border-b px-4 backdrop-blur-md md:px-8"
-                    style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
-                >
-                    <div className="min-w-0">
-                        <h1 className="text-2xl font-bold md:text-3xl">Editează Profilul</h1>
-                        <p className="text-sm md:text-base" style={{ color: 'var(--text-muted)' }}>
-                            Completează informațiile pentru a atrage mai mulți clienți
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2 md:gap-3">
-                        <button
-                            type="button"
-                            onClick={toggleTheme}
-                            className="rounded-lg border px-2 py-2 transition-colors hover:bg-white/5"
-                            style={headerControlStyle}
-                            title="Toggle Light/Dark Mode"
-                        >
-                            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-                        </button>
-                        <Button
-                            variant="outline"
-                            className="hidden sm:inline-flex"
-                            onClick={() => router.push(`/provider/${user.profile_url}`)}
-                        >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Previzualizare
-                        </Button>
-                        <Button className="btn-primary" onClick={handleSave} disabled={saving}>
-                            {saving ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Se salvează...
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Salvează
-                                </>
-                            )}
-                        </Button>
-                    </div>
-                </header>
-
-                <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-                    <div
-                        className="mb-6 rounded-xl border p-3 md:hidden"
-                        style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
-                    >
-                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                            Navigare rapidă
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('overview'))}>Dashboard</Button>
-                            <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('projects'))}>Proiecte</Button>
-                            <Button size="sm" variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>Previzualizare</Button>
-                        </div>
-                    </div>
-
-                    {error && (
+                    </Button>
+                </>
+            }
+            mobileQuickActions={
+                <>
+                    <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('overview'))}>Dashboard</Button>
+                    <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('projects'))}>Proiecte</Button>
+                    <Button size="sm" variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>Previzualizare</Button>
+                </>
+            }
+        >
+            {error && (
                         <Alert variant="destructive" className="mb-6">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>{error}</AlertDescription>
@@ -1141,8 +967,8 @@ export default function ProviderProfileEditPage() {
                         </Alert>
                     )}
 
-                    {/* Profile Edit Tabs */}
-                    <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+            {/* Profile Edit Tabs */}
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
                     <TabsList
                         className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border p-1 md:grid-cols-3 xl:grid-cols-6"
                         style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
@@ -1731,12 +1557,12 @@ export default function ProviderProfileEditPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <Alert className="border-amber-200 bg-amber-50">
-                                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                                    <AlertDescription className="text-amber-900">
-                                        Backend-ul poate trata inconsistent `work_experience`. După salvare, profilul este reîncărcat tocmai pentru a confirma ce a persistat.
-                                    </AlertDescription>
-                                </Alert>
+                                {/*<Alert className="border-amber-200 bg-amber-50">*/}
+                                {/*    <AlertCircle className="h-4 w-4 text-amber-600" />*/}
+                                {/*    <AlertDescription className="text-amber-900">*/}
+                                {/*        Backend-ul poate trata inconsistent `work_experience`. După salvare, profilul este reîncărcat tocmai pentru a confirma ce a persistat.*/}
+                                {/*    </AlertDescription>*/}
+                                {/*</Alert>*/}
 
                                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                                     <Input
@@ -2024,9 +1850,7 @@ export default function ProviderProfileEditPage() {
                             </CardContent>
                         </Card>
                     </TabsContent>
-                </Tabs>
-            </div>
-            </main>
-        </div>
+            </Tabs>
+        </ProviderDashboardShell>
     );
 }

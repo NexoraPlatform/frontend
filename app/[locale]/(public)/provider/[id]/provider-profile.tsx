@@ -1,7 +1,6 @@
 "use client";
 
 import {useState, useEffect, useCallback} from 'react';
-import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -24,8 +23,6 @@ import {
     Award,
     CheckCircle,
     MessageSquare,
-    Heart,
-    Share2,
     ExternalLink,
     Building,
     Languages,
@@ -108,8 +105,6 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
-    const [isFavorite, setIsFavorite] = useState(false);
-    const router = useRouter();
     // const { data: profileData, loading: profileLoading, error: profileError } = useGetProviderProfileByUrl(id);
     const { data: languages, loading: languagesLoading } = useGetLanguages();
     const {
@@ -206,20 +201,6 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
     const formatWorkingHours = (hours: any) => {
         if (!hours) return 'Liber';
         return `${hours.start} - ${hours.end}`;
-    };
-
-    const handleContactProvider = () => {
-        if (!user) {
-            router.push('/auth/signin');
-            return;
-        }
-        // Implement contact functionality
-        alert('Funcționalitatea de contact va fi implementată în curând');
-    };
-
-    const handleFavoriteToggle = () => {
-        setIsFavorite(!isFavorite);
-        // Implement favorite functionality
     };
 
     if (loading) {
@@ -469,21 +450,6 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                     </div>
                                 </div>
 
-                                {/* Action Buttons */}
-                                <div className="flex flex-col space-y-3 lg:w-64">
-                                    <Button size="lg" onClick={handleContactProvider} className="btn-primary w-full">
-                                        <MessageSquare className="w-4 h-4 mr-2" />
-                                        Contactează
-                                    </Button>
-                                    <Button variant="outline" size="lg" onClick={handleFavoriteToggle} className="w-full">
-                                        <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-                                        {isFavorite ? 'Elimină din favorite' : 'Adaugă la favorite'}
-                                    </Button>
-                                    <Button variant="outline" size="lg" className="w-full">
-                                        <Share2 className="w-4 h-4 mr-2" />
-                                        Partajează
-                                    </Button>
-                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -991,29 +957,10 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                     </div>
                                 </div>
 
-                                <div className="mt-6 pt-6 border-t">
-                                    <div className="flex space-x-4">
-                                        <Button onClick={handleContactProvider} className="btn-primary flex-1">
-                                            <MessageSquare className="w-4 h-4 mr-2" />
-                                            Trimite Mesaj
-                                        </Button>
-                                        <Button variant="outline" className="flex-1">
-                                            <Phone className="w-4 h-4 mr-2" />
-                                            Programează Apel
-                                        </Button>
-                                    </div>
-                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
                 </Tabs>
-
-                {/* Floating Action Button for Mobile */}
-                <div className="fixed bottom-6 right-6 lg:hidden">
-                    <Button size="lg" onClick={handleContactProvider} className="btn-primary rounded-full shadow-lg">
-                        <MessageSquare className="w-5 h-5" />
-                    </Button>
-                </div>
             </div>
 
             <Footer />

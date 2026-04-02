@@ -136,6 +136,12 @@ export type FlagProjectReviewPayload = {
   metadata?: Record<string, unknown> | null;
 };
 
+const FINAL_PROJECT_REVIEW_STATUSES = new Set([
+  'COMPLETED',
+  'FINISHED',
+  'DELIVERED',
+]);
+
 const REVIEW_SCORE_KEYS = [
   'communication',
   'quality',
@@ -371,6 +377,13 @@ export const normalizeReviewOpportunityCollection = (
   return source
     .map(normalizeReviewOpportunity)
     .filter((entry): entry is ReviewOpportunityRecord => entry !== null);
+};
+
+export const isProjectReviewOpportunityProjectFinished = (
+  opportunity: Pick<ReviewOpportunityRecord, 'project_status'> | null | undefined
+) => {
+  const normalizedStatus = toStringOrNull(opportunity?.project_status)?.toUpperCase();
+  return normalizedStatus ? FINAL_PROJECT_REVIEW_STATUSES.has(normalizedStatus) : false;
 };
 
 export const normalizeProjectReviewFlag = (

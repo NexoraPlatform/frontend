@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { useActivityTracker } from '../useActivityTracker';
 import apiClient from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
@@ -26,6 +26,9 @@ describe('hooks/useActivityTracker', () => {
 
   beforeEach(() => {
     mockedApi.updateLastActive.mockReset();
+    mockedApi.updateLastActive.mockResolvedValue(undefined);
+    mockedApi.getToken.mockReset();
+    mockedApi.setToken.mockReset();
   });
 
   afterEach(() => {
@@ -49,16 +52,17 @@ describe('hooks/useActivityTracker', () => {
     mockedApi.getToken.mockReturnValue('token-123');
 
     const { unmount } = renderHook(() => useActivityTracker());
+    expect(mockedApi.updateLastActive).toHaveBeenCalledTimes(1);
 
-    await waitFor(() => {
-      expect(mockedApi.updateLastActive).toHaveBeenCalledTimes(1);
+    act(() => {
+      vi.advanceTimersByTime(60_000);
     });
-
-    vi.advanceTimersByTime(60_000);
     expect(mockedApi.updateLastActive).toHaveBeenCalledTimes(2);
 
     unmount();
-    vi.advanceTimersByTime(60_000);
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
     expect(mockedApi.updateLastActive).toHaveBeenCalledTimes(2);
   });
 });

@@ -12,6 +12,10 @@ vi.mock('@/lib/navigation', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
+}));
+
 vi.mock('@/lib/api', () => ({
   default: {
     getRecentActivitiesQuick: vi.fn(),

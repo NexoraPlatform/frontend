@@ -401,15 +401,7 @@ describe('contexts/auth-context', () => {
       code: 'invalid_credentials',
     });
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
-
-      if (url.includes('/api/auth/login')) {
-        return jsonResponse({ message: 'Invalid credentials' }, 401);
-      }
-
-      return jsonResponse({}, 404);
-    });
+    const fetchMock = vi.fn(async () => jsonResponse({}, 404));
     vi.stubGlobal('fetch', fetchMock as any);
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -418,11 +410,19 @@ describe('contexts/auth-context', () => {
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    await expect(result.current.login('login@example.com', 'wrong')).rejects.toThrow(
-      'Invalid credentials'
-    );
+    let loginError: Error | null = null;
+    await act(async () => {
+      try {
+        await result.current.login('login@example.com', 'wrong');
+      } catch (error) {
+        loginError = error as Error;
+      }
+    });
+
+    expect(loginError?.message).toBe('The provided credentials are incorrect.');
     expect(document.cookie.includes('trustora-browser-session=1')).toBe(false);
     expect(document.cookie.includes('trustora-remember=1')).toBe(false);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/login'))).toBe(false);
   });
 
   it('falls back to login payload roles and permissions when profile refresh fails', async () => {
@@ -463,19 +463,8 @@ describe('contexts/auth-context', () => {
     expect(result.current.user?.permissions).toEqual(['projects.create']);
   });
 
-  it('surfaces backend login error details when credentials sign-in fails', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.toString();
-
-      if (url.includes('/api/auth/login') && init?.method === 'POST') {
-        return jsonResponse(
-          { message: 'Laravel Passport password grant is not enabled on the backend.' },
-          401
-        );
-      }
-
-      return jsonResponse({}, 404);
-    });
+  it('surfaces mapped login error details without re-authenticating against the backend', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({}, 404));
     vi.stubGlobal('fetch', fetchMock as any);
     mockSignIn.mockResolvedValue({
       ok: false,
@@ -491,10 +480,46 @@ describe('contexts/auth-context', () => {
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    await expect(
-      act(async () => {
+    let loginError: Error | null = null;
+    await act(async () => {
+      try {
         await result.current.login('broken@example.com', 'secret');
-      })
-    ).rejects.toThrow('Laravel Passport password grant is not enabled on the backend.');
+      } catch (error) {
+        loginError = error as Error;
+      }
+    });
+
+    expect(loginError?.message).toBe('Laravel Passport password grant is not enabled on the backend.');
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/login'))).toBe(false);
+  });
+
+  it('preserves direct login error messages returned by signIn without issuing a second login request', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({}, 404));
+    vi.stubGlobal('fetch', fetchMock as any);
+    mockSignIn.mockResolvedValue({
+      ok: false,
+      error: 'Account is temporarily locked. Please try again later.',
+      status: 429,
+      url: null,
+      code: undefined,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    let loginError: Error | null = null;
+    await act(async () => {
+      try {
+        await result.current.login('locked@example.com', 'secret');
+      } catch (error) {
+        loginError = error as Error;
+      }
+    });
+
+    expect(loginError?.message).toBe('Account is temporarily locked. Please try again later.');
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/login'))).toBe(false);
   });
 });

@@ -39,6 +39,8 @@ type ProviderDashboardShellProps = {
   description: string;
   children: React.ReactNode;
   activeMenu?: 'overview' | 'projects' | 'services' | 'messages' | 'settings' | 'edit-profile';
+  headerActions?: React.ReactNode;
+  mobileQuickActions?: React.ReactNode;
 };
 
 type DashboardThemeVars = {
@@ -80,6 +82,8 @@ export function ProviderDashboardShell({
   description,
   children,
   activeMenu = 'services',
+  headerActions,
+  mobileQuickActions,
 }: ProviderDashboardShellProps) {
   const { user } = useAuth();
   const t = useTranslations();
@@ -294,14 +298,16 @@ export function ProviderDashboardShell({
                 style={{ backgroundColor: 'var(--border-color)' }}
               />
 
-              <Button
-                type="button"
-                onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
-                className="flex items-center gap-2 rounded-lg bg-[#1BC47D] px-5 py-2 text-sm font-semibold text-white shadow-md shadow-[#1BC47D]/20 transition-all hover:bg-[#18A96B]"
-              >
-                <Layers size={16} />
-                {t('dashboard.tabs.projects')}
-              </Button>
+              {headerActions ?? (
+                <Button
+                  type="button"
+                  onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
+                  className="flex items-center gap-2 rounded-lg bg-[#1BC47D] px-5 py-2 text-sm font-semibold text-white shadow-md shadow-[#1BC47D]/20 transition-all hover:bg-[#18A96B]"
+                >
+                  <Layers size={16} />
+                  {t('dashboard.tabs.projects')}
+                </Button>
+              )}
             </div>
           </div>
         </header>
@@ -327,15 +333,19 @@ export function ProviderDashboardShell({
                 Navigare rapidă
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('overview'))}>
-                  Dashboard
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('projects'))}>
-                  Proiecte
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('services'))}>
-                  Servicii
-                </Button>
+                {mobileQuickActions ?? (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('overview'))}>
+                      Dashboard
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('projects'))}>
+                      Proiecte
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('services'))}>
+                      Servicii
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 

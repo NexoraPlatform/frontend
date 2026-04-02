@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ProjectContractWorkspace from '@/components/projects/project-contract-workspace';
@@ -126,6 +126,8 @@ describe('ProjectContractWorkspace', () => {
       expect(getContract).toHaveBeenCalledWith('42');
     });
 
+    expect((await screen.findAllByText('CTR-42')).length).toBeGreaterThan(0);
+    expect(screen.getByText('tabs.overview')).toBeTruthy();
     expect(generateProjectContract).not.toHaveBeenCalled();
   });
 
@@ -164,5 +166,50 @@ describe('ProjectContractWorkspace', () => {
     });
 
     expect(generateProjectContract).not.toHaveBeenCalled();
+  });
+
+  it('auto-generates a contract when none is provided and generation is enabled', async () => {
+    generateProjectContract.mockResolvedValue({
+      contract_id: '99',
+      project_id: '7',
+      reference: 'CTR-99',
+      status: 'draft',
+      requires_manual_review: false,
+      requires_qes: false,
+    });
+
+    getContract.mockImplementation(async (contractId: string) => ({
+      id: contractId,
+      project_id: '7',
+      reference: contractId === '99' ? 'CTR-99' : 'CTR-42',
+      status: 'draft',
+      requires_manual_review: false,
+      requires_qes: false,
+      documents: [],
+      parties: [],
+      milestones: [],
+      clause_usages: [],
+      risk_assessments: [],
+    }));
+
+    render(
+      <ProjectContractWorkspace
+        projectId="7"
+        projectClientId="10"
+        initialContractId={null}
+        autoGenerate
+        locale="en"
+      />
+    );
+
+    await waitFor(() => {
+      expect(generateProjectContract).toHaveBeenCalledWith('7');
+    });
+
+    await waitFor(() => {
+      expect(getContract).toHaveBeenCalledWith('99');
+    });
+
+    expect((await screen.findAllByText('CTR-99')).length).toBeGreaterThan(0);
   });
 });

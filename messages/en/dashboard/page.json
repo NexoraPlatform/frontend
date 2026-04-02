@@ -457,7 +457,7 @@
   },
   "reviews": {
     "title": "Project reviews",
-    "description": "Send feedback after eligible projects and track what has been published by and about you.",
+    "description": "Send feedback only after completed projects and track what has been published by and about you.",
     "tabs": {
       "opportunities": "Eligible ({count})",
       "authored": "Sent ({count})",
@@ -507,8 +507,8 @@
     },
     "empty": {
       "opportunities_title": "There are no reviews to write right now",
-      "opportunities_provider": "Once you finish eligible milestones or projects, review opportunities will show up here.",
-      "opportunities_client": "As soon as a project becomes eligible for feedback, you will be able to review the providers you worked with here.",
+      "opportunities_provider": "Review opportunities will show up here once the project reaches a final status.",
+      "opportunities_client": "You can leave a review here only after the project is completed.",
       "authored_title": "You have not sent any reviews yet",
       "authored_description": "The reviews you submit will appear here together with their current status.",
       "received_title": "You have not received any reviews yet",
@@ -561,6 +561,7 @@
       "errors": {
         "review_missing": "The selected review is no longer available for editing.",
         "reviewee_missing": "We could not determine the review target for this review.",
+        "project_not_finished": "You can submit a review only after the project is completed.",
         "rating_required": "Select a rating from 1 to 5.",
         "body_too_short": "Public feedback must be at least 10 characters long.",
         "generic": "We could not save the review."

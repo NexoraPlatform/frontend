@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildProjectReviewMutationPayload,
+  isProjectReviewOpportunityProjectFinished,
   normalizeProjectReviewCollection,
   normalizePublicUserReviewsResponse,
   normalizeReviewOpportunityCollection,
@@ -171,5 +172,33 @@ describe('lib/reviews', () => {
 
     expect(result[0]?.status).toBe('SUBMITTED');
     expect(result[0]?.rating_overall).toBe(4);
+  });
+
+  it('allows review opportunities only for final project statuses', () => {
+    expect(
+      isProjectReviewOpportunityProjectFinished({
+        project_status: 'COMPLETED',
+      })
+    ).toBe(true);
+    expect(
+      isProjectReviewOpportunityProjectFinished({
+        project_status: 'FINISHED',
+      })
+    ).toBe(true);
+    expect(
+      isProjectReviewOpportunityProjectFinished({
+        project_status: 'DELIVERED',
+      })
+    ).toBe(true);
+    expect(
+      isProjectReviewOpportunityProjectFinished({
+        project_status: 'IN_PROGRESS',
+      })
+    ).toBe(false);
+    expect(
+      isProjectReviewOpportunityProjectFinished({
+        project_status: null,
+      })
+    ).toBe(false);
   });
 });

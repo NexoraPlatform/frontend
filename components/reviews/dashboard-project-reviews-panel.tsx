@@ -21,6 +21,7 @@ import { useMyReviewOpportunities, useMyReviews } from '@/hooks/use-api';
 import {
   getProjectReviewDisplayDate,
   getProjectReviewDisplayPerson,
+  isProjectReviewOpportunityProjectFinished,
   type ProjectReviewRecord,
   type ReviewOpportunityRecord,
 } from '@/lib/reviews';
@@ -109,7 +110,10 @@ export function DashboardProjectReviewsPanel({
     true
   );
 
-  const opportunities = opportunitiesData ?? [];
+  const opportunities = useMemo(
+    () => (opportunitiesData ?? []).filter(isProjectReviewOpportunityProjectFinished),
+    [opportunitiesData]
+  );
   const authoredReviews = authoredResponse?.data ?? [];
   const receivedReviews = receivedResponse?.data ?? [];
   const statusLabels = useMemo(
@@ -159,6 +163,11 @@ export function DashboardProjectReviewsPanel({
   };
 
   const openCreateDialog = async (opportunity: ReviewOpportunityRecord) => {
+    if (!isProjectReviewOpportunityProjectFinished(opportunity)) {
+      toast.error(t('composer.errors.project_not_finished'));
+      return;
+    }
+
     setComposerState({
       mode: 'create',
       opportunity,
