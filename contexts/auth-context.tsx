@@ -83,7 +83,7 @@ const normalizeLoginPayloadUser = (payload: any) => {
 
 const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: 'The provided credentials are incorrect.',
-  passport_client: 'Passport client configuration is invalid or incomplete.',
+  passport_client: 'Passport client configuration is invalid or incomplete on the frontend server.',
   passport_grant: 'Laravel Passport password grant is not enabled on the backend.',
   passport_profile: 'Login succeeded, but the user profile could not be loaded.',
   passport_token: 'Login succeeded, but no access token was returned by the backend.',

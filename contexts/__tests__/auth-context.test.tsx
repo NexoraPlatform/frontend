@@ -493,6 +493,38 @@ describe('contexts/auth-context', () => {
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/login'))).toBe(false);
   });
 
+  it('surfaces frontend Passport client configuration errors without re-authenticating against the backend', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({}, 404));
+    vi.stubGlobal('fetch', fetchMock as any);
+    mockSignIn.mockResolvedValue({
+      ok: false,
+      error: 'CredentialsSignin',
+      code: 'passport_client',
+      status: 200,
+      url: null,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    let loginError: Error | null = null;
+    await act(async () => {
+      try {
+        await result.current.login('broken@example.com', 'secret');
+      } catch (error) {
+        loginError = error as Error;
+      }
+    });
+
+    expect(loginError?.message).toBe(
+      'Passport client configuration is invalid or incomplete on the frontend server.'
+    );
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/login'))).toBe(false);
+  });
+
   it('preserves direct login error messages returned by signIn without issuing a second login request', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({}, 404));
     vi.stubGlobal('fetch', fetchMock as any);

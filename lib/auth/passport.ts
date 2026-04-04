@@ -43,7 +43,7 @@ const resolveAppOrigin = (fallback?: string | null) =>
 const ensurePassportClientConfig = () => {
   if (!PASSPORT_CLIENT_ID || !PASSPORT_CLIENT_SECRET) {
     throw new Error(
-      'Missing Passport client credentials. Set PASSPORT_CLIENT_ID/PASSPORT_CLIENT_SECRET or LARAVEL_CLIENT_ID/LARAVEL_CLIENT_SECRET.'
+      'Missing Passport client credentials in the frontend server environment. Set PASSPORT_CLIENT_ID/PASSPORT_CLIENT_SECRET or LARAVEL_CLIENT_ID/LARAVEL_CLIENT_SECRET.'
     );
   }
 };
