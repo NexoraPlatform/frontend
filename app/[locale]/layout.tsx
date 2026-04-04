@@ -88,7 +88,6 @@ export default async function LocaleLayout({ children, params }: Props) {
               enableSystem
               disableTransitionOnChange
               storageKey={TRUSTORA_THEME_STORAGE_KEY}
-              nonce={nonce}
             >
               <AppShell>{children}</AppShell>
             </ThemeProvider>

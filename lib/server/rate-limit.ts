@@ -64,6 +64,7 @@ const RATE_LIMIT_EXEMPT_PATHS = [
   /^\/api\/auth\/(session|csrf|providers|error|verify-request)(?:\/.*)?$/i,
   /^\/api\/auth\/(signin|signout|callback)(?:\/.*)?$/i,
   /^\/api\/auth\/(me|refresh|logout)$/i,
+  /^\/api\/locations$/i,
   /^\/api\/companies\/search$/i,
   /^\/api\/realtime\/pusher-config$/i,
   /^\/api\/broadcasting\/auth$/i,
@@ -142,7 +143,10 @@ const upstashEnabled =
     process.env.UPSTASH_REDIS_REST_URL?.trim() &&
     process.env.UPSTASH_REDIS_REST_TOKEN?.trim(),
   );
-const failOpenOnProviderError = process.env.UPSTASH_RATE_LIMIT_FAIL_OPEN === 'true';
+
+export const shouldFailOpenOnProviderError = () =>
+  process.env.UPSTASH_RATE_LIMIT_FAIL_OPEN === 'true' ||
+  process.env.NODE_ENV === 'development';
 
 let redis: Redis | null = null;
 if (upstashEnabled) {
@@ -307,7 +311,7 @@ export async function enforceApiRateLimit(
       },
     );
   } catch {
-    if (failOpenOnProviderError) {
+    if (shouldFailOpenOnProviderError()) {
       // Optional backward-compatible behavior.
       return null;
     }

@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
+  CheckCircle2,
   FileText,
   History,
   LayoutDashboard,
@@ -194,93 +195,91 @@ export function TrustoraDashboardShell({
     : t("dashboard.projects.new_project");
 
   const sidebarItemClass = (item: DashboardShellMenu) =>
-    `group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
+    `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
       activeMenu === item
-        ? "border border-primary/30 bg-primary/10 text-primary"
-        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+        ? "border border-[#1BC47D]/20 bg-[#1BC47D]/10 text-[#1BC47D]"
+        : "text-slate-400 hover:bg-white/5 hover:text-white"
     }`;
 
   const sidebarContent = (
     <>
-      <div className="border-b border-border p-8">
-        <Link
-          href="/dashboard"
-          className="group flex items-center"
-          onClick={() => setIsMobileOpen(false)}
-        >
-          <TrustoraLogo
-            alt="Trustora dashboard logo"
-            className="transition-transform group-hover:scale-[1.02]"
-            imageClassName="h-14 w-auto"
-            priority
-            sizes="190px"
-            variant="dark"
-          />
-        </Link>
+      <div>
+        <div className="flex h-20 items-center border-b border-white/5 px-6">
+          <Link
+            href="/dashboard"
+            className="group flex items-center"
+            onClick={() => setIsMobileOpen(false)}
+          >
+            <TrustoraLogo
+              alt="Trustora dashboard logo"
+              className="transition-transform group-hover:scale-[1.02]"
+              imageClassName="h-14 w-auto"
+              priority
+              sizes="190px"
+              variant="dark"
+            />
+          </Link>
+        </div>
+
+        <nav className="space-y-1 p-4">
+          <p className="mb-3 mt-4 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            {t("dashboard.quick_actions.title")}
+          </p>
+          {menuItems.map((item, index) => {
+            const Icon = item.icon;
+
+            return (
+              <motion.button
+                key={item.key}
+                type="button"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                onClick={() => {
+                  item.action();
+                  setIsMobileOpen(false);
+                }}
+                className={sidebarItemClass(item.key)}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </motion.button>
+            );
+          })}
+        </nav>
       </div>
 
-      <nav className="flex-1 space-y-2 px-6 py-8">
-        {menuItems.map((item, index) => {
-          const Icon = item.icon;
-          const active = activeMenu === item.key;
-
-          return (
-            <motion.button
-              key={item.key}
-              type="button"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => {
-                item.action();
-                setIsMobileOpen(false);
-              }}
-              className={sidebarItemClass(item.key)}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="text-sm font-medium">{item.label}</span>
-              {active ? <span className="ml-auto h-2 w-2 rounded-full bg-primary" /> : null}
-            </motion.button>
-          );
-        })}
-      </nav>
-
-      <div className="space-y-4 border-t border-border p-6">
+      <div className="border-t border-white/5 p-4">
         <button
           type="button"
           onClick={() => {
             onMenuSelect("settings");
             setIsMobileOpen(false);
           }}
-          className={sidebarItemClass("settings")}
+          className={`${sidebarItemClass("settings")} mb-2`}
         >
           <Settings className="h-5 w-5" />
-          <span className="text-sm font-medium">{t("dashboard.tabs.settings")}</span>
+          <span>{t("dashboard.tabs.settings")}</span>
         </button>
 
-        <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-background/60 px-3 py-3">
-          <Avatar className="h-9 w-9 border border-border/70">
-            <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-400 text-xs font-bold text-white">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-foreground">{userDisplayName}</p>
-            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+        <div className="mt-2 flex items-center gap-3 rounded-xl border border-white/5 bg-[#152B42] px-3 py-2">
+          <div className="relative">
+            <Avatar className="h-8 w-8 border border-white/10">
+              <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
+              <AvatarFallback className="bg-gradient-to-tr from-[#1BC47D] to-[#0B1C2D] text-xs font-bold text-white">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#152B42] bg-[#1BC47D]" />
+          </div>
+          <div className="overflow-hidden">
+            <p className="truncate text-sm font-bold text-white">{userDisplayName}</p>
+            <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-[#1BC47D]">
+              <CheckCircle2 className="h-2.5 w-2.5" />
+              {isProvider ? t("dashboard.hero.role.provider") : t("dashboard.hero.role.client")}
+            </p>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            void logout();
-          }}
-          className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-muted-foreground transition-all duration-200 hover:bg-destructive/5 hover:text-destructive"
-        >
-          <LogOut className="h-5 w-5" />
-          <span className="font-medium">{t("dashboard.shell.sign_out")}</span>
-        </button>
       </div>
     </>
   );
@@ -312,13 +311,13 @@ export function TrustoraDashboardShell({
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -300, opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed left-0 top-0 z-30 flex h-screen w-72 flex-col overflow-y-auto border-r border-border bg-card glass-effect md:hidden"
+          className="fixed left-0 top-0 z-30 flex h-screen w-72 flex-col justify-between overflow-y-auto border-r border-[#152B42] bg-[#0B1C2D] md:hidden"
         >
           {sidebarContent}
         </motion.aside>
       ) : null}
 
-      <aside className="hidden h-screen w-72 flex-col overflow-y-auto border-r border-border bg-card glass-effect md:flex">
+      <aside className="z-20 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-[#152B42] bg-[#0B1C2D] md:flex">
         {sidebarContent}
       </aside>
 

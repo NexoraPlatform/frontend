@@ -3,6 +3,7 @@ import {
   getClientIdentifier,
   getTrustedClientIp,
   isRateLimitExemptPath,
+  shouldFailOpenOnProviderError,
 } from '../server/rate-limit';
 
 describe('lib/server/rate-limit', () => {
@@ -63,11 +64,25 @@ describe('lib/server/rate-limit', () => {
     expect(isRateLimitExemptPath('/api/auth/callback/credentials')).toBe(true);
     expect(isRateLimitExemptPath('/api/auth/refresh')).toBe(true);
     expect(isRateLimitExemptPath('/api/auth/me')).toBe(true);
+    expect(isRateLimitExemptPath('/api/locations')).toBe(true);
     expect(isRateLimitExemptPath('/api/companies/search')).toBe(true);
     expect(isRateLimitExemptPath('/api/realtime/pusher-config')).toBe(true);
     expect(isRateLimitExemptPath('/api/broadcasting/auth')).toBe(true);
     expect(isRateLimitExemptPath('/api/auth/login')).toBe(false);
     expect(isRateLimitExemptPath('/api/auth/register')).toBe(false);
     expect(isRateLimitExemptPath('/api/dashboard/stats')).toBe(false);
+  });
+
+  it('fails open on provider errors in development by default', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
+    expect(shouldFailOpenOnProviderError()).toBe(true);
+  });
+
+  it('respects the explicit fail-open env outside development', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('UPSTASH_RATE_LIMIT_FAIL_OPEN', 'true');
+
+    expect(shouldFailOpenOnProviderError()).toBe(true);
   });
 });

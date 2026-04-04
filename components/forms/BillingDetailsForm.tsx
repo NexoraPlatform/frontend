@@ -63,7 +63,7 @@ async function fetchLocationPayload<T>(params: URLSearchParams): Promise<T> {
       Accept: "application/json",
     },
     credentials: "same-origin",
-    cache: "force-cache",
+    cache: "no-store",
   });
 
   const payload = (await response.json().catch(() => null)) as
