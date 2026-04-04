@@ -35,7 +35,10 @@ export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className={cn('h-11 w-auto px-3 flex items-center gap-2 rounded-xl text-sm font-semibold', className)}
+          className={cn(
+            'h-11 w-auto px-3 flex items-center gap-2 rounded-xl text-sm font-semibold text-foreground hover:text-foreground dark:text-white dark:hover:text-white',
+            className
+          )}
           aria-label="Schimbă valuta"
         >
           <span aria-hidden="true" className="text-base pr-1">

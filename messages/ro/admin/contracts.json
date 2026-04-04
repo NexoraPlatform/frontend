@@ -1,0 +1,285 @@
+{
+  "contracts": {
+    "locale": "ro",
+    "title": "Operațiuni contracte",
+    "description": "Monitorizează workload-ul contractual, starea juridică și queue-urile de review și semnare dintr-un singur loc.",
+    "actions": {
+      "refresh": "Reîncarcă"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "contracts": "Contracte",
+      "reviews": "Queue review",
+      "signatures": "Queue semnare"
+    },
+    "errors": {
+      "unauthenticated": "Sesiunea nu mai este validă. Autentifică-te din nou pentru a continua.",
+      "forbidden": "Acest cont nu are permisiunea necesară pentru acțiunea contractuală cerută.",
+      "not_found": "Resursa contractuală sau documentul cerut nu a putut fi găsit.",
+      "validation": "Cererea nu a putut fi procesată. Verifică datele introduse și încearcă din nou."
+    },
+    "common": {
+      "all": "Toate",
+      "yes": "Da",
+      "no": "Nu",
+      "view": "Deschide",
+      "previous": "Anterior",
+      "next": "Următor",
+      "pagination": "Pagina {current} din {total}",
+      "unavailable": "Indisponibil",
+      "ok": "OK",
+      "failed": "Eșuat"
+    },
+    "overview": {
+      "errors": {
+        "title": "Eroare dashboard contracte",
+        "load": "Nu am putut încărca overview-ul din dashboard-ul de contracte."
+      },
+      "cards": {
+        "contracts": "Contracte",
+        "reviews": "Review-uri deschise",
+        "urgent_badge": "{count} urgente",
+        "signatures": "Semnări active",
+        "stalled_badge": "{count} blocate",
+        "obligations": "Obligații restante",
+        "due_soon_badge": "{count} scad curând"
+      },
+      "operational": {
+        "title": "Note operaționale",
+        "description": "Reminder-ele importante pentru frontend și operatori din documentația fluxului contractual.",
+        "flow_status_title": "Prioritizează flow_status",
+        "flow_status_body": "Pentru fluxul nou de semnare, tratează flow_status ca sursă operațională de adevăr, nu câmpul de compatibilitate status.",
+        "upload_title": "Upload-ul generic face auto-dispatch",
+        "upload_body": "Endpoint-ul admin pentru upload de PDF semnat decide automat dacă fișierul aparține clientului, providerului sau unui flow legacy.",
+        "backfill_title": "HTML/PDF pot face backfill",
+        "backfill_body": "Endpoint-urile de HTML și PDF final pot regenera row-ul curent sau fișierul lipsă din storage când operatorul cere documentul.",
+        "business_title": "Arată clar erorile de business",
+        "business_body": "Flow-ul greșit, lipsa FINAL_PDF sau upload-urile semnate invalide trebuie afișate explicit operatorilor, nu mascate ca erori generice."
+      },
+      "error_reference": {
+        "title": "Referință erori",
+        "description": "Cele mai frecvente răspunsuri API pe care să le aștepți în ecranele admin de contracte.",
+        "unauthenticated": "Lipsește tokenul sau sesiunea a expirat pe rutele API protejate.",
+        "forbidden": "Lipsește rolul, permisiunea sau access-ul policy pe endpoint-urile admin de contracte.",
+        "not_found": "Route model binding sau lookup-ul documentului nu a găsit contractul, review-ul, signature-ul sau fișierul cerut.",
+        "validation": "Payload invalid, fișier lipsă sau mimetype greșit pentru acțiunile de review și semnare."
+      }
+    },
+    "contracts_tab": {
+      "errors": {
+        "title": "Eroare listă contracte",
+        "load": "Nu am putut încărca lista admin de contracte."
+      },
+      "filters": {
+        "title": "Filtre contracte",
+        "description": "Filtrează contractele după referință, status juridic sau presiune de review.",
+        "search": "Caută după contract, proiect sau parte",
+        "status": "Status contract",
+        "risk": "Risc general",
+        "manual_review": "Necesită review manual"
+      },
+      "list": {
+        "title": "Contracte",
+        "description": "{count} contracte în rezultatul curent."
+      },
+      "table": {
+        "reference": "Referință",
+        "project": "Proiect",
+        "status": "Status",
+        "risk": "Risc",
+        "signature_level": "Nivel semnare",
+        "generated_at": "Generat",
+        "actions": "Acțiuni"
+      },
+      "empty_title": "Nu există contracte pentru filtrele curente",
+      "empty_description": "Ajustează căutarea sau filtrele pentru a inspecta alt slice juridic."
+    },
+    "contract_detail": {
+      "title": "Detaliu contract",
+      "description": "Auditează pachetul juridic, inspectează documentele generate și păstrează notițe interne pentru contractul selectat.",
+      "errors": {
+        "title": "Eroare detaliu contract",
+        "load": "Nu am putut încărca detaliul contractului selectat.",
+        "preview": "Nu am putut deschide previzualizarea HTML curentă a contractului.",
+        "download": "Nu am putut descărca PDF-ul contractului.",
+        "note_create": "Nu am putut salva nota internă a contractului."
+      },
+      "actions": {
+        "preview_html": "Previzualizează HTML",
+        "download_pdf": "Descarcă PDF",
+        "add_note": "Adaugă notă"
+      },
+      "badges": {
+        "manual_review": "Review manual",
+        "qes": "Necesită QES"
+      },
+      "labels": {
+        "reference": "Referință",
+        "project": "Proiect",
+        "value": "Valoare",
+        "updated_at": "Actualizat"
+      },
+      "risk_title": "Snapshot risc",
+      "risk_description": "Cea mai recentă evaluare de risc și blocajele salvate pentru contractul selectat.",
+      "warnings": "Avertismente",
+      "blocking_reasons": "Motive de blocare",
+      "no_risk": "Nu există încă o evaluare de risc pentru acest contract.",
+      "documents_title": "Documente generate",
+      "documents_description": "Documentele curente întoarse de endpoint-ul admin de detaliu contract.",
+      "current_document": "Curent",
+      "backfill_note": "Previzualizarea HTML sau descărcarea PDF-ului poate face backfill dacă lipsește row-ul curent sau fișierul din storage.",
+      "notes_title": "Note interne",
+      "notes_description": "Notele operatorilor vizibile din detaliul admin al contractului.",
+      "note_placeholder": "Scrie o notă internă pentru follow-up legal, compliance sau signature.",
+      "no_notes": "Nu există încă note înregistrate pentru acest contract."
+    },
+    "reviews_tab": {
+      "errors": {
+        "title": "Eroare queue review",
+        "load": "Nu am putut încărca queue-ul de review manual."
+      },
+      "filters": {
+        "title": "Filtre queue review",
+        "description": "Concentrează-te pe review-urile juridice care contează acum.",
+        "search": "Caută după referință contract sau sumar review",
+        "status": "Status review",
+        "priority": "Prioritate",
+        "contract_status": "Status contract"
+      },
+      "list": {
+        "title": "Queue manual review",
+        "description": "{count} elemente de review în rezultatul curent."
+      },
+      "table": {
+        "contract": "Contract",
+        "status": "Status",
+        "priority": "Prioritate",
+        "assigned_to": "Asignat către",
+        "due_at": "Scadent la",
+        "comments": "Comentarii",
+        "actions": "Acțiuni"
+      },
+      "empty_title": "Nu există review-uri pentru filtrele curente",
+      "empty_description": "Încearcă o căutare mai largă sau golește filtrele de prioritate și status.",
+      "no_summary": "Review fără sumar explicit"
+    },
+    "review_detail": {
+      "title": "Detaliu review",
+      "description": "Procesează review-ul juridic, adaugă comentarii și mută item-ul prin fluxul de decizie.",
+      "errors": {
+        "title": "Eroare detaliu review",
+        "load": "Nu am putut încărca review-ul selectat.",
+        "comment_create": "Nu am putut salva comentariul review-ului.",
+        "action": "Nu am putut finaliza acțiunea selectată pe review.",
+        "assigned_user_required": "ID-ul utilizatorului asignat este obligatoriu înainte de asignare.",
+        "requested_changes_required": "Adaugă cel puțin o modificare cerută înainte de trimitere."
+      },
+      "labels": {
+        "contract": "Contract",
+        "assigned_to": "Asignat către",
+        "opened_at": "Deschis la",
+        "due_at": "Scadent la",
+        "requested_changes": "Modificări cerute"
+      },
+      "actions": {
+        "assign": "Asignează",
+        "start": "Pornește review",
+        "request_changes": "Cere modificări",
+        "approve": "Aprobă",
+        "reject": "Respinge",
+        "submit": "Trimite",
+        "cancel": "Renunță",
+        "add_comment": "Adaugă comentariu"
+      },
+      "action_description": "Acțiunea este executată imediat pe item-ul din queue din backend.",
+      "placeholders": {
+        "assigned_user_id": "ID utilizator asignat",
+        "comment": "Adaugă context intern pentru această acțiune.",
+        "requested_changes": "Listează modificările cerute, câte una pe linie.",
+        "notes": "Note de decizie"
+      },
+      "comments_title": "Comentarii review",
+      "comments_description": "Conversația recentă și notele de sistem stocate pentru review-ul selectat.",
+      "no_summary": "Review fără sumar explicit",
+      "no_comments": "Nu există încă comentarii pentru acest review."
+    },
+    "signatures_tab": {
+      "errors": {
+        "title": "Eroare queue semnare",
+        "load": "Nu am putut încărca queue-ul de semnare."
+      },
+      "filters": {
+        "title": "Filtre queue semnare",
+        "description": "Urmărește flow-ul de semnare manuală și inspectează semnările blocate sau incomplete.",
+        "search": "Caută după referință contract sau flow reference",
+        "status": "Status semnare",
+        "signature_level": "Nivel semnare",
+        "contract_status": "Status contract"
+      },
+      "list": {
+        "title": "Queue semnare",
+        "description": "{count} elemente de semnare în rezultatul curent."
+      },
+      "table": {
+        "contract": "Contract",
+        "flow_status": "Status flow",
+        "status": "Status",
+        "sent_at": "Trimis la",
+        "last_event_at": "Ultimul eveniment",
+        "events": "Evenimente",
+        "actions": "Acțiuni"
+      },
+      "empty_title": "Nu există semnări pentru filtrele curente",
+      "empty_description": "Încearcă o căutare mai largă sau inspectează alt status contractual."
+    },
+    "signature_detail": {
+      "title": "Detaliu semnare",
+      "description": "Auditează flow-ul de semnare manuală, validările și documentele încărcate.",
+      "errors": {
+        "title": "Eroare detaliu semnare",
+        "load": "Nu am putut încărca flow-ul de semnare selectat.",
+        "upload": "Nu am putut procesa upload-ul PDF-ului semnat.",
+        "download": "Nu am putut descărca PDF-ul semnat.",
+        "file_required": "Alege un PDF înainte să trimiți upload-ul."
+      },
+      "operational_title": "Reminder operațional",
+      "operational_body": "Folosește flow_status ca să înțelegi ce așteaptă queue-ul în pasul următor. Endpoint-ul generic de upload admin va ruta PDF-ul după starea curentă a flow-ului.",
+      "labels": {
+        "contract": "Contract",
+        "validation_policy": "Politică validare",
+        "sent_at": "Trimis la",
+        "completed_at": "Finalizat la"
+      },
+      "actions": {
+        "download_signed_pdf": "Descarcă PDF semnat",
+        "upload_client": "Încarcă PDF semnat de client",
+        "upload_provider": "Încarcă PDF semnat final",
+        "upload_generic": "Încarcă PDF semnat"
+      },
+      "upload_title": "Upload PDF semnat",
+      "upload_description": "Folosește endpoint-ul admin de upload când flow-ul așteaptă următorul semnatar sau un document semnat legacy.",
+      "no_file_selected": "Nu ai selectat încă un PDF.",
+      "no_upload_permission": "Acest cont nu are permisiunea necesară pentru upload de PDF-uri semnate.",
+      "documents_title": "Documente",
+      "documents_description": "Documentele persistate întoarse de payload-ul curent de detaliu signature.",
+      "signers_title": "Secvența semnatarilor",
+      "signers_description": "Semnatarii așteptați și câmpurile configurate pentru flow.",
+      "signer_order": "Ordinea {value}",
+      "no_signers": "Nu există o secvență de semnatari disponibilă pentru această semnare.",
+      "events_title": "Evenimente recente",
+      "events_description": "Evenimentele operaționale emise de flow-ul curent de semnare.",
+      "no_events": "Nu există încă evenimente pentru această semnare.",
+      "validations_title": "Ultima validare",
+      "validations_description": "Pentru audit de semnare, arată validările și nu te baza doar pe evenimente.",
+      "no_validations": "Nu există încă un rezultat de validare pentru această semnare.",
+      "validation": {
+        "signature_count": "Număr semnături",
+        "detected_level": "Nivel detectat",
+        "best_time": "Cel mai bun moment de semnare",
+        "integrity": "Integritate",
+        "valid": "Valid",
+        "invalid": "Invalid"
+      }
+    }
+  }
+}

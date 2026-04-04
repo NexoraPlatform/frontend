@@ -2,7 +2,6 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 import { http } from '@/lib/fetch-client';
-import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 import { ensurePusherClientConfig, getPusherClientConfig, type PusherClientConfig } from '@/lib/pusher-config';
 
 let echoInstance: Echo<any> | null = null;
@@ -11,21 +10,17 @@ let echoInitPromise: Promise<Echo<any> | null> | null = null;
 function createEchoAuthorizer(channel: any) {
   return {
     authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
-      ensureCsrfCookie()
-        .then(() => {
-          const xsrfToken = getXsrfToken();
-          return http.post(
-            '/api/broadcasting/auth',
-            {
-              socket_id: socketId,
-              channel_name: channel.name,
-            },
-            {
-              skipAuthHandling: true,
-              ...(xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : {}),
-            }
-          );
-        })
+      http
+        .post(
+          '/api/broadcasting/auth',
+          {
+            socket_id: socketId,
+            channel_name: channel.name,
+          },
+          {
+            skipAuthHandling: true,
+          }
+        )
         .then((response) => callback(null, response))
         .catch((error) =>
           callback(error instanceof Error ? error : new Error('Broadcast auth failed'))

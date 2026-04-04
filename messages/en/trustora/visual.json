@@ -1,11 +1,51 @@
 {
   "visual": {
-    "title": "Rapyd + Notary + Marketplace",
-    "money_label": "Money",
-    "money_subtitle": "Escrow layer",
-    "contracts_label": "Contracts",
-    "contracts_subtitle": "Digital execution",
-    "verification_label": "Verification",
-    "verification_subtitle": "Identity layer"
+    "badge": "SYSTEM PROOF",
+    "title": "How digital contracts and escrow payments work for IT projects",
+    "subtitle": "We do not ask for blind trust. We show exactly how identity, money, and delivery are protected before you enter the platform.",
+    "step_one": {
+      "label": "STEP 1",
+      "title": "Both sides enter verified",
+      "body": "The company and the professional go through real checks before they collaborate, reducing risk from the very first contact."
+    },
+    "step_two": {
+      "label": "STEP 2",
+      "title": "Funds enter escrow before work starts",
+      "body": "The client secures the milestone first, and the provider knows the work starts with reserved funds, not promises."
+    },
+    "step_three": {
+      "label": "STEP 3",
+      "title": "Every milestone leaves a clear trail",
+      "body": "Statuses, approvals, and cryptographic proof create an audit trail that both sides can follow easily."
+    },
+    "contract": {
+      "badge": "Live contract example",
+      "title": "Contract flow prepared for launch",
+      "parties_label": "Verified parties",
+      "parties_value": "Company and provider confirmed",
+      "escrow_label": "Escrow",
+      "escrow_value": "Milestone secured before kickoff",
+      "proof_label": "Proof",
+      "proof_value": "Cryptographic hash and status history",
+      "milestone_label": "Milestone",
+      "amount_label": "Amount",
+      "status_label": "Status",
+      "milestone_one": {
+        "title": "M1: Discovery and specifications",
+        "amount": "€1,200",
+        "status": "Released after approval"
+      },
+      "milestone_two": {
+        "title": "M2: Core implementation",
+        "amount": "€2,900",
+        "status": "Funds locked in escrow"
+      },
+      "milestone_three": {
+        "title": "M3: QA and final delivery",
+        "amount": "€1,100",
+        "status": "Secured before kickoff"
+      },
+      "footer": "This is what we are opening now for the initial cohort: IT collaborations that are clear, protected, and easy to control."
+    }
   }
 }

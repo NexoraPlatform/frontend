@@ -6,6 +6,9 @@
     "more_label": "+{count} mai multe",
     "providers_more_label": "+{count} mai mulți",
     "providers_available": "{count} prestatori disponibili",
-    "no_providers": "Niciun prestator încă"
+    "no_providers": "Niciun prestator încă",
+    "provider_badges_title": "Badge-uri featured",
+    "badges_loading": "Se încarcă badge-urile...",
+    "badges_none": "Fără badge-uri featured momentan"
   }
 }

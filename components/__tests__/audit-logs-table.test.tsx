@@ -5,6 +5,40 @@ import { differenceInCalendarDays, parseISO } from 'date-fns';
 import AuditLogsTable from '@/components/AuditLogsTable';
 import apiClient from '@/lib/api';
 
+const translate = (key: string, values?: Record<string, unknown>) => {
+  if (key === 'admin.audit_logs.error_message') return 'Failed to load audit logs';
+  if (key === 'admin.audit_logs.filters.all_events') return 'All events';
+  if (key === 'admin.audit_logs.filters.all_subject_types') return 'All subject types';
+  if (key === 'admin.audit_logs.filters.all_subjects') return 'All subjects';
+  if (key === 'admin.audit_logs.search_placeholder') return 'Search User ID...';
+  if (key === 'admin.audit_logs.actions.search') return 'Search';
+  if (key === 'admin.audit_logs.pagination.previous') return 'Previous';
+  if (key === 'admin.audit_logs.pagination.next') return 'Next';
+  if (key === 'admin.audit_logs.pagination.page') {
+    return `Page ${String(values?.page ?? '')} of ${String(values?.lastPage ?? '')}`;
+  }
+  if (key === 'admin.audit_logs.pagination.total') {
+    return `Total ${String(values?.total ?? '')}`;
+  }
+  if (key === 'admin.audit_logs.table.subject_id') {
+    return `Subject ID: ${String(values?.id ?? '')}`;
+  }
+  return key;
+};
+
+vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
+  useTranslations: () => translate,
+}));
+
+vi.mock('@/lib/navigation', () => ({
+  Link: ({ href, children, ...rest }: any) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock('@/components/ui/select', () => ({
   Select: ({ children }: any) => <div>{children}</div>,
   SelectTrigger: ({ children }: any) => <button type="button">{children}</button>,
@@ -73,8 +107,9 @@ describe('AuditLogsTable', () => {
 
     fireEvent.click(screen.getByText('Updated user profile'));
 
-    expect(await screen.findByText('"Old"')).toBeTruthy();
-    expect(await screen.findByText('"New"')).toBeTruthy();
+    expect(await screen.findByText('name')).toBeTruthy();
+    expect(await screen.findByText('Old')).toBeTruthy();
+    expect(await screen.findByText('New')).toBeTruthy();
   });
 
   it('searching a numeric user id triggers fetch with user_id', async () => {
@@ -87,9 +122,10 @@ describe('AuditLogsTable', () => {
 
     await screen.findByText('Updated user profile');
 
-    const input = screen.getByPlaceholderText('Search User ID...');
+    const [input] = screen.getAllByPlaceholderText('Search User ID...');
     fireEvent.change(input, { target: { value: '42' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    const [searchButton] = screen.getAllByRole('button', { name: 'Search' });
+    fireEvent.click(searchButton);
 
     await waitFor(() => {
       expect(mockedApi.fetchAuditLogs).toHaveBeenLastCalledWith(
@@ -113,7 +149,7 @@ describe('AuditLogsTable', () => {
 
     expect(await screen.findByText('Page 1 of 2')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: /Next/i }));
+    fireEvent.click(screen.getByRole('link', { name: /Go to next page/i }));
 
     await waitFor(() => {
       expect(mockedApi.fetchAuditLogs).toHaveBeenLastCalledWith(

@@ -1,9 +1,23 @@
 {
   "signin": {
     "badge": "Trustora Secure Access",
-    "title_prefix": "Welcome back to",
-    "title_brand": "Trustora",
-    "subtitle": "Access your secure workspace and manage projects with trust, transparency, and automated escrow.",
+    "title_prefix": "The Architect of",
+    "title_brand": "Digital Security",
+    "subtitle": "Access your encrypted vault and manage high-stakes digital assets with enterprise-grade sovereignty. Securely login to your Trustora dashboard.",
+    "welcome_back": "Welcome back",
+    "social_divider": "Or continue with",
+    "hero_kicker": "Verified infrastructure",
+    "oauth_unavailable": "Social sign-in is unavailable right now.",
+    "providers": {
+      "google": "Google",
+      "github": "GitHub"
+    },
+    "metrics": {
+      "encryption_value": "AES-256",
+      "encryption_label": "Encryption standard",
+      "protocol_value": "Zero-trust",
+      "protocol_label": "Access protocol"
+    },
     "benefits": {
       "verified_contracts": "Verified contracts",
       "automated_escrow": "Automated escrow",
@@ -17,6 +31,8 @@
     "password_label": "Password",
     "password_placeholder": "Your password",
     "forgot_password": "Forgot your password?",
+    "remember_me": "Remember for 30 days",
+    "remember_me_hint": "Keep me signed in for 30 days. If unchecked, I will be signed out when the browser is closed.",
     "loading": "Signing in...",
     "submit": "Sign in",
     "no_account": "Don't have an account?",

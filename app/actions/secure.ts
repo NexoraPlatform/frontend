@@ -3,7 +3,7 @@
 import { serverRequest } from '@/lib/server/api';
 
 export async function getCurrentUserAction(language?: string) {
-  return serverRequest<any>('/auth/me', { method: 'GET', language });
+  return serverRequest<any>('/auth/me', { method: 'GET', cache: 'no-store', language });
 }
 
 export async function updateUserLanguageAction(language: string) {
@@ -18,7 +18,11 @@ export async function updateUserLanguageAction(language: string) {
 }
 
 export async function getProviderProfileAction(language?: string) {
-  return serverRequest<any>('/users/providers/profile', { method: 'GET', language });
+  return serverRequest<any>('/users/providers/profile', {
+    method: 'GET',
+    cache: 'no-store',
+    language,
+  });
 }
 
 export async function updateProviderProfileAction(profileData: any, language?: string) {
@@ -30,7 +34,11 @@ export async function updateProviderProfileAction(profileData: any, language?: s
 }
 
 export async function rapydGetWalletBalanceAction(language?: string) {
-  return serverRequest<any>('/rapyd/balance', { method: 'GET', language });
+  return serverRequest<any>('/rapyd/balance', {
+    method: 'GET',
+    cache: 'no-store',
+    language,
+  });
 }
 
 export async function rapydOnboardingAction(language?: string) {

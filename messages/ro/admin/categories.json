@@ -3,8 +3,26 @@
     "manage_title": "Gestionare Categorii",
     "manage_subtitle": "Administrează categoriile de servicii",
     "add_category": "Adaugă Categorie",
+    "search_placeholder": "Caută după nume, slug sau descriere...",
     "list_title": "Lista Categorii",
     "total_summary": "{count} categorii în total ({parents} categorii principale, {children} subcategorii)",
+    "table": {
+      "category": "Categorie",
+      "parent": "Părinte",
+      "order": "Ordine",
+      "status": "Status",
+      "icon": "Iconiță",
+      "actions": "Acțiuni"
+    },
+    "summary": {
+      "cards": {
+        "total": "Total Categorii",
+        "parents": "Categorii Principale",
+        "children": "Subcategorii",
+        "inactive": "Inactive"
+      }
+    },
+    "active": "Activ",
     "inactive": "Inactiv",
     "order_label": "Ordine",
     "subcategories_label": "subcategorii",
@@ -38,6 +56,22 @@
     "create_category": "Creează Categoria",
     "creating": "Se creează...",
     "cancel": "Anulează",
+    "overview": {
+      "title": "Rezumat Categorie",
+      "description_create": "Verifică structura categoriei înainte să creezi o nouă intrare în catalog.",
+      "description_edit": "Verifică ierarhia și metadatele înainte să salvezi categoria actualizată.",
+      "parent": "Categorie Părinte",
+      "icon": "Iconiță Selectată",
+      "sort_order": "Ordine Sortare",
+      "slug": "Slug",
+      "empty": "Neselectat"
+    },
+    "actions_card": {
+      "create_title": "Creează Categoria",
+      "create_description": "Salvează categoria și fă-o disponibilă în structura de catalog din admin.",
+      "edit_title": "Salvează Categoria",
+      "edit_description": "Actualizează detaliile categoriei și păstrează taxonomia serviciilor sincronizată."
+    },
     "modify_title": "Modifica Categorie",
     "modify_subtitle": "Modifica o categorie pentru servicii",
     "modify_button": "Modifica Categoria",

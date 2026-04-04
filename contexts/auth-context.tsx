@@ -1,10 +1,26 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { SessionProvider, signIn, signOut, useSession } from 'next-auth/react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { Session } from 'next-auth';
+import { getSession, SessionProvider, signIn, signOut, useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
-import { onApiUnauthorized } from '@/lib/fetch-client';
-import { ensureCsrfCookie } from '@/lib/csrf';
+import {
+  clearBrowserSessionAuthCache,
+  setBrowserSessionAuthCache,
+} from '@/lib/fetch-client';
+import {
+  clearSessionPreferenceCookies,
+  setSessionPreferenceCookies,
+} from '@/lib/auth/session-preferences';
+import { hasSessionAuthTokens } from '@/lib/auth/session';
 import { normalizeAuthUser, type AuthUser } from '@/lib/auth/user';
 
 interface AuthContextType {
@@ -12,7 +28,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   loading: boolean;
   userLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<AuthUser>) => Promise<void>;
@@ -21,6 +37,7 @@ interface AuthContextType {
 
 type AuthProviderProps = {
   children: React.ReactNode;
+  initialSession?: Session | null;
   initialUser?: AuthUser | null;
 };
 
@@ -52,68 +69,229 @@ const fetchCurrentUser = async () => {
   return normalizeAuthUser(payload?.user ?? payload);
 };
 
-function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) {
+const normalizeLoginPayloadUser = (payload: any) => {
+  if (!payload?.user) {
+    return null;
+  }
+
+  return normalizeAuthUser({
+    ...payload.user,
+    ...(Array.isArray(payload.roles) ? { roles: payload.roles } : {}),
+    ...(Array.isArray(payload.permissions) ? { permissions: payload.permissions } : {}),
+  });
+};
+
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  invalid_credentials: 'The provided credentials are incorrect.',
+  passport_client: 'Passport client configuration is invalid or incomplete on the frontend server.',
+  passport_grant: 'Laravel Passport password grant is not enabled on the backend.',
+  passport_profile: 'Login succeeded, but the user profile could not be loaded.',
+  passport_token: 'Login succeeded, but no access token was returned by the backend.',
+  passport_error: 'Authentication with Passport failed.',
+};
+
+const resolveLoginErrorMessage = (authResult?: { code?: string | null; error?: string | null } | null) => {
+  const errorCode = authResult?.code?.trim();
+  if (errorCode && LOGIN_ERROR_MESSAGES[errorCode]) {
+    return LOGIN_ERROR_MESSAGES[errorCode];
+  }
+
+  const errorKey = authResult?.error?.trim();
+  if (errorKey && LOGIN_ERROR_MESSAGES[errorKey]) {
+    return LOGIN_ERROR_MESSAGES[errorKey];
+  }
+  if (errorKey && !/^[A-Za-z][A-Za-z0-9_]*$/.test(errorKey)) {
+    return errorKey;
+  }
+
+  return 'Login failed';
+};
+
+const getAuthUserSnapshotKey = (value: AuthUser | null) => {
+  if (!value) {
+    return 'guest';
+  }
+
+  return `${value.id ?? ''}:${value.email ?? ''}`;
+};
+
+function AuthProviderInner({ children, initialSession = null, initialUser = null }: AuthProviderProps) {
   const normalizedInitialUser = useMemo(() => normalizeAuthUser(initialUser), [initialUser]);
   const { data: session, status, update } = useSession();
-  const sessionUser = useMemo(() => normalizeAuthUser((session as any)?.user ?? null), [session]);
-  const [user, setUser] = useState<AuthUser | null>(sessionUser ?? normalizedInitialUser);
+  const initialSessionHasAuthTokens = useMemo(
+    () => hasSessionAuthTokens(initialSession as any),
+    [initialSession]
+  );
+  const initialSessionUser = useMemo(
+    () => (initialSessionHasAuthTokens ? normalizeAuthUser((initialSession as any)?.user ?? null) : null),
+    [initialSession, initialSessionHasAuthTokens]
+  );
+  const serverSnapshotUser = useMemo(
+    () => initialSessionUser ?? normalizedInitialUser,
+    [initialSessionUser, normalizedInitialUser]
+  );
+  const serverSnapshotKey = useMemo(
+    () => getAuthUserSnapshotKey(serverSnapshotUser),
+    [serverSnapshotUser]
+  );
+  const sessionHasAuthTokens = useMemo(() => hasSessionAuthTokens(session as any), [session]);
+  const sessionUser = useMemo(
+    () => (sessionHasAuthTokens ? normalizeAuthUser((session as any)?.user ?? null) : null),
+    [session, sessionHasAuthTokens]
+  );
+  const [recoveredSessionUser, setRecoveredSessionUser] = useState<AuthUser | null>(null);
+  const [isRecoveringSession, setIsRecoveringSession] = useState(
+    () => status === 'unauthenticated' && !sessionUser && !initialSessionUser && !normalizedInitialUser
+  );
+  const recoveryAttemptedRef = useRef(false);
+  const previousServerSnapshotKeyRef = useRef(serverSnapshotKey);
+  const effectiveSessionUser = sessionUser ?? recoveredSessionUser;
+  const [user, setUser] = useState<AuthUser | null>(
+    effectiveSessionUser ?? initialSessionUser ?? normalizedInitialUser
+  );
 
   useEffect(() => {
     if (status === 'loading') return;
-    if (sessionUser) {
-      setUser(sessionUser);
+    if (effectiveSessionUser) {
+      setUser(effectiveSessionUser);
       return;
     }
     if (status === 'unauthenticated') {
-      setUser(normalizedInitialUser ?? null);
+      setUser(null);
       return;
     }
     setUser(null);
-  }, [normalizedInitialUser, sessionUser, status]);
+  }, [effectiveSessionUser, status]);
 
   useEffect(() => {
-    ensureCsrfCookie().catch((error) => {
-      console.warn('Failed to initialize CSRF cookie:', error);
-    });
-  }, []);
+    if (!initialSession) return;
+    setBrowserSessionAuthCache(initialSession);
+  }, [initialSession]);
+
+  useEffect(() => {
+    if (serverSnapshotKey === previousServerSnapshotKeyRef.current) return;
+
+    previousServerSnapshotKeyRef.current = serverSnapshotKey;
+    recoveryAttemptedRef.current = false;
+    setRecoveredSessionUser(serverSnapshotUser);
+
+    if (serverSnapshotUser) {
+      setUser(serverSnapshotUser);
+      setIsRecoveringSession(false);
+      return;
+    }
+
+    if (status === 'unauthenticated') {
+      setUser(null);
+    }
+  }, [serverSnapshotKey, serverSnapshotUser, status]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && sessionHasAuthTokens) {
+      recoveryAttemptedRef.current = false;
+      setRecoveredSessionUser(null);
+      setIsRecoveringSession(false);
+      setBrowserSessionAuthCache(session);
+      return;
+    }
+
+    if (status === 'authenticated' && !sessionHasAuthTokens) {
+      setRecoveredSessionUser(null);
+      setUser(null);
+      setIsRecoveringSession(false);
+      clearBrowserSessionAuthCache();
+    }
+  }, [recoveredSessionUser, session, sessionHasAuthTokens, status]);
+
+  useEffect(() => {
+    if (status !== 'unauthenticated') return;
+    if (effectiveSessionUser) {
+      setIsRecoveringSession(false);
+      return;
+    }
+    if (recoveryAttemptedRef.current) {
+      setIsRecoveringSession(false);
+      return;
+    }
+
+    recoveryAttemptedRef.current = true;
+    let cancelled = false;
+    setIsRecoveringSession(true);
+
+    void getSession()
+      .then(async (sessionSnapshot) => {
+        if (cancelled) return;
+
+        if (sessionSnapshot) {
+          setBrowserSessionAuthCache(sessionSnapshot);
+        }
+
+        const sessionSnapshotHasAuthTokens = hasSessionAuthTokens(sessionSnapshot as any);
+        let recoveredUser = sessionSnapshotHasAuthTokens
+          ? normalizeAuthUser((sessionSnapshot as any)?.user ?? null)
+          : null;
+        let userProfileLookupFailed = false;
+        if (sessionSnapshotHasAuthTokens && !recoveredUser) {
+          recoveredUser = await fetchCurrentUser().catch((error) => {
+            userProfileLookupFailed = true;
+            console.warn('Failed to recover authenticated user from /api/auth/me:', error);
+            return null;
+          });
+        }
+
+        if (recoveredUser) {
+          setRecoveredSessionUser(recoveredUser);
+          setUser(recoveredUser);
+          return;
+        }
+
+        setRecoveredSessionUser(null);
+        if (!sessionSnapshot && !userProfileLookupFailed) {
+          clearBrowserSessionAuthCache();
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.warn('Failed to recover authenticated session from Auth.js:', error);
+        setRecoveredSessionUser(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsRecoveringSession(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveSessionUser, status]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+    async (email: string, password: string, rememberMe = false) => {
+      setSessionPreferenceCookies(rememberMe);
 
-      let payload: any = null;
+      let authResult;
       try {
-        payload = await response.clone().json();
-      } catch {
-        payload = null;
+        authResult = await signIn('credentials', {
+          email,
+          password,
+          remember: rememberMe ? 'true' : 'false',
+          redirect: false,
+        });
+      } catch (error) {
+        clearSessionPreferenceCookies();
+        throw error;
       }
-
-      if (!response.ok) {
-        let message = 'Login failed';
-        try {
-          message = payload?.message || payload?.error || message;
-        } catch {
-          // ignore
-        }
-        throw new Error(message);
-      }
-
-      const authResult = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
 
       if (!authResult || authResult.error) {
-        throw new Error(authResult?.error || 'Login failed');
+        clearSessionPreferenceCookies();
+        throw new Error(resolveLoginErrorMessage(authResult));
       }
 
+      const sessionAfterLogin = await getSession().catch(() => null);
+      recoveryAttemptedRef.current = false;
+      setRecoveredSessionUser(null);
+      setBrowserSessionAuthCache(sessionAfterLogin);
+      const loginUser = normalizeAuthUser((sessionAfterLogin as any)?.user ?? null);
       let refreshedUser: AuthUser | null = null;
       try {
         refreshedUser = await fetchCurrentUser();
@@ -123,6 +301,9 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
       if (refreshedUser) {
         setUser(refreshedUser);
         await update({ user: refreshedUser } as any);
+      } else if (loginUser) {
+        setUser(loginUser);
+        await update({ user: loginUser } as any);
       } else {
         await update();
       }
@@ -133,11 +314,12 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
   const register = useCallback(
     async (userData: any) => {
       try {
-        await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(userData),
         });
         if (!response.ok) {
@@ -159,19 +341,39 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
   );
 
   const refreshUser = useCallback(async () => {
+    const sessionSnapshot = await getSession().catch(() => null);
+    setBrowserSessionAuthCache(sessionSnapshot);
+
+    if (!hasSessionAuthTokens(sessionSnapshot as any)) {
+      setUser(null);
+      setRecoveredSessionUser(null);
+      clearBrowserSessionAuthCache();
+      clearSessionPreferenceCookies();
+      await signOut({ redirect: false });
+      return;
+    }
+
     let refreshedUser: AuthUser | null = null;
     try {
       refreshedUser = await fetchCurrentUser();
     } catch (error) {
       console.warn('Failed to refresh authenticated user:', error);
     }
+    if (!refreshedUser) {
+      refreshedUser = normalizeAuthUser((sessionSnapshot as any)?.user ?? null);
+    }
     if (refreshedUser) {
+      recoveryAttemptedRef.current = false;
+      setRecoveredSessionUser(null);
       setUser(refreshedUser);
       await update({ user: refreshedUser } as any);
       return;
     }
 
     setUser(null);
+    setRecoveredSessionUser(null);
+    clearBrowserSessionAuthCache();
+    clearSessionPreferenceCookies();
     await signOut({ redirect: false });
   }, [update]);
 
@@ -185,6 +387,9 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      setRecoveredSessionUser(null);
+      clearBrowserSessionAuthCache();
+      clearSessionPreferenceCookies();
       await signOut({ redirect: false });
       const localeFromPath =
         typeof window !== 'undefined'
@@ -228,16 +433,7 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     [refreshUser, update]
   );
 
-  useEffect(() => {
-    const unsubscribe = onApiUnauthorized(() => {
-      setUser(null);
-      void signOut({ redirect: false });
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const loading = status === 'loading';
+  const loading = status === 'loading' || isRecoveringSession;
   const userLoading = loading && !user;
 
   const value: AuthContextType = {
@@ -255,10 +451,20 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function AuthProvider({ children, initialUser = null }: AuthProviderProps) {
+export function AuthProvider({
+  children,
+  initialSession = null,
+  initialUser = null,
+}: AuthProviderProps) {
   return (
-    <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
-      <AuthProviderInner initialUser={initialUser}>{children}</AuthProviderInner>
+    <SessionProvider
+      refetchOnWindowFocus={false}
+      refetchInterval={0}
+      session={initialSession}
+    >
+      <AuthProviderInner initialSession={initialSession} initialUser={initialUser}>
+        {children}
+      </AuthProviderInner>
     </SessionProvider>
   );
 }
@@ -269,4 +475,8 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+export function useOptionalAuth() {
+  return useContext(AuthContext);
 }

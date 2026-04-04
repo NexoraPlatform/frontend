@@ -68,6 +68,8 @@ export interface TypingUser {
 }
 
 interface ChatContextType {
+    active: boolean;
+    activate: () => void;
     isPanelOpen: boolean;
     openPanel: (group?: ChatGroup) => void;
     closePanel: () => void;
@@ -107,23 +109,33 @@ interface ChatContextType {
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export function ChatProvider({ children }: { children: React.ReactNode }) {
+type ChatProviderProps = {
+    children: React.ReactNode;
+    lazy?: boolean;
+};
+
+export function ChatProvider({ children, lazy = false }: ChatProviderProps) {
     const { user } = useAuth();
     const { notifications, loading: notificationsLoading } = useNotifications();
     const locale = useLocale();
+    const [active, setActive] = useState(!lazy);
     const [groups, setGroups] = useState<ChatGroup[]>([]);
     const [activeGroup, setActiveGroup] = useState<ChatGroup | null>(null);
     const [messages, setMessages] = useState<{ [groupId: string]: ChatMessage[] }>({});
     const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
     const [isConnected, setIsConnected] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(!lazy);
     const [loadingMessages, setLoadingMessages] = useState<{ [groupId: string]: boolean }>({});
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
     const [groupOnline, setGroupOnline] = useState<Record<string, string[]>>({});
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const groupsRef = useRef<ChatGroup[]>([]);
+    const activate = useCallback(() => {
+        setActive(true);
+    }, []);
 
     const openPanel = (group?: ChatGroup) => {
+        setActive(true);
         if (group) setActiveGroup(group);
         setIsPanelOpen(true);
     };
@@ -148,15 +160,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, [locale]);
 
     const refreshGroups = useCallback(async () => {
+        if (!user || !active) return;
         try {
             const response = await apiClient.getChatGroups();
             setGroups(response.groups || []);
         } catch (e) {
             console.error('Failed to load chat groups:', e);
         }
-    }, [locale]);
+    }, [active, locale, user]);
 
     const loadMessages = useCallback(async (groupId: string, page = 1, pageSize = 20) => {
+        if (!user || !active) return;
         try {
             setLoadingMessages(prev => ({ ...prev, [groupId]: true }));
             const response = await apiClient.getChatMessages(groupId, page, pageSize);
@@ -174,9 +188,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoadingMessages(prev => ({ ...prev, [groupId]: false }));
         }
-    }, []);
+    }, [active, user]);
 
     const markAsRead = useCallback(async (groupId: string, messageId?: string) => {
+        if (!user || !active) return;
         try {
             await apiClient.markChatMessagesAsRead(groupId, messageId);
             setGroups(prev => prev.map(group =>
@@ -189,10 +204,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             console.error('Failed to mark as read:', e);
         }
-    }, []);
+    }, [active, user]);
 
     const initializeChat = useCallback(async () => {
-        if (!user) return;
+        if (!user || !active) return;
         try {
             setLoading(true);
             const connected = await chatService.connect(user.id);
@@ -213,10 +228,31 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [user, refreshGroups]);
+    }, [active, user, refreshGroups]);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            setGroups([]);
+            setActiveGroup(null);
+            setMessages({});
+            setTypingUsers([]);
+            setIsConnected(false);
+            setLoading(false);
+            setLoadingMessages({});
+            setOnlineUsers([]);
+            setGroupOnline({});
+            setIsPanelOpen(false);
+            startedRef.current = false;
+            listenersReadyRef.current = false;
+            seededNotificationsRef.current = false;
+            seenNotificationIdsRef.current.clear();
+            setActive(!lazy);
+            return;
+        }
+        if (!active) {
+            setLoading(false);
+            return;
+        }
         if (!startedRef.current) {
             startedRef.current = true;
             initializeChat();
@@ -226,10 +262,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                 chatService.disconnect();
             }
         };
-    }, [user, initializeChat]);
+    }, [active, initializeChat, lazy, user]);
 
     useEffect(() => {
-        if (process.env.NODE_ENV !== 'production') return;
+        if (!active || process.env.NODE_ENV !== 'production') return;
 
         const disconnect = () => {
             chatService.disconnect();
@@ -246,13 +282,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             window.removeEventListener('pagehide', disconnect);
             document.removeEventListener('visibilitychange', disconnect);
         };
-    }, []);
+    }, [active]);
 
     useEffect(() => {
         groupsRef.current = groups;
     }, [groups]);
 
     useEffect(() => {
+        if (!active) return;
         if (notificationsLoading) return;
         if (!seededNotificationsRef.current) {
             notifications.forEach(n => seenNotificationIdsRef.current.add(n.id));
@@ -263,13 +300,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const newMessageNotifications = notifications.filter(n => {
             if (seenNotificationIdsRef.current.has(n.id)) return false;
             seenNotificationIdsRef.current.add(n.id);
-            return n.type === 'MESSAGE' && !n.isRead;
+            return n.category === 'message' && !n.isRead;
         });
 
         if (newMessageNotifications.length > 0) {
             void refreshGroups();
         }
-    }, [notifications, notificationsLoading, refreshGroups]);
+    }, [active, notifications, notificationsLoading, refreshGroups]);
 
     const isUserOnline = useCallback((userId: string | number) => {
         return onlineUsers.includes(String(userId));
@@ -401,10 +438,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        if (!activeGroup) return;
+        if (!active || !activeGroup) return;
         chatService.joinGroupPresence(activeGroup.id);
         return () => chatService.leaveGroupPresence(activeGroup.id);
-    }, [activeGroup]);
+    }, [active, activeGroup]);
 
     const sendMessage = useCallback(async (groupId: string, content: string, attachments?: any[]) => {
         try {
@@ -477,6 +514,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         projectId?: string;
         participantIds: string[];
     }): Promise<ChatGroup> => {
+        if (!user) {
+            throw new Error('User is not authenticated');
+        }
+        setActive(true);
         try {
             const response = await apiClient.createChatGroup(data, locale);
             const newGroup = response.group;
@@ -486,12 +527,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             console.error('Failed to create group:', e);
             throw e;
         }
-    }, []);
+    }, [locale, user]);
 
     const connect = async (): Promise<boolean> => {
         if (!user) return false;
+        setActive(true);
         try {
-            return await chatService.connect(user.id);
+            const connected = await chatService.connect(user.id);
+            setIsConnected(Boolean(connected));
+
+            if (connected && !listenersReadyRef.current) {
+                setupEventListeners();
+                listenersReadyRef.current = true;
+            }
+
+            if (connected) {
+                const response = await apiClient.getChatGroups();
+                setGroups(response.groups || []);
+            }
+
+            return Boolean(connected);
         } catch (e) {
             console.error('Failed to connect to chat:', e);
             return false;
@@ -506,6 +561,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const getTotalUnreadCount = () => groups.reduce((total, g) => total + g.unreadCount, 0);
 
     const value: ChatContextType = {
+        active,
+        activate,
         isUserOnline,
         getGroupOnlineCount,
         isPanelOpen,

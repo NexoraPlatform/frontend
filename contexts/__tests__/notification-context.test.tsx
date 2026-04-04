@@ -11,6 +11,7 @@ vi.mock('@/contexts/auth-context', () => ({
 vi.mock('@/lib/api', () => ({
   apiClient: {
     getNotifications: vi.fn(),
+    getUnreadNotificationsCount: vi.fn(),
     markNotificationAsRead: vi.fn(),
     markAllNotificationsAsRead: vi.fn(),
     deleteNotification: vi.fn(),
@@ -59,11 +60,13 @@ describe('contexts/notification-context', () => {
   const mockedUseAuth = useAuth as unknown as vi.Mock;
   const mockedApi = apiClient as unknown as {
     getNotifications: vi.Mock;
+    getUnreadNotificationsCount: vi.Mock;
     markNotificationAsRead: vi.Mock;
   };
 
   beforeEach(() => {
-    mockedUseAuth.mockReturnValue({ user: { id: '1' } });
+    mockedUseAuth.mockReturnValue({ user: { id: '1', language: 'ro' }, refreshUser: vi.fn() });
+    mockedApi.getUnreadNotificationsCount.mockResolvedValue({ count: 1 });
   });
 
   afterEach(() => {
@@ -98,6 +101,7 @@ describe('contexts/notification-context', () => {
     expect(result.current.notifications).toHaveLength(1);
     expect(result.current.unreadCount).toBe(1);
     expect(result.current.hasMore).toBe(true);
+    expect(mockedApi.getNotifications).toHaveBeenCalledWith({ limit: 20, language: 'ro' });
   });
 
   it('markAsRead updates item and decrements unreadCount', async () => {
@@ -115,6 +119,7 @@ describe('contexts/notification-context', () => {
       hasMore: false,
       unreadCount: 1,
     });
+    mockedApi.getUnreadNotificationsCount.mockResolvedValueOnce({ count: 1 });
 
     mockedApi.markNotificationAsRead.mockResolvedValueOnce({ ok: true });
 
@@ -133,6 +138,66 @@ describe('contexts/notification-context', () => {
     expect(mockedApi.markNotificationAsRead).toHaveBeenCalledWith('n1');
     expect(result.current.unreadCount).toBe(0);
     expect(result.current.notifications[0].isRead).toBe(true);
+  });
+
+  it('bootstraps unread count in lazy mode without loading notifications list', async () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <NotificationProvider lazy>{children}</NotificationProvider>
+    );
+
+    const { result } = renderHook(() => useNotifications(), { wrapper });
+
+    await waitFor(() => expect(result.current.unreadCount).toBe(1));
+
+    expect(result.current.active).toBe(false);
+    expect(result.current.notifications).toHaveLength(0);
+    expect(mockedApi.getUnreadNotificationsCount).toHaveBeenCalled();
+    expect(mockedApi.getNotifications).not.toHaveBeenCalled();
+  });
+
+  it('accepts snake_case unread count payloads for lazy badge bootstrap', async () => {
+    mockedApi.getUnreadNotificationsCount.mockResolvedValueOnce({ unread_count: 3 });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <NotificationProvider lazy>{children}</NotificationProvider>
+    );
+
+    const { result } = renderHook(() => useNotifications(), { wrapper });
+
+    await waitFor(() => expect(result.current.unreadCount).toBe(3));
+    expect(result.current.notifications).toHaveLength(0);
+  });
+
+  it('falls back to unread notifications probe when unread-count endpoint returns 0', async () => {
+    mockedApi.getUnreadNotificationsCount.mockResolvedValueOnce({ count: 0 });
+    mockedApi.getNotifications.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'n-lazy',
+          type: 'App\\Notifications\\ChatMessage',
+          data: { title: 'Unread', message: 'Probe', type: 'chat.message' },
+          created_at: '2025-01-01T10:00:00Z',
+          read_at: null,
+        },
+      ],
+      nextCursor: null,
+      hasMore: false,
+      unreadCount: 1,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <NotificationProvider lazy>{children}</NotificationProvider>
+    );
+
+    const { result } = renderHook(() => useNotifications(), { wrapper });
+
+    await waitFor(() => expect(result.current.unreadCount).toBe(1));
+    expect(result.current.notifications).toHaveLength(0);
+    expect(mockedApi.getNotifications).toHaveBeenCalledWith({
+      unread: true,
+      limit: 1,
+      language: 'ro',
+    });
   });
 
   it('loadMore merges without duplicates', async () => {
@@ -172,6 +237,7 @@ describe('contexts/notification-context', () => {
         hasMore: false,
         unreadCount: 2,
       });
+    mockedApi.getUnreadNotificationsCount.mockResolvedValueOnce({ count: 1 });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <NotificationProvider>{children}</NotificationProvider>

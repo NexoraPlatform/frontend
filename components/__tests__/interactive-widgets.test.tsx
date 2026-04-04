@@ -22,6 +22,7 @@ vi.mock('@/lib/navigation', () => ({
 
 vi.mock('@/contexts/notification-context', () => ({
   useNotifications: vi.fn(),
+  resolveNotificationLink: vi.fn(() => '/dashboard?tab=messages'),
 }));
 
 vi.mock('@/contexts/chat-context', () => ({
@@ -44,17 +45,26 @@ describe('Interactive widgets', () => {
     routerPush.mockReset();
   });
 
-  it('NotificationBell shows unread badge and navigates on click', async () => {
+  it('NotificationBell shows unread indicator and navigates on click', async () => {
     const markAsRead = vi.fn().mockResolvedValue(undefined);
     (useNotifications as unknown as vi.Mock).mockReturnValue({
+      active: true,
+      activate: vi.fn(),
       notifications: [
         {
           id: 'n1',
-          type: 'MESSAGE',
+          type: 'chat.message',
           title: 'Hello',
           message: 'World',
           isRead: false,
           createdAt: '2025-01-01T10:00:00Z',
+          readAt: null,
+          category: 'message',
+          projectId: null,
+          payload: {},
+          groupId: null,
+          link: null,
+          notificationType: 'chat.message',
           data: {},
         },
       ],
@@ -75,7 +85,7 @@ describe('Interactive widgets', () => {
 
     render(<NotificationBell />);
 
-    expect(screen.getByText('1')).toBeTruthy();
+    expect(screen.getByTestId('notification-unread-indicator')).toBeTruthy();
 
     fireEvent.click(screen.getByLabelText('common.notifications.open_aria'));
 
@@ -110,6 +120,8 @@ describe('Interactive widgets', () => {
   it('ChatButton marks all unread groups as read', async () => {
     const markAsRead = vi.fn().mockResolvedValue(undefined);
     (useChat as unknown as vi.Mock).mockReturnValue({
+      active: true,
+      activate: vi.fn(),
       groups: [
         {
           id: 'g1',
@@ -134,6 +146,7 @@ describe('Interactive widgets', () => {
       getTotalUnreadCount: () => 3,
       markAsRead,
       openPanel: vi.fn(),
+      loading: false,
     });
 
     (useAuth as unknown as vi.Mock).mockReturnValue({

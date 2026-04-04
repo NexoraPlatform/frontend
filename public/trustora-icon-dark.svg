@@ -1,0 +1,9 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="trustora-icon-dark-title trustora-icon-dark-desc">
+  <title id="trustora-icon-dark-title">Trustora icon</title>
+  <desc id="trustora-icon-dark-desc">Trustora brand icon for dark interfaces.</desc>
+  <rect x="7" y="8" width="15" height="9.5" rx="2" fill="#0F172A"/>
+  <polygon points="32,8 42,17 32,26 22,17" fill="#10B981"/>
+  <rect x="42" y="8" width="15" height="9.5" rx="2" fill="#0F172A"/>
+  <rect x="7" y="16.5" width="15" height="40" rx="2" fill="#0F172A"/>
+  <rect x="42" y="16.5" width="15" height="40" rx="2" fill="#0F172A"/>
+</svg>

@@ -1,33 +1,44 @@
 import { NextResponse } from 'next/server';
-import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/laravel-proxy';
+import { auth } from '@/auth';
+import { fetchPassportUserProfile } from '@/lib/auth/passport';
+import { hasSessionAccessToken, hasSessionAuthTokens } from '@/lib/auth/session';
+import { normalizeAuthUser, sanitizeAuthResponsePayload } from '@/lib/auth/user';
 
 export async function GET(req: Request) {
-  const headers = buildProxyHeaders(req);
-  const url = new URL(`${API_BASE_URL}/auth/me`);
-  const incomingUrl = new URL(req.url);
+  const session = await auth();
+  const sessionUser = normalizeAuthUser(session?.user ?? null);
+  const hasUsableSession = hasSessionAuthTokens(session as any);
+  const hasAccessToken = hasSessionAccessToken(session as any);
+  const accessToken = hasAccessToken ? (session as { accessToken: string }).accessToken : null;
 
-  incomingUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
-
-  if (!url.searchParams.has('include')) {
-    url.searchParams.set('include', 'connected_accounts');
+  if (!hasUsableSession || !sessionUser) {
+    return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
   }
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers,
-    cache: 'no-store',
-  });
+  if (!hasAccessToken) {
+    return NextResponse.json({ user: sessionUser }, { status: 200 });
+  }
 
-  const payload = await response.text();
-  const nextResponse = new NextResponse(payload, {
-    status: response.status,
-    headers: {
-      'Content-Type': response.headers.get('content-type') ?? 'application/json',
-    },
-  });
+  try {
+    const payload = await fetchPassportUserProfile(accessToken!, {
+      origin: req.headers.get('origin'),
+      includeConnectedAccounts: true,
+    });
 
-  appendSetCookie(response, nextResponse, req);
-  return nextResponse;
+    if (!payload) {
+      return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      sanitizeAuthResponsePayload({
+        user: payload,
+      }),
+      { status: 200 }
+    );
+  } catch {
+    return NextResponse.json(
+      { message: 'Unable to verify authenticated user' },
+      { status: 503 }
+    );
+  }
 }

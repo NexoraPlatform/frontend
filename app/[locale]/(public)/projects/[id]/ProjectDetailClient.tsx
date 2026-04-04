@@ -1,0 +1,207 @@
+import ProviderCard from "../provider-card";
+
+export const dynamic = 'force-dynamic'
+
+import apiClient from "@/lib/api";
+import {Header} from "@/components/header";
+import {Alert, AlertDescription} from "@/components/ui/alert";
+import {AlertCircle} from "lucide-react";
+import {Footer} from "@/components/footer";
+import { Card, CardContent } from '@/components/ui/card';
+import {formatDistanceToNow} from "date-fns";
+import {enUS, ro} from "date-fns/locale";
+import {Badge} from "@/components/ui/badge";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { formatDeadline } from '@/lib/projects';
+import type { Locale } from '@/types/locale';
+import { getTranslations } from 'next-intl/server';
+import ProviderService from './provider-service';
+import ProjectContractWorkspace from '@/components/projects/project-contract-workspace';
+import { extractProjectContractIdCandidate } from '@/lib/contracts';
+
+
+export default async function ProjectDetailClient({ id, locale }: {  id: string; locale: Locale; }) {
+    const t = await getTranslations({ locale });
+    const dateLocale = locale === 'en' ? enUS : ro;
+    let project: any = null;
+
+    try {
+        project = await apiClient.getProjectBySlug(id);
+    } catch (error: any) {
+        const message = String(error?.message ?? '');
+        if (!/Project not found/i.test(message)) {
+            throw error;
+        }
+        project = null;
+    }
+
+    if (!project) {
+        return (
+            <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+                <TrustoraThemeStyles />
+                <Header />
+                <div className="container mx-auto px-4 py-20">
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{t('projects.detail.not_found')}</AlertDescription>
+                    </Alert>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    const projectId = String(project.id ?? id);
+    const projectClientId = project.client_id ?? project.client?.id ?? null;
+    const initialContractId = extractProjectContractIdCandidate(project);
+
+    return (
+        <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+            <TrustoraThemeStyles />
+            <Header />
+            <main className="pt-24">
+                <section className="px-6 pb-10 hero-gradient">
+                    <div className="max-w-6xl mx-auto">
+                        <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                            <span className="text-[#1BC47D]">●</span> {t('projects.detail.badge')}
+                        </Badge>
+                        <h1 className="text-3xl lg:text-4xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            {String(project.title ?? 'Project').replace(/^Proiect(\s+)/i, "")}
+                        </h1>
+                        <p className="mt-3 text-base text-slate-600 max-w-3xl dark:text-[#A3ADC2]">
+                            {project.description || t('projects.detail.description_fallback')}
+                        </p>
+                    </div>
+                </section>
+
+                <section className="px-6 py-12 bg-[#F5F7FA] dark:bg-[#0B1220]">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="mb-8">
+                            <Card className="glass-card shadow-sm">
+                                <CardContent className="p-8">
+                                    <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.added')}
+                                            </div>
+                                            <div className="text-2xl font-bold text-[#1BC47D]">
+                                                {formatDistanceToNow(new Date(project.created_at), {
+                                                    addSuffix: true,
+                                                    locale: dateLocale
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.duration')}
+                                            </div>
+                                            <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {project.project_duration
+                                                    ? formatDeadline(project.project_duration, locale)
+                                                    : '-'}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.status')}
+                                            </div>
+                                            <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {project.completedAt
+                                                    ? t('projects.detail.status.completed')
+                                                    : t('projects.detail.status.incomplete')}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.selected_providers')}
+                                            </div>
+                                            <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {(project.selected_providers?.length ?? 0) > 0
+                                                    ? (project.selected_providers?.length ?? 0)
+                                                    : t('projects.detail.stats.not_available')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {(project?.existing_services?.length > 0
+                                        || project?.custom_services?.length > 0) && (
+                                        <div className="my-6">
+                                            <div className="text-sm font-medium mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {t('projects.detail.technologies')}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {project.existing_services.map((tech: any, index: number) => (
+                                                    <Badge key={index} variant="outline" className="text-xs border-slate-200 dark:border-[#1E2A3D]">
+                                                        {tech.name}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {project?.recommended_team?.length > 0 && (
+                                        <div className="my-6">
+                                            <div className="text-sm font-medium mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {t('projects.detail.team_structure')}
+                                            </div>
+                                            <ul className="list-disc flex flex-wrap" style={{ gap: '1.6rem' }}>
+                                                {project?.recommended_team?.map((team: any, index: number) => (
+                                                    <li
+                                                        key={index}
+                                                        className="text-sm font-medium basis-[16.66%] min-w-[150px]"
+                                                    >
+                                                        {t('projects.detail.team.service')}{' '}
+                                                        <span className="text-emerald-green">{team.service}</span>
+                                                        <ul className="list-disc pl-5 space-y-2">
+                                                            <li className="text-slate-500 dark:text-[#A3ADC2]">
+                                                                <span className="font-normal">{t('projects.detail.team.role')}</span> {team.role}
+                                                            </li>
+                                                            <li className="text-slate-500 dark:text-[#A3ADC2]">
+                                                                <span className="font-normal">{t('projects.detail.team.experience')}</span> {team.experience_level}
+                                                            </li>
+                                                            <li className="text-slate-500 dark:text-[#A3ADC2]">
+                                                                <span className="font-normal">{t('projects.detail.team.count')}</span> {team.count}
+                                                            </li>
+                                                        </ul>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    <div className="my-6">
+                                        <ProjectContractWorkspace
+                                            projectId={projectId}
+                                            projectTitle={project.title ?? null}
+                                            projectClientId={projectClientId}
+                                            initialContractId={initialContractId}
+                                            locale={locale}
+                                        />
+                                    </div>
+
+                                    <div className="my-6">
+                                        <ProviderService project={project} />
+                                    </div>
+
+                                    {(project.providers?.length ?? 0) > 0 && (
+                                        <div className="lg:col-span-2 space-y-4">
+                                            {(project.providers ?? []).map((provider: any) => (
+                                                <ProviderCard provider={provider} key={provider.id} />
+                                            ))}
+                                        </div>
+                                    )}
+
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <Footer />
+        </div>
+    );
+}

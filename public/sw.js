@@ -17,8 +17,8 @@
         const title = data.title || 'Notificare';
         const options = {
             body: data.body || data.message || '',
-            icon: data.icon || '/trustora-logo2-60.avif',
-            badge: data.badge || '/trustora2-logo-60.avif',
+            icon: data.icon || '/icons/trustora2-icon-192x192.png',
+            badge: data.badge || '/icons/trustora2-icon-72x72.png',
             data: {
                 link: data.link || data.url || '/',
                 meta: data.meta || data.payload || {},

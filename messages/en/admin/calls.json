@@ -3,9 +3,17 @@
     "manage_title": "Manage Verification Calls",
     "manage_subtitle": "Administer verification calls for services",
     "search_placeholder": "Search calls by participant, date...",
+    "summary": {
+      "cards": {
+        "total": "Total Calls",
+        "waiting": "Waiting",
+        "accepted": "Accepted",
+        "finished": "Finished"
+      }
+    },
     "filters": {
       "passed": {
-        "label": "Level filter",
+        "label": "Result filter",
         "all": "All results",
         "yes": "Yes",
         "no": "No"
@@ -26,11 +34,29 @@
     "list_title": "Calls List",
     "list_description": "{count} calls found",
     "link_test_details": "View test details",
+    "participant_empty": "Unknown participant",
+    "interviewer_empty": "Unassigned interviewer",
     "scheduled_at_prefix": "Scheduled on",
     "passing_score_prefix": "Passing score:",
     "category_prefix": "Category:",
     "created_prefix": "Created:",
     "results_label": "{count} results",
+    "table": {
+      "participant": "Participant",
+      "interviewer": "Interviewer",
+      "service": "Service",
+      "schedule": "Schedule",
+      "result": "Result",
+      "status": "Status",
+      "actions": "Actions",
+      "scheduled_at": "Scheduled {date}",
+      "created_at": "Created {date}",
+      "no_score": "No score yet",
+      "passed": "Passed",
+      "failed": "Not passed",
+      "pending": "Pending",
+      "join_available": "Video room ready"
+    },
     "dropdown": {
       "connect": "Join interview",
       "move_waiting": "Move to Waiting",

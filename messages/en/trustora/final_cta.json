@@ -1,10 +1,12 @@
 {
   "final_cta": {
-    "title": "No trust. No deal.",
-    "subtitle": "Work without risk on the safest platform for online services.",
-    "cta_label": "Start a protected project",
-    "escrow_label": "Escrow Secured",
-    "verified_label": "Video Verified",
-    "legal_label": "Legal Grade"
+    "title": "Join the initial Trustora cohort.",
+    "subtitle": "The platform is opening gradually for companies and professionals who want working relationships that feel safer than a typical marketplace.",
+    "client_cta_label": "Request Early Access",
+    "provider_cta_label": "Apply for Verification",
+    "note": "No card is required to sign up, and joining qualifies you for priority access at launch.",
+    "escrow_label": "Escrow active",
+    "verified_label": "Video verified",
+    "legal_label": "Clear audit trail"
   }
 }

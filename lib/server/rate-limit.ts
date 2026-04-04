@@ -60,6 +60,16 @@ const buildRule = ({
   message,
 });
 
+const RATE_LIMIT_EXEMPT_PATHS = [
+  /^\/api\/auth\/(session|csrf|providers|error|verify-request)(?:\/.*)?$/i,
+  /^\/api\/auth\/(signin|signout|callback)(?:\/.*)?$/i,
+  /^\/api\/auth\/(me|refresh|logout)$/i,
+  /^\/api\/locations$/i,
+  /^\/api\/companies\/search$/i,
+  /^\/api\/realtime\/pusher-config$/i,
+  /^\/api\/broadcasting\/auth$/i,
+] as const;
+
 const RATE_LIMIT_RULES: RateLimitRule[] = [
   buildRule({
     id: 'api-auth-login',
@@ -90,7 +100,7 @@ const RATE_LIMIT_RULES: RateLimitRule[] = [
   }),
   buildRule({
     id: 'api-ai-read',
-    pattern: /^\/api\/ai\/brief-builder\/[^/]+$/i,
+    pattern: /^\/api\/ai\/(brief-builder|final-brief)\/[^/]+$/i,
     defaultLimit: 60,
     defaultWindow: '1 m',
     limitEnv: 'UPSTASH_RATE_LIMIT_AI_READ_MAX',
@@ -133,7 +143,10 @@ const upstashEnabled =
     process.env.UPSTASH_REDIS_REST_URL?.trim() &&
     process.env.UPSTASH_REDIS_REST_TOKEN?.trim(),
   );
-const failOpenOnProviderError = process.env.UPSTASH_RATE_LIMIT_FAIL_OPEN === 'true';
+
+export const shouldFailOpenOnProviderError = () =>
+  process.env.UPSTASH_RATE_LIMIT_FAIL_OPEN === 'true' ||
+  process.env.NODE_ENV === 'development';
 
 let redis: Redis | null = null;
 if (upstashEnabled) {
@@ -169,28 +182,91 @@ const getPathname = (req: RequestLike): string => {
   }
 };
 
-const getClientIdentifier = (headers: Headers): string => {
-  const candidates = [
-    headers.get('x-real-ip'),
-    headers.get('cf-connecting-ip'),
-    headers.get('x-vercel-forwarded-for'),
-    headers.get('x-forwarded-for'),
-  ];
+const SESSION_COOKIE_NAMES = [
+  '__Secure-authjs.session-token',
+  'authjs.session-token',
+  '__Secure-next-auth.session-token',
+  'next-auth.session-token',
+] as const;
 
-  for (const raw of candidates) {
-    if (!raw) continue;
-    const first = raw.split(',')[0]?.trim();
-    if (first) return first;
+const hashIdentifier = (value: string): string => {
+  let hash = 5381;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(index);
   }
 
+  return (hash >>> 0).toString(16);
+};
+
+const extractCookieValue = (cookieHeader: string, name: string): string | null => {
+  const prefix = `${name}=`;
+  const cookie = cookieHeader
+    .split(';')
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(prefix));
+
+  if (!cookie) return null;
+
+  const rawValue = cookie.slice(prefix.length).trim();
+  if (!rawValue) return null;
+
+  try {
+    return decodeURIComponent(rawValue);
+  } catch {
+    return rawValue;
+  }
+};
+
+export const getTrustedClientIp = (headers: Headers): string | null => {
+  const vercelIp = headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim();
+  if (vercelIp) return vercelIp;
+
+  const cloudflareIp = headers.get('cf-connecting-ip')?.trim();
+  if (cloudflareIp) return cloudflareIp;
+
+  if (process.env.TRUST_PROXY_IP_HEADERS === 'true') {
+    const proxyIp =
+      headers.get('x-real-ip')?.trim() ||
+      headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    if (proxyIp) return proxyIp;
+  }
+
+  return null;
+};
+
+const getSessionIdentifier = (headers: Headers): string | null => {
+  const cookieHeader = headers.get('cookie') ?? '';
+  if (!cookieHeader) return null;
+
+  for (const cookieName of SESSION_COOKIE_NAMES) {
+    const cookieValue = extractCookieValue(cookieHeader, cookieName);
+    if (cookieValue) {
+      return `session:${cookieName}:${hashIdentifier(cookieValue)}`;
+    }
+  }
+
+  return null;
+};
+
+export const getClientIdentifier = (headers: Headers): string => {
+  const trustedIp = getTrustedClientIp(headers);
+  if (trustedIp) return trustedIp;
+
+  const sessionIdentifier = getSessionIdentifier(headers);
+  if (sessionIdentifier) return sessionIdentifier;
+
   const userAgent = (headers.get('user-agent') ?? 'unknown').slice(0, 120);
-  return `anonymous:${userAgent}`;
+  return `anonymous:${hashIdentifier(userAgent)}`;
 };
 
 const shouldSkipByMethod = (method: string | undefined) => {
   const normalized = method?.toUpperCase();
   return normalized === 'HEAD' || normalized === 'OPTIONS';
 };
+
+export const isRateLimitExemptPath = (pathname: string) =>
+  RATE_LIMIT_EXEMPT_PATHS.some((pattern) => pattern.test(pathname));
 
 export async function enforceApiRateLimit(
   req: RequestLike,
@@ -199,6 +275,10 @@ export async function enforceApiRateLimit(
   if (shouldSkipByMethod(req.method)) return null;
 
   const pathname = getPathname(req);
+  if (isRateLimitExemptPath(pathname)) {
+    return null;
+  }
+
   const rule = RATE_LIMIT_RULES.find((candidate) =>
     candidate.pattern.test(pathname),
   );
@@ -231,7 +311,7 @@ export async function enforceApiRateLimit(
       },
     );
   } catch {
-    if (failOpenOnProviderError) {
+    if (shouldFailOpenOnProviderError()) {
       // Optional backward-compatible behavior.
       return null;
     }

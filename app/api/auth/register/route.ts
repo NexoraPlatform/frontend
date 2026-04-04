@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
-import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/laravel-proxy';
+import {
+  API_BASE_URL,
+  appendSetCookie,
+  buildAuthenticatedProxyHeaders,
+} from '@/lib/server/laravel-proxy';
+import { sanitizeAuthResponsePayload } from '@/lib/auth/user';
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
-  const headers = buildProxyHeaders(req, {
-    'Content-Type': 'application/json',
-  });
+  let headers: Headers;
+  try {
+    headers = await buildAuthenticatedProxyHeaders(
+      req,
+      {
+        'Content-Type': 'application/json',
+      }
+    );
+  } catch {
+    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+  }
 
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
@@ -14,13 +27,24 @@ export async function POST(req: Request) {
     cache: 'no-store',
   });
 
-  const payload = await response.text();
-  const nextResponse = new NextResponse(payload, {
-    status: response.status,
-    headers: {
-      'Content-Type': response.headers.get('content-type') ?? 'application/json',
-    },
-  });
+  const contentType = response.headers.get('content-type') ?? 'application/json';
+  let nextResponse: NextResponse;
+
+  if (contentType.includes('application/json')) {
+    const payload = await response.json().catch(() => null);
+    nextResponse = NextResponse.json(sanitizeAuthResponsePayload(payload), {
+      status: response.status,
+    });
+  } else {
+    const payload = await response.text();
+    nextResponse = new NextResponse(payload, {
+      status: response.status,
+      headers: {
+        'Content-Type': contentType,
+      },
+    });
+  }
+
   appendSetCookie(response, nextResponse, req);
   return nextResponse;
 }

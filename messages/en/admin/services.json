@@ -15,6 +15,22 @@
     },
     "list_title": "Service List",
     "list_description": "{count} services found",
+    "table": {
+      "service": "Service",
+      "category": "Category",
+      "delivery_provider": "Delivery Provider",
+      "status": "Status",
+      "performance": "Performance",
+      "actions": "Actions"
+    },
+    "summary": {
+      "cards": {
+        "total": "Total Services",
+        "active": "Active Services",
+        "featured": "Featured Services",
+        "average_rating": "Average Rating"
+      }
+    },
     "recommended": "Recommended",
     "slug_prefix": "Slug: /",
     "category_prefix": "Category: ",
@@ -46,12 +62,35 @@
     "requirements_placeholder": "What information do you need from the client...",
     "category_label": "Category *",
     "category_placeholder": "Select category",
+    "delivery_provider_label": "Delivery Provider *",
+    "delivery_provider_placeholder": "Select delivery provider",
+    "delivery_provider_search_placeholder": "Search delivery provider...",
+    "delivery_provider_empty": "No delivery provider found.",
+    "delivery_provider_loading": "Loading delivery providers...",
+    "delivery_provider_required": "Delivery provider is required.",
     "skills_tags_title": "Skills and Tags",
     "skills_tags_description": "Define required skills and keywords",
     "skills_label": "Required Skills",
     "skills_placeholder": "e.g., React, Node.js",
     "tags_label": "Tags",
     "tags_placeholder": "e.g., website, modern, responsive",
+    "overview": {
+      "title": "Service Overview",
+      "description_create": "Review the catalog data before creating the service.",
+      "description_edit": "Review the current metadata before saving service updates.",
+      "selected_category": "Selected Category",
+      "selected_provider": "Delivery Provider",
+      "skills_count": "Skills",
+      "tags_count": "Tags",
+      "status": "Status",
+      "empty": "Not selected"
+    },
+    "actions_card": {
+      "create_title": "Create Service",
+      "create_description": "Save the service and make it available for providers to configure pricing.",
+      "edit_title": "Save Changes",
+      "edit_description": "Update the service catalog entry while providers keep control of pricing."
+    },
     "pricing_note_title": "Flexible Pricing",
     "pricing_note_description": "Providers will set their own rates for this service. They can choose between fixed price, hourly rate, daily rate, or negotiable price depending on the project and their preferences.",
     "pricing_note_title_edit": "Custom Pricing",

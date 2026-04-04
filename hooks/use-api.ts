@@ -9,13 +9,23 @@ function stableStringify(obj: any) {
   return JSON.stringify(obj, Object.keys(obj).sort());
 }
 
+type UseApiOptions<T> = {
+  initialData?: T | null;
+  revalidateOnMount?: boolean;
+};
+
 export function useApi<T>(
     apiCall: () => Promise<T>,
     dependencies: any[] = [],
-    enabled: boolean = true
+    enabled: boolean = true,
+    options?: UseApiOptions<T>
 ) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const hasInitialData = options ? Object.prototype.hasOwnProperty.call(options, 'initialData') : false;
+  const revalidateOnMount = options?.revalidateOnMount ?? !hasInitialData;
+  const [data, setData] = useState<T | null>(() => (
+    hasInitialData ? options?.initialData ?? null : null
+  ));
+  const [loading, setLoading] = useState(() => enabled && (!hasInitialData || revalidateOnMount));
   const [error, setError] = useState<string | null>(null);
   const { currency } = useCurrency();
 
@@ -43,6 +53,7 @@ export function useApi<T>(
 
   // eliminăm deps duplicate cu stable stringify
   const lastDeps = useRef<string>("");
+  const skipInitialFetchRef = useRef(hasInitialData && !revalidateOnMount);
   const depsString = stableStringify([...dependencies, currency]);
 
   useEffect(() => {
@@ -52,6 +63,11 @@ export function useApi<T>(
     }
     if (depsString === lastDeps.current) return; // nu a schimbat efectiv deps
     lastDeps.current = depsString;
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      setLoading(false);
+      return;
+    }
     fetchData();
   }, [depsString, fetchData, enabled]);
 
@@ -82,6 +98,32 @@ export function useAdminCategories() {
   return useApi(() => apiClient.getAllCategories(), []);
 }
 
+export function useAdminLegalServiceCategories(params?: {
+  search?: string;
+  service_group?: string;
+  default_contract_type?: 'SERVICES' | 'WORK_FOR_RESULT' | 'MIXED';
+  ip_transfer_expected?: boolean;
+  dpa_required_by_default?: boolean;
+  personal_data_processing_likely?: boolean;
+  service_levels_required?: boolean;
+  regulated_activity_risk?: boolean;
+  export_control_risk?: boolean;
+  is_active?: boolean;
+  sort_by?:
+    | 'service_code'
+    | 'service_name'
+    | 'service_group'
+    | 'sort_order'
+    | 'created_at'
+    | 'updated_at';
+  page?: number;
+}) {
+  return useApi(
+    () => apiClient.getAdminLegalServiceCategories(params),
+    [JSON.stringify(params)]
+  );
+}
+
 export function useGetServicesGroupedByCategory(
   params?: { page?: number; limit?: number; search?: string }
 ) {
@@ -91,16 +133,40 @@ export function useGetServicesGroupedByCategory(
     );
 }
 
-export function useProviders(params?: any) {
-  return useApi(() => apiClient.getProviders(params), [JSON.stringify(params)]);
-}
-
-export function useOrders(params?: any) {
-  return useApi(() => apiClient.getOrders(params), [JSON.stringify(params)]);
-}
-
 export function useProfile() {
   return useApi(() => apiClient.getProfile(), []);
+}
+
+export function useBadgeCatalog(enabled: boolean = true) {
+  return useApi(() => apiClient.getBadgeCatalog(), [], enabled);
+}
+
+export function useMyBadges(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyBadges(), [], enabled);
+}
+
+export function useMyBadgeProgress(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyBadgeProgress(), [], enabled);
+}
+
+export function useMyBadgeRewards(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyBadgeRewards(), [], enabled);
+}
+
+export function useMyReviewOpportunities(enabled: boolean = true) {
+  return useApi(() => apiClient.getMyReviewOpportunities(), [], enabled);
+}
+
+export function useMyReviews(
+  params?: {
+    scope?: 'all' | 'authored' | 'received';
+    status?: string;
+    per_page?: number;
+    page?: number;
+  },
+  enabled: boolean = true
+) {
+  return useApi(() => apiClient.getMyReviews(params), [JSON.stringify(params)], enabled);
 }
 
 export function useTestExamDetails() {
@@ -123,10 +189,6 @@ export function useAdminServices() {
   return useApi(() => apiClient.getAllServices(), []);
 }
 
-export function useAdminOrders() {
-  return useApi(() => apiClient.getOrders(), []);
-}
-
 export function useAdminCalls() {
   return useApi(() => apiClient.getCalls(), []);
 }
@@ -142,10 +204,6 @@ export function useAdminTests() {
 
 export function useTest(id: string) {
   return useApi(() => apiClient.getTest(id), [id]);
-}
-
-export function useAvailableTests() {
-  return useApi(() => apiClient.getAvailableTests(), []);
 }
 
 export function useTestResults(params?: any) {
@@ -173,16 +231,45 @@ export function useGetProviderProfileByUrl(url: string) {
   return useApi(() => apiClient.getProviderProfileByUrl(url), [url]);
 }
 
+export function usePublicUserBadges(
+  userId: string | number | null | undefined,
+  enabled: boolean = true
+) {
+  return useApi(
+    () => apiClient.getPublicUserBadges(String(userId)),
+    [String(userId ?? '')],
+    enabled && Boolean(userId)
+  );
+}
+
+export function usePublicUserReviews(
+  userId: string | number | null | undefined,
+  params?: {
+    per_page?: number;
+    page?: number;
+  },
+  enabled: boolean = true
+) {
+  return useApi(
+    () => apiClient.getPublicUserReviews(String(userId), params),
+    [String(userId ?? ''), JSON.stringify(params)],
+    enabled && Boolean(userId)
+  );
+}
+
+export function usePublicUserFeaturedBadges(
+  userId: string | number | null | undefined,
+  enabled: boolean = true
+) {
+  return useApi(
+    () => apiClient.getPublicUserFeaturedBadges(String(userId)),
+    [String(userId ?? '')],
+    enabled && Boolean(userId)
+  );
+}
+
 export function useProviderServices(providerId: string) {
   return useApi(() => apiClient.getProviderServices(providerId), [providerId]);
-}
-
-export function useProviderReviews(providerId: string, params?: any) {
-  return useApi(() => apiClient.getProviderReviews(providerId, params), [providerId, JSON.stringify(params)]);
-}
-
-export function useProviderPortfolio(providerId: string) {
-  return useApi(() => apiClient.getProviderPortfolio(providerId), [providerId]);
 }
 
 export function useGetLanguages() {
@@ -196,8 +283,4 @@ export function useProjects(params?: any) {
 
 export function useProject(id: string) {
   return useApi(() => apiClient.getProject(id), [id]);
-}
-
-export function useTechnologies() {
-  return useApi(() => apiClient.getTechnologies(), []);
 }

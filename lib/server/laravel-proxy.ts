@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -7,22 +8,100 @@ export const API_BASE_URL =
 
 export const API_ROOT_URL = API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/, '');
 
+const resolveForwardedOrigin = (req?: Request | null) => {
+  if (!req) return null;
+
+  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const forwardedProto =
+    req.headers.get('x-forwarded-proto') ||
+    (() => {
+      try {
+        return new URL(req.url).protocol.replace(':', '');
+      } catch {
+        return null;
+      }
+    })();
+
+  if (!forwardedHost || !forwardedProto) {
+    return null;
+  }
+
+  return `${forwardedProto}://${forwardedHost}`;
+};
+
 const resolveAppOrigin = (req?: Request | null) =>
+  resolveForwardedOrigin(req) ||
   req?.headers.get('origin') ||
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.NEXTAUTH_URL ||
   'http://127.0.0.1:3000';
 
-const extractXsrfToken = (cookieHeader: string) => {
-  const match = cookieHeader
-    .split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith('XSRF-TOKEN='));
-  if (!match) return null;
-  return decodeURIComponent(match.slice('XSRF-TOKEN='.length));
+export class ProxySecurityError extends Error {
+  status: number;
+
+  constructor(message: string, status = 403) {
+    super(message);
+    this.name = 'ProxySecurityError';
+    this.status = status;
+  }
+}
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
+
+const isStateChangingMethod = (method?: string | null) =>
+  !SAFE_METHODS.has((method ?? 'GET').toUpperCase());
+
+const getAllowedOrigins = (req: Request) => {
+  const allowed = new Set<string>();
+
+  [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.AUTH_URL,
+  ]
+    .filter(Boolean)
+    .forEach((value) => {
+      try {
+        allowed.add(new URL(String(value)).origin);
+      } catch {}
+    });
+
+  try {
+    allowed.add(new URL(req.url).origin);
+  } catch {}
+
+  const forwardedOrigin = resolveForwardedOrigin(req);
+  if (forwardedOrigin) {
+    allowed.add(forwardedOrigin);
+  }
+
+  return allowed;
 };
 
-export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
+export const isTrustedOrigin = (req: Request) => {
+  const origin = req.headers.get('origin');
+  if (!origin) return true;
+  return getAllowedOrigins(req).has(origin);
+};
+
+export const assertTrustedMutationRequest = (
+  req: Request
+) => {
+  if (!isStateChangingMethod(req.method)) {
+    return;
+  }
+
+  if (!isTrustedOrigin(req)) {
+    throw new ProxySecurityError('Untrusted origin');
+  }
+};
+
+export const buildProxyHeaders = (
+  req: Request,
+  extra?: HeadersInit
+) => {
+  assertTrustedMutationRequest(req);
+
   const headers = new Headers({
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
@@ -31,22 +110,6 @@ export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
   if (extra) {
     const incoming = new Headers(extra);
     incoming.forEach((value, key) => headers.set(key, value));
-  }
-
-  const cookieHeader = req.headers.get('cookie') ?? '';
-  if (cookieHeader) {
-    headers.set('Cookie', cookieHeader);
-    // Non-standard request header mirror requested for backend compatibility.
-    headers.set('Set-Cookie', cookieHeader);
-    const xsrfToken = extractXsrfToken(cookieHeader);
-    if (xsrfToken) {
-      headers.set('X-XSRF-TOKEN', xsrfToken);
-    }
-  }
-
-  const incomingXsrfHeader = req.headers.get('x-xsrf-token');
-  if (incomingXsrfHeader && !headers.has('X-XSRF-TOKEN')) {
-    headers.set('X-XSRF-TOKEN', incomingXsrfHeader);
   }
 
   const origin = resolveAppOrigin(req);
@@ -66,6 +129,35 @@ export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
     }
   });
 
+  return headers;
+};
+
+export const buildAuthenticatedProxyHeaders = async (
+  req: Request,
+  extra?: HeadersInit
+) => {
+  const headers = buildProxyHeaders(req, extra);
+  const incomingAuthorization = req.headers.get('authorization');
+  if (incomingAuthorization) {
+    headers.set('Authorization', incomingAuthorization);
+    return headers;
+  }
+
+  const session = await auth();
+  const accessToken =
+    typeof session?.accessToken === 'string' && session.accessToken.length > 0
+      ? session.accessToken
+      : null;
+  const tokenType =
+    typeof session?.tokenType === 'string' && session.tokenType.length > 0
+      ? session.tokenType
+      : 'Bearer';
+
+  if (!accessToken) {
+    return headers;
+  }
+
+  headers.set('Authorization', `${tokenType} ${accessToken}`);
   return headers;
 };
 

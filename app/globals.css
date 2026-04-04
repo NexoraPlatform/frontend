@@ -85,7 +85,7 @@ html {
 body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -95,11 +95,109 @@ body {
     padding: 0;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-space-grotesk), var(--font-manrope), system-ui, sans-serif;
+}
+
+:root {
+    --midnight-blue: #0B1C2D;
+    --emerald-green: #1BC47D;
+    --success-green: #21D19F;
+    --warning-amber: #F5A623;
+    --error-red: #E5484D;
+    --bg-light: #F5F7FA;
+    --text-near-black: #0F172A;
+}
+
+.mono {
+    font-family: var(--font-jetbrains-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.btn-primary {
+    background-color: var(--emerald-green);
+    color: white;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 0 0 4px rgba(27, 196, 125, 0.15);
+}
+
+.dark .btn-primary {
+    color: #071A12;
+    box-shadow: 0 0 12px rgba(27, 196, 125, 0.35);
+}
+
+.glass-card {
+    background: white;
+    border: 1px solid rgba(11, 28, 45, 0.08);
+    border-radius: 12px;
+}
+
+.hero-gradient {
+    background:
+        radial-gradient(circle at top right, rgba(27, 196, 125, 0.05), transparent 40%),
+        radial-gradient(circle at bottom left, rgba(11, 28, 45, 0.03), transparent 40%);
+}
+
+.dark .glass-card {
+    background: #0B1220;
+    border: 1px solid #1E2A3D;
+    box-shadow: 0 0 0 1px rgba(27, 196, 125, 0.04);
+}
+
+.section-divider {
+    border-bottom: 1px solid rgba(11, 28, 45, 0.05);
+}
+
+.dark .section-divider {
+    border-bottom: 1px solid #1E2A3D;
+}
+
+.pillar-icon {
+    stroke-width: 1.5px;
+    color: var(--emerald-green);
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+    100% { transform: translateY(0px); }
+}
+
+@keyframes contractSweep {
+    0% { transform: translateX(-18%) rotate(12deg); opacity: 0; }
+    14% { opacity: 0.7; }
+    50% { transform: translateX(118%) rotate(12deg); opacity: 0.18; }
+    100% { transform: translateX(118%) rotate(12deg); opacity: 0; }
+}
+
+@keyframes contractPulse {
+    0%, 100% { box-shadow: 0 32px 72px rgba(2, 6, 23, 0.48), 0 0 0 1px rgba(51, 65, 85, 0.8); }
+    50% { box-shadow: 0 38px 82px rgba(2, 6, 23, 0.58), 0 0 0 1px rgba(27, 196, 125, 0.18); }
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
 /* Typography - Critical for hero section */
 .font-black { font-weight: 900; }
 .font-bold { font-weight: 700; }
 .font-semibold { font-weight: 600; }
 .font-medium { font-weight: 500; }
+.font-sans {
+    font-family: var(--font-manrope), system-ui, sans-serif;
+}
 
 .text-6xl { font-size: 3.75rem; line-height: 1; }
 .text-8xl { font-size: 6rem; line-height: 1; }

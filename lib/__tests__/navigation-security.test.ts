@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   sanitizeExternalRedirectUrl,
+  sanitizeHttpUrl,
   sanitizeNavigationTarget,
 } from '../navigation-security';
 
@@ -56,6 +57,22 @@ describe('lib/navigation-security', () => {
           ['rapyd.net']
         )
       ).toBeNull();
+    });
+  });
+
+  describe('sanitizeHttpUrl', () => {
+    it('allows plain http and https urls', () => {
+      expect(sanitizeHttpUrl('https://trustora.ro/provider/test')).toBe(
+        'https://trustora.ro/provider/test'
+      );
+      expect(sanitizeHttpUrl('http://127.0.0.1:8000/storage/file.pdf')).toBe(
+        'http://127.0.0.1:8000/storage/file.pdf'
+      );
+    });
+
+    it('rejects javascript urls and credentialed urls', () => {
+      expect(sanitizeHttpUrl('javascript:alert(1)')).toBeNull();
+      expect(sanitizeHttpUrl('https://user:pass@example.com/private')).toBeNull();
     });
   });
 });

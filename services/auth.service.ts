@@ -4,7 +4,6 @@
  */
 
 import { http } from '@/lib/fetch-client';
-import { ensureCsrfCookie } from '@/lib/csrf';
 import type { ConnectedAccount } from '@/types/integration';
 
 export type LoginCredentials = {
@@ -19,18 +18,34 @@ export type RegisterData = {
     lastName: string;
     phone?: string;
     role?: string;
-    company_name?: string;
-    tax_id?: string;
-    trade_registry_number?: string;
-    billing_address?: string;
-    billing_city?: string;
-    billing_state?: string;
-    billing_postal_code?: string;
+    company_data?: {
+        legal_name?: string;
+        commercial_name?: string;
+        country_code?: string;
+        registration_number?: string;
+        tax_identification_number?: string;
+        vat_number?: string;
+        is_vat_registered?: boolean;
+        default_currency?: string;
+        registered_address_line_1?: string;
+        registered_address_line_2?: string;
+        registered_city?: string;
+        registered_state?: string;
+        registered_postal_code?: string;
+        authorized_signatory_name?: string;
+        authorized_signatory_title?: string;
+        authorized_signatory_email?: string;
+    };
 };
 
 export type AuthResponse = {
     access_token: string;
+    refresh_token?: string;
+    token_type?: string;
+    expires_in?: number;
     user: any;
+    roles?: any[];
+    permissions?: string[];
 };
 
 export const authService = {
@@ -38,7 +53,6 @@ export const authService = {
      * Login with email and password
      */
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        await ensureCsrfCookie();
         return http.post<AuthResponse>('/auth/login', credentials);
     },
 
@@ -46,7 +60,6 @@ export const authService = {
      * Register a new user account
      */
     async register(userData: RegisterData): Promise<AuthResponse> {
-        await ensureCsrfCookie();
         return http.post<AuthResponse>('/auth/register', userData);
     },
 
@@ -77,7 +90,6 @@ export const authService = {
      * Logout current authenticated user
      */
     async logout(): Promise<any> {
-        await ensureCsrfCookie();
         return http.post('/auth/logout');
     },
 

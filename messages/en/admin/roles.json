@@ -7,6 +7,15 @@
     "manage_title": "Manage Roles",
     "manage_subtitle": "Administer roles and permissions",
     "add_role": "Add Role",
+    "summary": {
+      "cards": {
+        "roles": "Total Roles",
+        "permission_groups": "Permission Groups",
+        "permissions": "Permissions",
+        "sync": "Sync Mode",
+        "sync_value": "Live"
+      }
+    },
     "search_placeholder": "Search roles by title...",
     "search_button": "Search",
     "saving_order": "Saving order...",
@@ -23,6 +32,14 @@
     "confirm_delete": "Are you sure you want to delete this role?",
     "error_prefix": "Error: ",
     "error_occurred": "An error occurred",
+    "table": {
+      "reorder": "",
+      "role": "Role",
+      "slug": "Slug",
+      "order": "Order",
+      "permissions": "Permissions",
+      "actions": "Actions"
+    },
     "pagination": {
       "displaying": "Showing {from}-{to} of {total}",
       "per_page": "Per page",
@@ -63,6 +80,7 @@
       "description_label": "Role Description *",
       "description_placeholder": "e.g., Can manage users and settings",
       "permissions_title": "Permissions",
+      "permissions_description": "Choose the access capabilities that should be granted by this role.",
       "creating": "Creating...",
       "create_button": "Create Role",
       "cancel": "Cancel"
@@ -76,6 +94,8 @@
       "name_placeholder": "e.g., Administrator",
       "description_label": "Role Description *",
       "description_placeholder": "e.g., Can manage users and settings",
+      "permissions_title": "Permissions",
+      "permissions_description": "Adjust the permission set attached to this role.",
       "sort_order_label": "Role order (live)",
       "decrease_order": "Decrease order",
       "increase_order": "Increase order",
@@ -86,6 +106,11 @@
       "editing": "Editing...",
       "cancel": "Cancel",
       "cannot_edit": "You cannot edit this role."
+    },
+    "editor_sidebar": {
+      "selected_permissions": "Selected permissions",
+      "permission_groups": "Permission groups",
+      "role_slug": "Generated slug"
     }
   }
 }

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { getRoleSlugs, isSuperUser as accessIsSuperUser } from '@/lib/access';
 
 type RuleProps = {
     roles?: string[];      // user must have ONE of these roles
@@ -23,16 +24,7 @@ type Effect = 'allow' | 'deny';
  * Extrage slugs de rol din user (acceptă și user.role string fallback)
  */
 function getUserRoleSlugs(user: any): string[] {
-    const fromArray = Array.isArray(user?.roles)
-        ? user.roles
-            .map((r: any) => (r?.slug ? String(r.slug).toLowerCase() : null))
-            .filter(Boolean)
-        : [];
-
-    const single = user?.role ? [String(user.role).toLowerCase()] : [];
-
-    // dedupe
-    return Array.from(new Set([...fromArray, ...single]));
+    return getRoleSlugs(user ?? null);
 }
 
 /**
@@ -72,18 +64,7 @@ function buildPermissionIndex(user: any): Map<string, Effect> {
 }
 
 function isSuperUser(user: any): boolean {
-    if (!user) return false;
-    // 1) câmp explicit
-    if (user.is_superuser === true) return true;
-
-    // 2) rol textual "superuser"
-    const byString =
-        typeof user.role === 'string' && user.role.toLowerCase() === 'superuser';
-    if (byString) return true;
-
-    // 3) rol în listă
-    const roles = getUserRoleSlugs(user);
-    return roles.includes('superuser');
+    return accessIsSuperUser(user ?? null);
 }
 
 function hasAnyRole(user: any, required?: string[]): boolean {

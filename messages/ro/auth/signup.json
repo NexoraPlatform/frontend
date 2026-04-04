@@ -4,6 +4,19 @@
     "title_prefix": "Creează-ți contul",
     "title_brand": "Trustora",
     "subtitle": "Configurează profilul tău și pregătește-ți proiectele pentru colaborări sigure și transparente.",
+    "social_divider": "Sau continuă cu",
+    "hero_kicker": "Onboarding verificat",
+    "oauth_unavailable": "Înregistrarea socială nu este disponibilă momentan.",
+    "providers": {
+      "google": "Google",
+      "github": "GitHub"
+    },
+    "metrics": {
+      "account_value": "Client & Prestator",
+      "account_label": "Roluri flexibile de cont",
+      "security_value": "Pregătit pentru escrow",
+      "security_label": "Onboarding securizat"
+    },
     "benefits": {
       "digital_contracts": "Contracte digitale cu escrow automatizat",
       "fast_verifications": "Verificări rapide pentru clienți și prestatori",

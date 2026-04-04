@@ -5,7 +5,8 @@ import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { useRouter } from '@/lib/navigation';
-import { useAuth } from '@/contexts/auth-context';
+import { useOptionalAuth } from '@/contexts/auth-context';
+import { usePublicAuth } from '@/hooks/use-public-auth';
 import { cn } from '@/lib/utils';
 import {
   AI_SEARCH_NAMESPACES,
@@ -41,7 +42,9 @@ export function SmartSearchInput({
 }: SmartSearchInputProps) {
   const router = useRouter();
   const t = useTranslations();
-  const { user } = useAuth();
+  const authContext = useOptionalAuth();
+  const publicAuth = usePublicAuth(!authContext);
+  const user = authContext?.user ?? publicAuth.user;
 
   const [query, setQuery] = useState(initialQuery ?? '');
   const [namespace, setNamespace] = useState<AiSearchNamespace>(targetNamespace);

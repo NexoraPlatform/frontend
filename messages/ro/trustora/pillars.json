@@ -1,12 +1,12 @@
 {
   "pillars": {
-    "verified_title": "Oameni verificați",
-    "verified_description": "Nimeni nu lucrează fără test tehnic și verificare video obligatorie.",
-    "protected_title": "Bani protejați",
-    "protected_description": "Fiecare euro este ținut în escrow până la confirmarea livrării.",
-    "delivery_title": "Livrare garantată",
-    "delivery_description": "Plata se eliberează doar pe baza milestone-urilor acceptate.",
-    "legal_title": "Contracte cu valoare legală",
-    "legal_description": "Fiecare job este un contract digital cu valoare legală deplină."
+    "verified_title": "Verificare reală",
+    "verified_description": "Accesul este limitat la profesioniști care trec prin test tehnic și verificare video.",
+    "protected_title": "Escrow by default",
+    "protected_description": "Fondurile pentru fiecare milestone rămân blocate până când livrarea este aprobată.",
+    "delivery_title": "Control pe milestone-uri",
+    "delivery_description": "Bugete, statusuri și aprobări rămân vizibile și ușor de urmărit, pas cu pas.",
+    "legal_title": "Contract digital complet",
+    "legal_description": "Fiecare colaborare pornește dintr-un cadru contractual clar, cu istoric și audit trail."
   }
 }

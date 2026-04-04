@@ -1,15 +1,17 @@
 "use client";
 
 import { Link } from '@/lib/navigation';
-import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Image from 'next/image';
-import { useAuth } from "@/contexts/auth-context";
+import { Skeleton } from '@/components/ui/skeleton';
+import { TrustoraLogo } from '@/components/branding/trustora-logo';
 import dynamic from 'next/dynamic';
 import { useTranslations } from "next-intl";
 import useSWR from 'swr';
 import apiClient from "@/lib/api";
+import { useOptionalAuth } from "@/contexts/auth-context";
+import { usePublicAuth } from "@/hooks/use-public-auth";
 
 const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
   ssr: false,
@@ -22,10 +24,43 @@ interface PopularService {
   slug: string;
 }
 
+type SocialLink = {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+};
+
 const fetcher = () => apiClient.getPopularServices().then(res => res.data);
 
+function getSocialLinks(): SocialLink[] {
+  return [
+    {
+      name: 'Facebook',
+      href: process.env.NEXT_PUBLIC_TRUSTORA_FACEBOOK_URL?.trim() || 'https://www.facebook.com/trustora',
+      icon: Facebook,
+    },
+    {
+      name: 'Twitter',
+      href: process.env.NEXT_PUBLIC_TRUSTORA_TWITTER_URL?.trim() || '',
+      icon: Twitter,
+    },
+    {
+      name: 'LinkedIn',
+      href: process.env.NEXT_PUBLIC_TRUSTORA_LINKEDIN_URL?.trim() || 'https://www.linkedin.com/company/trustora-platform',
+      icon: Linkedin,
+    },
+    {
+      name: 'Instagram',
+      href: process.env.NEXT_PUBLIC_TRUSTORA_INSTAGRAM_URL?.trim() || '',
+      icon: Instagram,
+    },
+  ].filter((entry): entry is SocialLink => entry.href.length > 0);
+}
+
 export function Footer() {
-  const { user } = useAuth();
+  const authContext = useOptionalAuth();
+  const publicAuth = usePublicAuth(!authContext);
+  const user = authContext?.user ?? publicAuth.user;
   const t = useTranslations();
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const footerInfoText = t("common.footer_info");
@@ -49,7 +84,6 @@ export function Footer() {
   const allRightsReservedText = t("common.all_rights_reserved");
   const cookiePolicyText = t("common.cookie_policy");
   const readCookiePolicyText = t("common.read_cookie_policy");
-  const trustoraTaglineText = t("common.trustora_tagline");
   const contactTitleText = t("common.contact_title");
   const contactDescriptionText = t("common.contact_description");
   const newsletterTitleText = t("common.newsletter_title");
@@ -60,18 +94,25 @@ export function Footer() {
   const popularServiceMobileText = t("common.popular_service_mobile");
   const popularServiceDesignText = t("common.popular_service_design");
   const popularServiceMarketingText = t("common.popular_service_marketing");
+  const popularServicesLoadingText = t("common.popular_services_loading");
+  const popularServicesUnavailableText = t("common.popular_services_unavailable");
   const privacyHref = '/privacy';
   const termsHref = '/terms';
   const cookiesHref = '/cookies';
+  const socialLinks = getSocialLinks();
+  const earlyAccessContactHeadingId = 'contact-heading-early-access';
+  const earlyAccessNewsletterHeadingId = 'newsletter-heading-early-access';
+  const quickLinksHeadingId = 'quick-links-heading-default';
+  const popularServicesHeadingId = 'popular-services-heading-default';
+  const contactHeadingId = 'contact-heading-default';
+  const newsletterHeadingId = 'newsletter-heading-default';
 
   const { data: popularServices, error } = useSWR('/api/popular-services', fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     dedupingInterval: 3600000,
   });
-
-  if (error) return <div>Failed to load</div>;
-  if (!popularServices) return <div>Loading...</div>;
+  const isPopularServicesLoading = !popularServices && !error;
 
   return (
     <footer
@@ -79,19 +120,19 @@ export function Footer() {
       role="contentinfo"
       aria-label={footerInfoText}
     >
-      {user && (<ChatLauncher />)}
+      {authContext?.user && (<ChatLauncher />)}
       <div className="container mx-auto px-4 !py-12">
         {earlyAccessEnabled ? (
           <div className="rounded-3xl border border-slate-200/60 bg-white/70 p-8 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70">
             <div className="grid gap-10 md:grid-cols-2 md:items-start">
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <h2 className="text-lg font-semibold" id="contact-heading">{contactTitleText}</h2>
+                  <h2 className="text-lg font-semibold" id={earlyAccessContactHeadingId}>{contactTitleText}</h2>
                   <p className="text-sm text-muted-foreground">
                     {contactDescriptionText}
                   </p>
                 </div>
-                <div className="space-y-3" aria-labelledby="contact-heading">
+                <div className="space-y-3" aria-labelledby={earlyAccessContactHeadingId}>
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
                     <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
                     <a href="mailto:contact@trustora.ro" className="font-medium hover:text-primary transition-colors">
@@ -113,14 +154,14 @@ export function Footer() {
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <h3 className="text-lg font-semibold" id="newsletter-heading">{newsletterTitleText}</h3>
+                  <h3 className="text-lg font-semibold" id={earlyAccessNewsletterHeadingId}>{newsletterTitleText}</h3>
                   <p className="text-sm text-muted-foreground">
                     {newsletterDescriptionText}
                   </p>
                 </div>
                 <form
                   className="flex flex-col gap-3 rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80 sm:flex-row sm:items-center"
-                  aria-labelledby="newsletter-heading"
+                  aria-labelledby={earlyAccessNewsletterHeadingId}
                 >
                   <Input
                     placeholder={yourEmailText}
@@ -162,63 +203,34 @@ export function Footer() {
         ) : (
           <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <div className="relative w-8 h-8 flex flex-col-reverse">
-                  <Image
-                    src="/trustora-logo2-60.webp"
-                    alt="Trustoria Logo"
-                    width={140}
-                    height={175}
-                    className="h-10 w-auto"
-                    style={{ maxWidth: 'unset', height: '2.5rem', width: 'auto' }}
-                  />
-                </div>
-                <div className="flex flex-col items-start ps-4">
-                  <span className="text-xl font-bold text-primary">Trustora</span>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    {trustoraTaglineText}
-                  </span>
-                </div>
-
-              </div>
+              <TrustoraLogo
+                alt="Trustora logo"
+                imageClassName="h-14 w-auto"
+                sizes="200px"
+              />
               <p className="text-sm text-muted-foreground">
                 {footerPlatformDescriptionText}
               </p>
               <div className="flex space-x-2" role="group" aria-label={followUsSocialText}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`${followUsOnText} Facebook`}
-                >
-                  <Facebook className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`${followUsOnText} Twitter`}
-                >
-                  <Twitter className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`${followUsOnText} LinkedIn`}
-                >
-                  <Linkedin className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`${followUsOnText} Instagram`}
-                >
-                  <Instagram className="h-4 w-4" />
-                </Button>
+                {socialLinks.map(({ name, href, icon: Icon }) => (
+                  <Button key={name} variant="ghost" size="icon" asChild>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`${followUsOnText} ${name}`}
+                      title={`${followUsOnText} ${name}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  </Button>
+                ))}
               </div>
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold" id="quick-links-heading">{quickLinksText}</h2>
-              <nav className="space-y-2" aria-labelledby="quick-links-heading">
+              <h2 className="text-lg font-semibold" id={quickLinksHeadingId}>{quickLinksText}</h2>
+              <nav className="space-y-2" aria-labelledby={quickLinksHeadingId}>
                 <Link href="/services" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   {servicesText}
                 </Link>
@@ -235,19 +247,36 @@ export function Footer() {
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold" id="popular-services-heading">{popularServicesText}</h2>
-              <nav className="space-y-2" aria-labelledby="popular-services-heading">
-                {popularServices.map((service: PopularService) => (
+              <h2 className="text-lg font-semibold" id={popularServicesHeadingId}>{popularServicesText}</h2>
+              <nav className="space-y-2" aria-labelledby={popularServicesHeadingId}>
+                {popularServices?.map((service: PopularService) => (
                   <Link key={service.id} href={`/services/${service.slug}`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     {service.name}
                   </Link>
                 ))}
+                {isPopularServicesLoading ? (
+                  <div
+                    className="space-y-2"
+                    role="status"
+                    aria-live="polite"
+                    aria-label={popularServicesLoadingText}
+                  >
+                    <Skeleton className="h-4 w-3/4 bg-slate-200/70 dark:bg-[#1E2A3D]" aria-hidden="true" />
+                    <Skeleton className="h-4 w-2/3 bg-slate-200/70 dark:bg-[#1E2A3D]" aria-hidden="true" />
+                    <Skeleton className="h-4 w-4/5 bg-slate-200/70 dark:bg-[#1E2A3D]" aria-hidden="true" />
+                  </div>
+                ) : null}
+                {error ? (
+                  <p className="text-sm text-muted-foreground" role="alert">
+                    {popularServicesUnavailableText}
+                  </p>
+                ) : null}
               </nav>
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold" id="contact-heading">{contactTitleText}</h2>
-              <div className="space-y-2" aria-labelledby="contact-heading">
+              <h2 className="text-lg font-semibold" id={contactHeadingId}>{contactTitleText}</h2>
+              <div className="space-y-2" aria-labelledby={contactHeadingId}>
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
                   <a href="mailto:contact@trustora.ro" className="hover:text-primary transition-colors">
@@ -266,8 +295,8 @@ export function Footer() {
                 </div>
               </div>
               <div className="space-y-2">
-                <h3 className="text-sm font-medium" id="newsletter-heading">{newsletterTitleText}</h3>
-                <form className="flex space-x-2" aria-labelledby="newsletter-heading">
+                <h3 className="text-sm font-medium" id={newsletterHeadingId}>{newsletterTitleText}</h3>
+                <form className="flex space-x-2" aria-labelledby={newsletterHeadingId}>
                   <Input
                     placeholder={yourEmailText}
                     className="text-sm"

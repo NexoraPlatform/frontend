@@ -9,6 +9,13 @@
       "projects": "Proiecte Procesate",
       "change_template": "{percent}% această lună"
     },
+    "current_month": "Luna curentă",
+    "table": {
+      "section": "Secțiune",
+      "stats": "Statistici",
+      "pending": "În așteptare",
+      "action": "Acțiune"
+    },
     "quick_actions": {
       "title": "Acțiuni Rapide",
       "description": "Acțiuni frecvente pentru administrarea platformei",
@@ -67,6 +74,11 @@
         "description": "Rezolvă disputele între utilizatori",
         "stats": "Dispute și reclamații"
       },
+      "legal_service_categories": {
+        "title": "Categorii Juridice de Servicii",
+        "description": "Administrează regulile contractuale și profilurile de risc pentru categoriile de servicii",
+        "stats": "Taxonomie juridică de servicii"
+      },
       "legal_clauses": {
         "title": "Clauze Legale",
         "description": "Gestionează clauzele contractuale și traducerile",
@@ -94,6 +106,30 @@
       }
     },
     "pending_template": "{count} în așteptare",
+    "shell": {
+      "brand_label": "Administrare",
+      "toggle_menu": "Comută meniul de administrare",
+      "search_placeholder": "Caută utilizatori, servicii...",
+      "account_settings": "Setări cont",
+      "sign_out": "Deconectare",
+      "menu": {
+        "dashboard": "Dashboard",
+        "users": "Utilizatori",
+        "services": "Servicii",
+        "projects": "Proiecte",
+        "contracts": "Contracte",
+        "calls": "Call-uri",
+        "disputes": "Dispute",
+        "legal_service_categories": "Categorii Juridice",
+        "legal_clauses": "Clauze Legale",
+        "newsletter": "Newsletter",
+        "activity": "Activitate",
+        "audit_logs": "Jurnale Audit",
+        "roles": "Roluri",
+        "analytics": "Analytics",
+        "settings": "Setări"
+      }
+    },
     "activity": {
       "title": "Activitate Recentă",
       "entries": {

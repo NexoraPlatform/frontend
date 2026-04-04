@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import proxy from '../proxy';
+import {
+  BROWSER_SESSION_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from '../lib/auth/session-preferences';
 
 const makeResponse = (type: string, url?: string, status = 200) => ({
   type,
   url,
   status,
   headers: new Headers(),
+  cookies: {
+    set: vi.fn(),
+  },
 });
 
 vi.mock('next/server', () => {
@@ -20,6 +27,9 @@ vi.mock('next/server', () => {
       this.status = init?.status ?? 200;
       this.headers = new Headers(init?.headers);
       this.type = 'constructor';
+      this.cookies = {
+        set: vi.fn(),
+      };
     }
     static next() {
       return makeResponse('next');
@@ -67,17 +77,39 @@ describe('proxy', () => {
     vi.restoreAllMocks();
   });
 
-  const makeReq = (path: string, opts?: { auth?: any; headers?: HeadersInit }) => {
+  const makeReq = (path: string, opts?: { auth?: any; headers?: HeadersInit; method?: string }) => {
     const url = new URL(baseUrl + path);
     (url as any).clone = () => new URL(url.toString());
     const headers = new Headers(opts?.headers);
+    const cookieEntries = new Map<string, string>();
+    const cookieHeader = headers.get('cookie');
+
+    if (cookieHeader) {
+      for (const chunk of cookieHeader.split(';')) {
+        const [rawName, ...rawValue] = chunk.trim().split('=');
+        if (!rawName) continue;
+        cookieEntries.set(rawName, rawValue.join('='));
+      }
+    }
+
+    if (opts?.auth?.user) {
+      if (opts.auth.rememberMe === true) {
+        cookieEntries.set(REMEMBER_ME_COOKIE_NAME, '1');
+      } else {
+        cookieEntries.set(BROWSER_SESSION_COOKIE_NAME, '1');
+      }
+    }
+
     const cookies = {
-      get: (_name: string) => undefined,
-      has: (_name: string) => false,
-      getAll: () => [] as Array<{ name: string; value: string }>,
+      get: (name: string) =>
+        cookieEntries.has(name) ? { value: cookieEntries.get(name) } : undefined,
+      has: (name: string) => cookieEntries.has(name),
+      getAll: () =>
+        Array.from(cookieEntries.entries()).map(([name, value]) => ({ name, value })),
     };
     return {
       url: url.toString(),
+      method: opts?.method ?? 'GET',
       nextUrl: url as any,
       headers,
       cookies,
@@ -87,12 +119,6 @@ describe('proxy', () => {
 
   it('returns NextResponse.next for static/assets paths', async () => {
     const req = makeReq('/_next/static/file.js');
-    const res: any = await proxy(req);
-    expect(res.type).toBe('next');
-  });
-
-  it('bypasses OneSignal service worker script', async () => {
-    const req = makeReq('/OneSignalSDKWorker.js');
     const res: any = await proxy(req);
     expect(res.type).toBe('next');
   });
@@ -150,13 +176,27 @@ describe('proxy', () => {
     expect(res.url).toContain('/ro/projects');
   });
 
-  it('redirects to preferred locale when path locale mismatches', async () => {
+  it('respects explicit locale from path even when it differs from preferred locale', async () => {
     const req = makeReq('/en/projects', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
     const res: any = await proxy(req);
-    expect(res.type).toBe('redirect');
-    expect(res.url).toContain('/ro/projects');
+    expect(res.type).toBe('next');
+  });
+
+  it('returns 204 for non-api OPTIONS page requests', async () => {
+    const req = makeReq('/en', {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://vercel.live',
+        'access-control-request-headers': 'x-vercel-preview-signature',
+      },
+    });
+    const res: any = await proxy(req);
+    expect(res.status).toBe(204);
+    expect(res.headers.get('Allow')).toBe('GET, HEAD, OPTIONS');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://vercel.live');
+    expect(res.headers.get('Access-Control-Allow-Headers')).toBe('x-vercel-preview-signature');
   });
 
   it('enforces open soon funnel with redirect (non-admin)', async () => {
@@ -228,6 +268,27 @@ describe('proxy', () => {
     const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/access-denied');
+  });
+
+  it('allows superuser aliases on /admin', async () => {
+    const req = makeReq('/ro/admin', {
+      headers: { 'x-vercel-ip-country': 'RO' },
+      auth: { user: { id: '1', role_slugs: ['super_admin'] } },
+    });
+    const res: any = await proxy(req);
+    expect(res.type).toBe('next');
+  });
+
+  it('keeps session user as fallback when laravel user fetch is unavailable', async () => {
+    const req = makeReq('/ro/admin', {
+      headers: {
+        'x-vercel-ip-country': 'RO',
+        cookie: 'authjs.session-token=test',
+      },
+      auth: { user: { id: '1', isSuperAdmin: true } },
+    });
+    const res: any = await proxy(req);
+    expect(res.type).toBe('next');
   });
 
   it('redirects authenticated users away from auth pages', async () => {

@@ -34,6 +34,10 @@
     "finance": "Situație financiară",
     "settings": "Setări"
   },
+  "shell": {
+    "toggle_menu": "Comută meniul dashboardului",
+    "sign_out": "Deconectare"
+  },
   "finance": {
     "title": "Situație financiară",
     "wallet_balance": "Sold portofel",
@@ -46,7 +50,12 @@
     "transfer_success": "Transfer inițiat cu succes.",
     "transfer_error": "Transfer eșuat: {message}",
     "insufficient_balance": "Suma depășește soldul disponibil.",
-    "invalid_amount": "Introdu o sumă validă."
+    "invalid_amount": "Introdu o sumă validă.",
+    "requirements": {
+      "phone": "numărul de telefon",
+      "company": "datele companiei",
+      "missing": "Completează {items} înainte să conectezi contul Rapyd."
+    }
   },
   "loading": {
     "dashboard": "Se încarcă dashboard-ul...",
@@ -55,6 +64,7 @@
   },
   "errors": {
     "projects_load_failed": "Nu s-au putut încărca proiectele: {message}",
+    "services_load_failed": "Nu s-au putut încărca serviciile: {message}",
     "generic": "Eroare: {message}"
   },
   "notifications": {
@@ -156,6 +166,64 @@
       }
     }
   },
+  "overview_page": {
+    "cards": {
+      "footer": "Comparativ cu ultima fereastră de raportare"
+    },
+    "charts": {
+      "performance_title": "Trend Performanță",
+      "performance_description": "Valorile curente comparate cu fereastra anterioară de raportare pentru indicatorii principali din dashboard.",
+      "mix_title": "Mix Activitate",
+      "mix_description": "O vedere rapidă asupra semnalelor de workflow extrase din activitatea recentă a dashboardului tău.",
+      "previous": "Anterior",
+      "current": "Curent",
+      "value": "Valoare",
+      "groups": {
+        "projects": "Proiecte",
+        "finance": "Financiar",
+        "collaboration": "Colaborare",
+        "delivery": "Livrare",
+        "system": "Sistem"
+      }
+    },
+    "table": {
+      "title": "Proiecte Recente",
+      "description": "Cele mai noi oportunități și actualizări de proiect vizibile din homepage-ul dashboardului.",
+      "project": "Proiect",
+      "budget": "Buget",
+      "status": "Status",
+      "updated": "Actualizat",
+      "action": "Acțiune",
+      "view_all": "Vezi tot",
+      "view": "Vezi proiectul",
+      "untitled_project": "Proiect fără titlu",
+      "no_budget": "Buget indisponibil",
+      "empty_title": "Nu există proiecte recente",
+      "empty_description": "Proiectele vor apărea aici imediat ce ajunge activitate în dashboard."
+    }
+  },
+  "badges": {
+    "title": "Badge-uri",
+    "headline": "Reputația ta prinde contur",
+    "description": "Vezi badge-urile deja deblocate și progresul evaluat automat din backend pentru următoarele praguri importante.",
+    "awarded": "Acordate",
+    "in_progress": "În progres",
+    "featured": "Badge-uri în prim-plan",
+    "latest": "Deblocate recent",
+    "all_unlocked": "{count} badge-uri deblocate",
+    "loading": "Se încarcă badge-urile...",
+    "error": "Nu am putut încărca badge-urile.",
+    "empty_title": "Badge-urile tale vor apărea aici",
+    "empty_description": "Pe măsură ce finalizezi proiecte, milestone-uri și verificări, sistemul va acorda automat badge-uri noi.",
+    "progress_title": "Progres activ",
+    "progress_headline": "Urmărește următoarele badge-uri",
+    "progress_description": "Aceste obiective sunt calculate automat pe baza activității tale din platformă.",
+    "progress_empty": "Momentan nu există badge-uri în progres.",
+    "criteria_complete": "criterii îndeplinite",
+    "next_step": "Pas următor",
+    "rewards_title": "Beneficii active",
+    "untitled_badge": "Badge fără titlu"
+  },
   "filters": {
     "search_placeholder": "Caută proiecte după titlu sau descriere...",
     "active": "Filtre active:",
@@ -218,6 +286,36 @@
       "provider": "Gestionează serviciile pe care le oferi",
       "client": "Serviciile pe care le urmărești"
     },
+    "loading": "Se încarcă serviciile tale",
+    "retry": "Reîncearcă",
+    "manage_cta": "Gestionează serviciile",
+    "summary": {
+      "total": "Servicii active",
+      "verified": "Servicii verificate",
+      "categories": "Categorii acoperite",
+      "average_rating": "Rating mediu"
+    },
+    "labels": {
+      "verified": "Verificat",
+      "rating": "Rating",
+      "reviews": "recenzii",
+      "projects": "proiecte",
+      "delivery_provider": "Livrare",
+      "category_fallback": "Categorie neatribuită",
+      "service_fallback": "Serviciu fără nume",
+      "not_rated": "Fără rating încă"
+    },
+    "levels": {
+      "junior": "Junior",
+      "mid": "Mediu",
+      "senior": "Senior",
+      "expert": "Expert"
+    },
+    "upgrade": {
+      "label": "Upgrade nivel",
+      "description": "Poți susține testul pentru a trece de la {current} la {target}.",
+      "cta": "Dă test pentru {level}"
+    },
     "empty": {
       "title": {
         "provider": "Nu oferi încă servicii",
@@ -239,6 +337,7 @@
     }
   },
   "settings": {
+    "page_description": "Gestionează-ți profilul, notificările, preferințele de securitate și informațiile companiei.",
     "profile": {
       "title": "Setări profil",
       "company_informations": "Informații Companie",
@@ -259,13 +358,19 @@
       "company_managers_transfer_button": "Transferă ownership",
       "company_managers_transfer_confirm": "Transferi ownership-ul companiei către {name}? Această acțiune nu poate fi anulată.",
       "legal_name": "Nume Legal Companie",
-      "represented_by": "Reprezentat Legal De",
+      "commercial_name": "Nume Comercial",
+      "represented_by": "Semnatar autorizat",
+      "signatory_title": "Funcția semnatarului",
       "contact_email": "Email Contact",
-      "id_type": "Tip Act",
-      "id_code": "Cod Identificare",
+      "id_type": "Identificator fiscal",
+      "id_code": "Cod de identificare fiscală",
+      "registration_number": "Număr de înregistrare",
+      "vat_number": "Cod TVA",
+      "vat_registered": "Compania este plătitoare de TVA",
       "currency": "Monedă",
       "hq_address": "Adresa Sediu Social",
       "street": "Strada și Număr",
+      "address_line_2": "Adresă linia 2",
       "city": "Oraș / Sector",
       "state": "Județ / Stat",
       "zip": "Cod Poștal",
@@ -279,12 +384,17 @@
       "success": "Informațiile companiei au fost salvate/create cu succes.",
       "placeholders": {
         "company": "ex: SC EXEMPLU SRL",
+        "commercial_name": "ex: Exemplu Tech",
         "represented_by": "ex: Ion Popescu",
+        "signatory_title": "ex: Administrator",
         "email": "contact@firma.ro",
         "id_type": "CUI",
-        "id_code": "RO123456",
+        "id_code": "RO12345678",
+        "registration_number": "J40/1234/2024",
+        "vat_number": "RO12345678",
         "currency": "Selectează moneda",
         "address": "Str. Exemplului Nr. 1, Bl. A",
+        "address_line_2": "Etaj 2, Biroul 5",
         "city": "București",
         "state": "București",
         "zip": "010000",
@@ -323,6 +433,139 @@
       "iban": "IBAN",
       "company_address": "Adresă companie",
       "save": "Salvează datele bancare"
+    }
+  },
+  "onboarding_bar": {
+    "company": {
+      "title": "Adaugă detaliile companiei",
+      "description": "Completează datele juridice și bancare ale companiei pentru a continua onboardingul și pentru a activa plățile securizate.",
+      "action": "Deschide detaliile companiei"
+    },
+    "escrow_customer": {
+      "title": "Pornește onboardingul pentru Escrow.com",
+      "description": "Ca să poți folosi plățile prin escrow, trebuie mai întâi să îți creezi profilul de onboarding în Escrow.com.",
+      "action": "Pornește onboardingul",
+      "loading": "Se pornește...",
+      "success": "Onboardingul Escrow.com a fost pornit cu succes.",
+      "error": "Nu am putut porni onboardingul pentru Escrow.com."
+    },
+    "escrow_kyb": {
+      "title": "Finalizează verificarea KYB",
+      "description": "Finalizează verificarea KYB în Escrow.com pentru a termina onboardingul și pentru a putea încasa banii.",
+      "action": "Continuă KYB"
+    }
+  },
+  "reviews": {
+    "title": "Reviews de proiect",
+    "description": "Trimite feedback doar după proiectele finalizate și urmărește ce a fost publicat către și despre tine.",
+    "tabs": {
+      "opportunities": "Eligibile ({count})",
+      "authored": "Trimise ({count})",
+      "received": "Primite ({count})"
+    },
+    "status": {
+      "submitted": "Trimis",
+      "published": "Publicat",
+      "removed": "Eliminat"
+    },
+    "double_blind": {
+      "description": "Review-urile trimise rămân ascunse până când contrapartea trimite și ea review-ul sau expiră fereastra de publicare."
+    },
+    "opportunity": {
+      "review_target": "Poți evalua {role}: {name}",
+      "provider": "prestatorul",
+      "client": "clientul",
+      "milestones": "{count} milestone-uri eligibile"
+    },
+    "labels": {
+      "person_fallback": "Utilizator Trustora",
+      "reviewee": "Destinatar",
+      "reviewer": "Autor",
+      "project_fallback": "Proiect",
+      "flags": "{count} raportări",
+      "rating": "{value}/5",
+      "submitted_at": "Trimis la",
+      "published_at": "Publicat la",
+      "milestone": "Milestone",
+      "service": "Serviciu",
+      "project_status_fallback": "Status proiect indisponibil"
+    },
+    "dimensions": {
+      "communication": "Comunicare",
+      "quality": "Calitate",
+      "timeliness": "Respectarea termenelor",
+      "professionalism": "Profesionalism",
+      "scope_clarity": "Claritatea scope-ului",
+      "payment_reliability": "Fiabilitatea plății",
+      "would_work_again": "Ar colabora din nou",
+      "would_work_again_yes": "Da",
+      "would_work_again_no": "Nu"
+    },
+    "notes": {
+      "submitted": "Review-ul este încă ascuns și va deveni vizibil după publicarea double-blind.",
+      "removed": "Acest review nu mai este public după o intervenție de moderare."
+    },
+    "empty": {
+      "opportunities_title": "Momentan nu există review-uri de trimis",
+      "opportunities_provider": "După ce proiectul ajunge într-un status final, oportunitățile de review vor apărea aici.",
+      "opportunities_client": "Vei putea lăsa review aici doar după ce proiectul este finalizat.",
+      "authored_title": "Nu ai trimis încă review-uri",
+      "authored_description": "Review-urile pe care le trimiți vor apărea aici cu statusul lor curent.",
+      "received_title": "Încă nu ai review-uri primite",
+      "received_description": "Review-urile publicate despre tine vor apărea aici."
+    },
+    "actions": {
+      "edit": "Editează",
+      "write": "Scrie review",
+      "view_profile": "Vezi profilul"
+    },
+    "composer": {
+      "new_title_provider": "Evaluează prestatorul",
+      "new_title_client": "Evaluează clientul",
+      "edit_title": "Editează review-ul",
+      "description_create": "Feedback-ul tău intră în flow-ul de publicare double-blind configurat în backend.",
+      "description_edit": "Poți actualiza review-ul cât timp rămâne în statusul trimis.",
+      "reviewee_label": "Evaluezi",
+      "reviewee_fallback": "Utilizatorul selectat",
+      "rating_label": "Rating general",
+      "rating_value": "{value} din 5",
+      "rating_empty": "Selectează un rating",
+      "milestone_label": "Asociază un milestone",
+      "loading_milestones": "Se încarcă milestone-urile eligibile...",
+      "milestone_placeholder": "Selectează milestone-ul relevant",
+      "milestone_none": "Fără milestone specific",
+      "no_milestones": "Nu există milestone-uri eligibile de asociat pentru acest review.",
+      "headline_label": "Headline",
+      "headline_placeholder": "Rezumat scurt, opțional",
+      "body_label": "Feedback public",
+      "body_placeholder_client": "Descrie cum a mers colaborarea, comunicarea, claritatea și plățile din proiect.",
+      "body_placeholder_provider": "Descrie rezultatul livrat, calitatea, comunicarea și punctualitatea din proiect.",
+      "private_feedback_label": "Feedback privat",
+      "private_feedback_placeholder": "Note interne care nu se publică.",
+      "private_feedback_placeholder_edit": "Lasă gol ca să păstrezi feedback-ul privat existent.",
+      "private_feedback_hint": "Feedback-ul privat nu apare public în profilurile utilizatorilor.",
+      "private_feedback_hint_edit": "Dacă lași câmpul gol, frontendul nu va suprascrie feedback-ul privat deja salvat.",
+      "score_section_title": "Scoruri detaliate",
+      "score_section_description": "Adaugă criterii suplimentare pentru un review mai util.",
+      "would_work_again_label": "Ai colabora din nou?",
+      "would_work_again_unset": "Prefer să nu răspund",
+      "would_work_again_yes": "Da",
+      "would_work_again_no": "Nu",
+      "cancel": "Renunță",
+      "submit": "Trimite review-ul",
+      "save": "Salvează modificările",
+      "success_published": "Review-ul a fost publicat.",
+      "success_submitted": "Review-ul a fost trimis cu succes.",
+      "success_updated": "Review-ul a fost actualizat.",
+      "milestone_fallback": "Milestone #{id}",
+      "errors": {
+        "review_missing": "Review-ul selectat nu mai este disponibil pentru editare.",
+        "reviewee_missing": "Nu am putut determina utilizatorul evaluat pentru acest review.",
+        "project_not_finished": "Poți trimite review doar după ce proiectul este finalizat.",
+        "rating_required": "Selectează un rating de la 1 la 5.",
+        "body_too_short": "Feedback-ul public trebuie să aibă cel puțin 10 caractere.",
+        "generic": "Nu am putut salva review-ul."
+      }
     }
   },
   "actions": {

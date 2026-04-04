@@ -1,0 +1,969 @@
+"use client";
+
+import {useState, useEffect, useCallback} from 'react';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import Image from 'next/image';
+import {
+    Star,
+    MapPin,
+    Calendar,
+    Clock,
+    Globe,
+    Mail,
+    Phone,
+    Briefcase,
+    GraduationCap,
+    Award,
+    CheckCircle,
+    MessageSquare,
+    ExternalLink,
+    Building,
+    Languages,
+    Target,
+    Users,
+    Loader2,
+    AlertCircle,
+    Calendar as CalendarIcon,
+    Verified, ShieldAlert
+} from 'lucide-react';
+import { apiClient } from '@/lib/api';
+import {useGetLanguages} from "@/hooks/use-api";
+import { useOptionalAuth } from '@/contexts/auth-context';
+import { usePublicAuth } from '@/hooks/use-public-auth';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { sanitizeHttpUrl } from '@/lib/navigation-security';
+import { mapPublicProviderProfile } from '@/lib/provider-public-profile';
+import { usePublicUserBadges } from '@/hooks/use-api';
+import { BadgeCard } from '@/components/badges/badge-card';
+import { resolveBadgeIcon, resolveBadgePalette } from '@/lib/badges';
+import { PublicUserReviewsPanel } from '@/components/reviews/public-user-reviews-panel';
+
+interface ProviderProfileProps {
+    id: any;
+}
+
+type Languages = {
+    id: number;
+    name: string;
+    code: string;
+    locale: string;
+    flag: string;
+    timezone: string;
+}
+
+type Category = {
+    id: number;
+    name: string;
+    slug: string;
+};
+
+type Service = {
+    id: number;
+    name: string;
+    slug: string;
+    description: string;
+    rating: string;
+    reviewCount: number;
+    orderCount: number;
+    category: Category;
+};
+
+type ProviderService = {
+    id: number;
+    user_id: number;
+    service_id: number;
+    verified: boolean;
+    level: string;
+    provider_project_count: number;
+    service: Service;
+};
+
+type ServiceDisplay = {
+    id: string;
+    title: string;
+    category: string;
+    level: string;
+    rating: number;
+    reviewCount: number;
+    orderCount: number;
+    deliveryTime: number;
+};
+
+export default function ProviderProfile({ id }: ProviderProfileProps) {
+    const authContext = useOptionalAuth();
+    const publicAuth = usePublicAuth(!authContext);
+    const user = authContext?.user ?? publicAuth.user;
+    const [provider, setProvider] = useState<any>(null);
+    const [services, setServices] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState('overview');
+    // const { data: profileData, loading: profileLoading, error: profileError } = useGetProviderProfileByUrl(id);
+    const { data: languages, loading: languagesLoading } = useGetLanguages();
+    const {
+        data: publicBadgesData,
+        loading: loadingPublicBadges,
+        error: publicBadgesError,
+    } = usePublicUserBadges(provider?.id, Boolean(provider?.id));
+
+    const loadProviderData = useCallback(async () => {
+        try {
+            // Load provider profile
+            const providerData = await apiClient.getProviderProfileByUrl(id);
+            const providerInfo = mapPublicProviderProfile(providerData, String(id), languages || []);
+
+            const providerServices = await apiClient.getProviderServices(providerData.id);
+
+            // Provider services data
+            const services: ServiceDisplay[] = providerServices.map((item: ProviderService) => ({
+                id: item.service.id.toString(),
+                title: item.service.name,
+                category: item.service.category?.name || 'Nespecificat',
+                level: item.level.toLowerCase(),
+                rating: parseFloat(item.service.rating) || 0,
+                reviewCount: item.service.reviewCount || 0,
+                orderCount: item.service.orderCount || 0,
+                deliveryTime: 14
+            }));
+
+            setProvider(providerInfo);
+            setServices(services);
+        } catch (error: any) {
+            console.error(error)
+            setError('Nu s-au putut încărca datele prestatorului');
+        } finally {
+            setLoading(false);
+        }
+    }, [id, languages]);
+
+    useEffect(() => {
+        if (!languagesLoading) {
+            loadProviderData().catch(err => {
+                console.error('Error loading provider data:', err);
+            });
+        }
+    }, [languagesLoading, languages, id, loadProviderData]);
+
+    const getAvailabilityStatus = (status: string) => {
+        switch (status) {
+            case 'AVAILABLE':
+                return { color: 'bg-green-100 text-green-800', label: 'Disponibil', icon: CheckCircle };
+            case 'BUSY':
+                return { color: 'bg-yellow-100 text-yellow-800', label: 'Ocupat', icon: Clock };
+            case 'UNAVAILABLE':
+                return { color: 'bg-red-100 text-red-800', label: 'Indisponibil', icon: AlertCircle };
+            default:
+                return { color: 'bg-gray-100 text-gray-800', label: 'Necunoscut', icon: AlertCircle };
+        }
+    };
+
+    type LanguageLevel = 'Basic' | 'Conversational' | 'Fluent' | 'Native';
+
+    const languageColors: Record<LanguageLevel, string> = {
+        Native: 'bg-green-100 text-green-800',
+        Fluent: 'bg-purple-100 text-purple-800',
+        Conversational: 'bg-yellow-100 text-yellow-800',
+        Basic: 'bg-gray-100 text-gray-800',
+    };
+
+    const getLanguageLevel = (level: string): string => {
+        if (level in languageColors) {
+            return languageColors[level as LanguageLevel];
+        }
+
+        return languageColors['Basic'];
+    };
+
+    type SkillLevel = 'JUNIOR' | 'MEDIUM' | 'SENIOR' | 'ADVANCED';
+
+    const SkillLevels: Record<SkillLevel, { color: string; progress: number }> = {
+        ADVANCED: { color: 'bg-red-100 text-red-800', progress: 95 },
+        SENIOR: { color: 'bg-purple-100 text-purple-800', progress: 80 },
+        MEDIUM: { color: 'bg-blue-100 text-blue-800', progress: 60 },
+        JUNIOR: { color: 'bg-green-100 text-green-800', progress: 30 },
+    };
+
+    const getSkillLevel = (level: string) => {
+        if (level in SkillLevels) {
+            return SkillLevels[level as SkillLevel];
+        }
+
+        return SkillLevels['JUNIOR'];
+    };
+
+    const formatWorkingHours = (hours: any) => {
+        if (!hours) return 'Liber';
+        return `${hours.start} - ${hours.end}`;
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
+                <Header />
+                <div className="container mx-auto px-4 py-20">
+                    <div className="flex justify-center items-center">
+                        <Loader2 className="w-8 h-8 animate-spin" />
+                    </div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (!provider) {
+        return (
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
+                <Header />
+                <div className="container mx-auto px-4 py-20">
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{error || 'Prestator nu a fost găsit'}</AlertDescription>
+                    </Alert>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    const availabilityStatus = getAvailabilityStatus(provider.availability.status);
+    const AvailabilityIcon = availabilityStatus.icon;
+
+    const emptySections = [
+        provider.certifications?.length === 0,
+        provider.languages?.length === 0,
+        provider.education?.length === 0
+    ].filter(Boolean).length;
+
+    const cardClass = emptySections >= 2 ? 'lg:grid-cols-1' : 'lg:grid-cols-2';
+
+    const lastActiveProvider = provider.lastActive
+        ? Math.floor((Date.now() - new Date(provider.lastActive).getTime()) / (1000 * 60 * 60))
+        : null;
+    const sessionCompanyName =
+        typeof user?.company === 'string'
+            ? user.company
+            : user?.company?.name || user?.company_name || '';
+    const isViewingOwnProviderProfile =
+        Boolean(user) &&
+        (
+            String(user?.id ?? '') === String(provider.id ?? '') ||
+            (
+                typeof user?.profile_url === 'string' &&
+                typeof provider.profileUrl === 'string' &&
+                user.profile_url.trim() === provider.profileUrl.trim()
+            )
+        );
+    const displayCompany =
+        isViewingOwnProviderProfile && sessionCompanyName
+            ? sessionCompanyName
+            : provider.company;
+    const providerFeaturedBadges = Array.isArray(provider.featuredBadges) ? provider.featuredBadges : [];
+    const publicBadges = publicBadgesData ?? [];
+
+    return (
+        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+            <TrustoraThemeStyles />
+            <Header />
+
+            <div className="container mx-auto px-4 py-8">
+                {/* Provider Header */}
+                <div className="mb-8">
+                    <Card className="glass-card border-emerald-100/60 shadow-lg">
+                        <CardContent className="p-8">
+                            <div className="flex flex-col lg:flex-row gap-8">
+                                {/* Avatar and Basic Info */}
+                                <div className="flex flex-col items-center lg:items-start">
+                                    <div className="relative mb-4">
+                                        <Avatar className="w-32 h-32 border-4 border-white shadow-lg">
+                                            <AvatarImage src={provider.avatar} />
+                                            <AvatarFallback className="text-2xl">
+                                                {provider.firstName[0]}{provider.lastName[0]}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        {provider.isVerified && (
+                                            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-[var(--emerald-green)] rounded-full flex items-center justify-center border-4 border-white">
+                                                <Verified className="w-5 h-5 text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="text-center lg:text-left">
+                                        <h1 className="text-3xl font-bold mb-2">
+                                            {provider.firstName} {provider.lastName}
+                                        </h1>
+                                        <div className="flex items-center justify-center lg:justify-start space-x-2 mb-3">
+                                            <Badge className={availabilityStatus.color}>
+                                                <AvailabilityIcon className="w-3 h-3 mr-1" />
+                                                {availabilityStatus.label}
+                                            </Badge>
+                                            {provider.isVerified ? (
+                                                <Badge className="bg-emerald-100 text-emerald-800">
+                                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                                    Verificat
+                                                </Badge>
+                                            ) : (
+                                                <Badge className="bg-amber-100 text-amber-800">
+                                                    <ShieldAlert className="w-3 h-3 mr-1" />
+                                                    Neverificat
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-center lg:justify-start space-x-4 text-sm text-muted-foreground mb-4">
+                                            {provider.location && (
+                                                <div className="flex items-center space-x-1">
+                                                    <MapPin className="w-4 h-4" />
+                                                    <span>{provider.location}</span>
+                                                </div>
+                                            )}
+
+                                            {provider.memberSince && (
+                                                <div className="flex items-center space-x-1">
+                                                    <Calendar className="w-4 h-4" />
+                                                    <span>Membru din {new Date(provider.memberSince).getFullYear()}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-center lg:justify-start space-x-1 mb-4">
+                                            <div className="flex">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star
+                                                        key={i}
+                                                        className={`w-5 h-5 ${
+                                                            i < Math.floor(provider.rating)
+                                                                ? 'fill-yellow-400 text-yellow-400'
+                                                                : 'text-gray-300'
+                                                        }`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="font-bold text-lg">{provider.rating}</span>
+                                            <span className="text-muted-foreground">({provider.reviewCount} recenzii)</span>
+                                        </div>
+
+                                        {providerFeaturedBadges.length > 0 && (
+                                            <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                                                {providerFeaturedBadges.map((featuredBadge: any, index: number) => {
+                                                    const badgeDefinition = featuredBadge.badge;
+                                                    const Icon = resolveBadgeIcon(badgeDefinition);
+                                                    const palette = resolveBadgePalette(badgeDefinition);
+
+                                                    return (
+                                                        <div
+                                                            key={String(featuredBadge.id ?? badgeDefinition?.code ?? `featured-badge-${index}`)}
+                                                            className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-sm"
+                                                            style={{
+                                                                color: palette.color,
+                                                                backgroundColor: palette.backgroundColor,
+                                                                borderColor: palette.borderColor,
+                                                            }}
+                                                        >
+                                                            <Icon className="h-3.5 w-3.5" />
+                                                            <span>{badgeDefinition?.name ?? 'Badge'}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Main Info */}
+                                <div className="flex-1">
+                                    <div className="mb-6">
+                                        <h3 className="text-lg font-semibold mb-3">Despre mine</h3>
+                                        <p className="text-muted-foreground leading-relaxed">
+                                            {provider.bio}
+                                        </p>
+                                    </div>
+
+                                    {/* Quick Stats */}
+                                    <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-[var(--midnight-blue)]">{provider.completedProjects}</div>
+                                            <div className="text-sm text-muted-foreground">Proiecte finalizate</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-[var(--emerald-green)]">{provider.responseTime ? `${provider.responseTime} ${String(provider.responseTime) === '1' ? 'ora' : 'ore'}` : '—'}</div>
+                                            <div className="text-sm text-muted-foreground">Timp de răspuns</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-[var(--midnight-blue)]">{provider.availability.hoursPerWeek}h</div>
+                                            <div className="text-sm text-muted-foreground">Pe săptămână</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-amber-500">
+                                                {provider.firstJob ? `${Math.max(0, new Date().getFullYear() - new Date(provider.firstJob).getFullYear())}+` : '—'}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">Ani experiență</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Contact Info */}
+                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                        {displayCompany && (
+                                            <div className="flex items-center space-x-2 text-sm">
+                                                <Building className="w-4 h-4 text-muted-foreground" />
+                                                <span>{displayCompany}</span>
+                                            </div>
+                                        )}
+
+                                        {provider.website && sanitizeHttpUrl(provider.website) && (
+                                            <div className="flex items-center space-x-2 text-sm">
+                                                <Globe className="w-4 h-4 text-muted-foreground" />
+                                                <a
+                                                    href={sanitizeHttpUrl(provider.website) ?? undefined}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[var(--emerald-green)] hover:underline"
+                                                >
+                                                    {provider.website}
+                                                </a>
+                                            </div>
+                                        )}
+
+                                        {lastActiveProvider !== null && (
+                                            <div className="flex items-center space-x-2 text-sm">
+                                                <Clock className="w-4 h-4 text-muted-foreground" />
+
+                                                <span className={`${lastActiveProvider === 0 ? 'text-[var(--emerald-green)]' : ''}`}>
+                                                    {lastActiveProvider === 0 ? 'Activ acum' : `Activ acum ${lastActiveProvider} ore`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {provider.availability.timezone && (
+                                            <div className="flex items-center space-x-2 text-sm">
+                                                <Globe className="w-4 h-4 text-muted-foreground" />
+                                                <span>{provider.availability.timezone}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Detailed Information Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    <TabsList className="flex w-full justify-around flex-wrap gap-2 glass-card p-2">
+                        <TabsTrigger value="overview">Prezentare</TabsTrigger>
+                        {services.length > 0 && (<TabsTrigger value="services">Servicii</TabsTrigger>)}
+                        {provider.portfolio.length > 0 && (<TabsTrigger value="portfolio">Portofoliu</TabsTrigger>)}
+                        {provider.workHistory.length > 0 && (<TabsTrigger value="experience">Experiență</TabsTrigger>)}
+                        <TabsTrigger value="reviews">Recenzii</TabsTrigger>
+                        <TabsTrigger value="availability">Disponibilitate</TabsTrigger>
+                    </TabsList>
+
+                    {/* Overview Tab */}
+                    <TabsContent value="overview" className="space-y-6">
+                        <div className={`grid xs:grid-cols-1 ${cardClass} gap-6`}>
+                            {(loadingPublicBadges || publicBadgesError || publicBadges.length > 0) && (
+                                <Card className="glass-card lg:col-span-2">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2">
+                                            <Award className="w-5 h-5" />
+                                            <span>Badge-uri Publice</span>
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Reputația și milestone-urile validate automat pentru acest prestator.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {loadingPublicBadges ? (
+                                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Se încarcă badge-urile...
+                                            </div>
+                                        ) : publicBadgesError ? (
+                                            <Alert variant="destructive">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>{publicBadgesError}</AlertDescription>
+                                            </Alert>
+                                        ) : (
+                                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                                {publicBadges.map((badgeRecord: any, index: number) => (
+                                                    <BadgeCard
+                                                        key={String(badgeRecord.id ?? badgeRecord.badge?.code ?? `public-badge-${index}`)}
+                                                        record={badgeRecord}
+                                                        compact
+                                                        locale="ro-RO"
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {/*/!* Skills *!/*/}
+                            {/*<Card>*/}
+                            {/*    <CardHeader>*/}
+                            {/*        <CardTitle className="flex items-center space-x-2">*/}
+                            {/*            <Code className="w-5 h-5" />*/}
+                            {/*            <span>Competențe Tehnice</span>*/}
+                            {/*        </CardTitle>*/}
+                            {/*    </CardHeader>*/}
+                            {/*    <CardContent>*/}
+                            {/*        <div className="space-y-4">*/}
+                            {/*            {provider.skills.map((skill: any, index: number) => {*/}
+                            {/*                const skillInfo = getSkillLevel(skill.level);*/}
+                            {/*                return (*/}
+                            {/*                    <div key={index} className="space-y-2">*/}
+                            {/*                        <div className="flex justify-between items-center">*/}
+                            {/*                            <span className="font-medium">{skill.name}</span>*/}
+                            {/*                            <div className="flex items-center space-x-2">*/}
+                            {/*                                <Badge className={skillInfo.color}>{skill.level}</Badge>*/}
+                            {/*                                <span className="text-sm text-muted-foreground">{skill.years} ani</span>*/}
+                            {/*                            </div>*/}
+                            {/*                        </div>*/}
+                            {/*                        <Progress value={skillInfo.progress} className="h-2" />*/}
+                            {/*                    </div>*/}
+                            {/*                );*/}
+                            {/*            })}*/}
+                            {/*        </div>*/}
+                            {/*    </CardContent>*/}
+                            {/*</Card>*/}
+
+                            {/* Languages */}
+                            {provider.languages.length > 0 && (
+                                <Card className="glass-card">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2">
+                                            <Languages className="w-5 h-5" />
+                                            <span>Limbi Vorbite</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            {provider.languages.map((language: any, index: number) => (
+                                                <div key={index} className="flex items-center justify-between">
+                                                    <div className="flex items-center space-x-3">
+                                                        <span className="text-2xl">{language.flag}</span>
+                                                        <span className="font-medium">{language.name}</span>
+                                                    </div>
+                                                    <Badge className={getLanguageLevel(language.level)}>
+                                                        {language.level}
+                                                    </Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {/* Certifications */}
+                            {provider.certifications.length > 0 && (
+                                <Card className="glass-card">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2">
+                                            <Award className="w-5 h-5" />
+                                            <span>Certificări</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {provider.certifications.map((cert: any, index: number) => (
+                                                <div key={index} className="border rounded-lg p-4">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <div>
+                                                            <h4 className="font-semibold">{cert.name}</h4>
+                                                            <p className="text-sm text-muted-foreground">{cert.issuer}</p>
+                                                        </div>
+                                                        {cert.verified && (
+                                                            <Badge className="bg-green-100 text-green-800">
+                                                                <CheckCircle className="w-3 h-3 mr-1" />
+                                                                Verificat
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Obținut: {new Date(cert.date).toLocaleDateString('ro-RO')}
+                          </span>
+                                                        <span className="text-xs text-muted-foreground">
+                            ID: {cert.credentialId}
+                          </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {/* Education */}
+                            {provider.education.length > 0 && (
+                                <Card className="glass-card">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2">
+                                            <GraduationCap className="w-5 h-5" />
+                                            <span>Educație</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {provider.education.map((edu: any, index: number) => (
+                                                <div key={index} className="border-l-4 border-blue-500 pl-4">
+                                                    <h4 className="font-semibold">{edu.degree}</h4>
+                                                    <p className="text-sm text-blue-600 mb-1">{edu.institution}</p>
+                                                    <p className="text-sm text-muted-foreground mb-2">{edu.period}</p>
+                                                    <p className="text-sm">{edu.description}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    </TabsContent>
+
+                    {/* Services Tab */}
+                    <TabsContent value="services" className="space-y-6">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
+                            {services.map((service: any) => (
+                                <Card key={service.id} className="glass-card hover:shadow-lg transition-shadow">
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <CardTitle className="text-xl">{service.title}</CardTitle>
+                                                <Badge variant="outline" className="mt-2">{service.category}</Badge>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={`font-semibold px-2.5 py-0.5 rounded-full ${getSkillLevel(service.level).color}`}>
+                                                  {service.level.toUpperCase()}
+                                                </span>
+
+                                                {/*<div className="text-sm text-muted-foreground">*/}
+                                                {/*    {service.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
+                                                {/*</div>*/}
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                                            <div className="flex items-center space-x-1">
+                                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                <span>{service.rating} ({service.reviewCount} recenzii)</span>
+                                            </div>
+                                            {/*<div className="flex items-center space-x-1">*/}
+                                            {/*    <Clock className="w-4 h-4 text-muted-foreground" />*/}
+                                            {/*    <span>{service.deliveryTime} zile livrare</span>*/}
+                                            {/*</div>*/}
+                                            <div className="flex items-center space-x-1">
+                                                <Users className="w-4 h-4 text-muted-foreground" />
+                                                <span>{service.orderCount} proiecte</span>
+                                            </div>
+                                            <div className="flex items-center space-x-1">
+                                                <Target className="w-4 h-4 text-muted-foreground" />
+                                                <span>100% finalizare</span>
+                                            </div>
+                                        </div>
+                                        <Button className="btn-primary w-full">
+                                            Vezi Detalii Serviciu
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </TabsContent>
+
+                    {/* Portfolio Tab */}
+                    <TabsContent value="portfolio" className="space-y-6">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {provider.portfolio.map((project: any, index: number) => (
+                                <Card key={index} className="glass-card overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="aspect-video bg-muted relative overflow-hidden">
+                                        <Image
+                                            src={project.image}
+                                            alt={project.title}
+                                            className="w-full h-full object-cover hover:scale-105 transition-transform"
+                                        />
+                                    </div>
+                                    <CardContent className="p-4">
+                                        <h3 className="font-semibold mb-2">{project.title}</h3>
+                                        <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
+                                        <div className="flex flex-wrap gap-1 mb-3">
+                                            {project.technologies.map((tech: string) => (
+                                                <Badge key={tech} variant="outline" className="text-xs">
+                                                    {tech}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                        {sanitizeHttpUrl(project.url) && (
+                                            <Button variant="outline" size="sm" className="w-full" asChild>
+                                                <a href={sanitizeHttpUrl(project.url) ?? undefined} target="_blank" rel="noopener noreferrer">
+                                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                                    Vezi Proiectul
+                                                </a>
+                                            </Button>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </TabsContent>
+
+                    {/* Experience Tab */}
+                    <TabsContent value="experience" className="space-y-6">
+                        <div className={`grid xs:grid-cols-1 ${provider.education.length > 0 || provider.workHistory.length > 0 ? 'lg:grid-cols-1' : 'lg:grid-cols-0'} gap-6`}>
+                            {provider.workHistory.length > 0 && (
+                                <Card className="glass-card">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2">
+                                            <Briefcase className="w-5 h-5" />
+                                            <span>Experiență Profesională</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-6">
+                                            {provider.workHistory.map((work: any, index: number) => (
+                                                <div key={index} className="relative">
+                                                    {index !== provider.workHistory.length - 1 && (
+                                                        <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-border"></div>
+                                                    )}
+                                                    <div className="flex items-start space-x-4">
+                                                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <Briefcase className="w-6 h-6 text-primary" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-start justify-between mb-2">
+                                                                <div>
+                                                                    <h3 className="font-semibold text-lg">{work.position}</h3>
+                                                                    <p className="text-blue-600 font-medium">{work.company}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <Badge variant="outline">{work.type}</Badge>
+                                                                    <p className="text-sm text-muted-foreground mt-1">{work.period}</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-muted-foreground mb-3">{work.description}</p>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {work.technologies?.map((tech: string) => (
+                                                                    <Badge key={tech} variant="secondary" className="text-xs">
+                                                                        {tech}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {provider.education.length > 0 && (
+                                <Card className="glass-card">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2">
+                                            <GraduationCap className="w-5 h-5" />
+                                            <span>Educație</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-6">
+                                            {provider.education.map((edu: any, index: number) => (
+                                                <div key={index} className="relative">
+                                                    {index !== provider.education.length - 1 && (
+                                                        <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-border"></div>
+                                                    )}
+                                                    <div className="flex items-start space-x-4">
+                                                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <GraduationCap className="w-6 h-6 text-green-600" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="font-semibold text-lg">{edu.degree}</h3>
+                                                            <p className="text-green-600 font-medium">{edu.institution}</p>
+                                                            <p className="text-sm text-muted-foreground mb-2">{edu.period}</p>
+                                                            <p className="text-muted-foreground">{edu.description}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    </TabsContent>
+
+                    {/* Reviews Tab */}
+                    <TabsContent value="reviews" className="space-y-6">
+                        <PublicUserReviewsPanel
+                            userId={provider.id}
+                            currentUserId={user?.id ?? null}
+                        />
+                    </TabsContent>
+
+                    {/* Availability Tab */}
+                    <TabsContent value="availability" className="space-y-6">
+                        <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Current Status */}
+                            <Card className="glass-card">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center space-x-2">
+                                        <Clock className="w-5 h-5" />
+                                        <span>Status Curent</span>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <span>Disponibilitate:</span>
+                                            <Badge className={availabilityStatus.color}>
+                                                <AvailabilityIcon className="w-3 h-3 mr-1" />
+                                                {availabilityStatus.label}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span>Ore pe săptămână:</span>
+                                            <span className="font-medium">{provider.availability.hoursPerWeek}h</span>
+                                        </div>
+                                        {provider.availability.timezone && (
+                                            <div className="flex items-center justify-between">
+                                                <span>Fus orar:</span>
+                                                <span className="font-medium">{provider.availability.timezone}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center justify-between">
+                                            <span>Următoarea disponibilitate:</span>
+                                            <span className="font-medium">
+                                                {provider.availability.status === 'AVAILABLE' ? (
+                                                    <span className="text-[var(--emerald-green)]">Imediat</span>
+                                                ) : provider.availability.nextAvailable ? new Date(provider.availability.nextAvailable).toLocaleDateString('ro-RO') : '—'}
+                      </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span>Timp de răspuns:</span>
+                                            <span className="font-medium text-green-600">{provider.responseTime || '—'}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Working Hours */}
+                            <Card className="glass-card">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center space-x-2">
+                                        <CalendarIcon className="w-5 h-5" />
+                                        <span>Program de Lucru</span>
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Orele în care prestator-ul este de obicei disponibil
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {Object.entries(provider.availability.workingHours).map(([day, hours]) => {
+                                            type WeekDay =
+                                                | 'monday'
+                                                | 'tuesday'
+                                                | 'wednesday'
+                                                | 'thursday'
+                                                | 'friday'
+                                                | 'saturday'
+                                                | 'sunday';
+                                            const dayNames: Record<WeekDay, string> = {
+                                                monday: 'Luni',
+                                                tuesday: 'Marți',
+                                                wednesday: 'Miercuri',
+                                                thursday: 'Joi',
+                                                friday: 'Vineri',
+                                                saturday: 'Sâmbătă',
+                                                sunday: 'Duminică'
+                                            };
+
+                                            return (
+                                                <div key={day} className="flex items-center justify-between">
+                                                    <span className="font-medium">{dayNames[day as WeekDay]}:</span>
+                                                    <span className={hours ? 'text-green-600' : 'text-red-600'}>
+                            {formatWorkingHours(hours)}
+                          </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Contact Information */}
+                        <Card className="glass-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <MessageSquare className="w-5 h-5" />
+                                    <span>Informații Contact</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center space-x-3">
+                                            <Mail className="w-5 h-5 text-muted-foreground" />
+                                            <div>
+                                                <p className="font-medium">Email</p>
+                                                <p className="text-sm text-muted-foreground">{provider.email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center space-x-3">
+                                            <Phone className="w-5 h-5 text-muted-foreground" />
+                                            <div>
+                                                <p className="font-medium">Telefon</p>
+                                                <p className="text-sm text-muted-foreground">{provider.phone}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {displayCompany && (
+                                            <div className="flex items-center space-x-3">
+                                                <Building className="w-5 h-5 text-muted-foreground" />
+                                                <div>
+                                                    <p className="font-medium">Companie</p>
+                                                    <p className="text-sm text-muted-foreground">{displayCompany}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center space-x-3">
+                                            <Globe className="w-5 h-5 text-muted-foreground" />
+                                            <div>
+                                                <p className="font-medium">Website</p>
+                                                {sanitizeHttpUrl(provider.website) ? (
+                                                    <a
+                                                        href={sanitizeHttpUrl(provider.website) ?? undefined}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-[var(--emerald-green)] hover:underline"
+                                                    >
+                                                        {provider.website}
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">{provider.website}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </div>
+
+            <Footer />
+        </div>
+    );
+}

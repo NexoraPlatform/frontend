@@ -1,5 +1,4 @@
 import { http } from '@/lib/fetch-client';
-import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 import type {
   AiAssistantMessage,
   AiBriefBuilderResultEnvelope,
@@ -26,6 +25,7 @@ export interface AiRecommendServicesResponse {
 export interface AiBriefBuilderPayload {
   locale?: string;
   channel?: string;
+  project_id?: number | string;
   messages: AiAssistantMessage[];
   [key: string]: unknown;
 }
@@ -54,27 +54,11 @@ export interface AiRecommendProvidersResponse {
 }
 
 const buildAiRequestOptions = async () => {
-  if (typeof window === 'undefined') {
-    return {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      } as Record<string, string>,
-      credentials: 'include' as const,
-      withCredentials: true as const,
-      baseURL: getAiApiBaseUrl(),
-    };
-  }
-
-  await ensureCsrfCookie();
-  const xsrfToken = getXsrfToken();
-
   return {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-    },
+    } as Record<string, string>,
     credentials: 'include' as const,
     withCredentials: true as const,
     baseURL: getAiApiBaseUrl(),
@@ -112,10 +96,10 @@ export const aiService = {
     );
   },
 
-  async getBriefBuilderResult(id: number | string) {
+  async getFinalBriefResult(id: number | string) {
     const requestOptions = await buildAiRequestOptions();
     return http.get<AiBriefResponse | AiBriefBuilderResultEnvelope | Record<string, unknown>>(
-      `/api/ai/brief-builder/${encodeURIComponent(String(id))}`,
+      `/api/ai/final-brief/${encodeURIComponent(String(id))}`,
       requestOptions
     );
   },

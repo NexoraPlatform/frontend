@@ -12,6 +12,7 @@ export interface AiBriefProjectLineMilestone {
   description?: string;
   percentage?: number;
   amount: number;
+  duration_days?: number;
   assigned_provider_id?: number | null;
   provider_id?: number | null;
   providerId?: number | null;
@@ -64,10 +65,11 @@ export interface AiBriefFinalBrief {
 }
 
 export interface AiBriefResponse {
-  status: 'PROCESSING' | 'CLARIFY' | 'FINAL';
+  status: 'PROCESSING' | 'CLARIFY' | 'FINAL' | 'FAILED' | 'FAILED_BROADCAST';
   id?: number | string;
   brief_result_id?: number | string;
   channel?: string;
+  error?: string | null;
   locale?: string;
   messages?: AiAssistantMessage[];
   questions?: string[];
@@ -86,6 +88,7 @@ export interface AiBriefBuilderResultEnvelope {
   id?: number | string;
   status?: AiBriefBuilderStatus | string;
   channel?: string;
+  error?: string | null;
   locale?: string;
   messages?: AiAssistantMessage[];
   result?: AiBriefResponse | AiBriefBuilderResponse | Record<string, unknown>;
@@ -93,13 +96,22 @@ export interface AiBriefBuilderResultEnvelope {
   [key: string]: unknown;
 }
 
-export type AiBriefBuilderStatus = 'PROCESSING' | 'CLARIFY' | 'FINAL';
+export type AiBriefBuilderStatus =
+  | 'PROCESSING'
+  | 'CLARIFY'
+  | 'FINAL'
+  | 'FAILED'
+  | 'FAILED_BROADCAST';
 
 export interface AiTeamStructureItem {
   role: string;
+  service_id?: number | string;
   service?: string;
+  delivery_provider?: DeliveryProvider;
+  description?: string;
   level?: string;
   count?: number;
+  percentage?: number;
   estimated_cost?: number;
 }
 
@@ -108,6 +120,10 @@ export interface AiMilestoneItem {
   description?: string;
   percentage?: number;
   amount?: number;
+  duration_days?: number;
+  service_id?: number | string;
+  service_name?: string;
+  delivery_provider?: DeliveryProvider;
 }
 
 export interface AiBusinessAnalysis {
@@ -173,6 +189,7 @@ export interface AiBriefAvailableService {
 export interface AiBriefBuilderRequestBody {
   locale?: string;
   messages: AiAssistantMessage[];
+  project_id?: number | string;
   available_services?: AiBriefAvailableService[];
 }
 
@@ -220,6 +237,7 @@ export interface AiBriefBuilderResponse {
   final_brief: AiStructuredBrief | AiBriefFinalBrief | null;
   brief_result_id?: number | string;
   channel?: string;
+  error?: string | null;
   final_brief_modular?: AiBriefFinalBrief;
   final_brief_full?: AiStructuredBrief;
   final_brief_text?: string;

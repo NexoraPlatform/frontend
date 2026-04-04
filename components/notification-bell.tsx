@@ -12,15 +12,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import {
     Bell, BellRing, Check, CheckCheck, Settings, Eye, Clock,
-    Rocket, Package, MessageSquare, Cog, DollarSign
+    Rocket, Package, MessageSquare, Cog, DollarSign, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 
 import { resolveNotificationLink, useNotifications } from '@/contexts/notification-context';
 import type { AppNotification } from '@/contexts/notification-context';
+import {
+    getNotificationActionTranslationKey,
+    getNotificationBadgeTranslationKey,
+    getNotificationTone,
+} from '@/lib/notifications';
 
-export function NotificationBell() {
+type NotificationBellProps = {
+    triggerClassName?: string;
+    iconClassName?: string;
+    badgeClassName?: string;
+};
+
+export function NotificationBell({
+    triggerClassName,
+    iconClassName,
+    badgeClassName,
+}: NotificationBellProps = {}) {
     const router = useRouter();
     const locale = useLocale();
     const t = useTranslations();
@@ -36,6 +52,8 @@ export function NotificationBell() {
     const endOfListText = t('common.notifications.end_of_list');
     const seeAllText = t('common.notifications.see_all');
     const {
+        active,
+        activate,
         notifications,
         unreadCount,
         markAsRead,
@@ -56,6 +74,7 @@ export function NotificationBell() {
 
     const [showSettings, setShowSettings] = useState(false);
     const [open, setOpen] = useState(false);
+    const isBootstrapping = open && !active;
 
     const viewportRef = useRef<HTMLDivElement | null>(null);
 
@@ -79,26 +98,54 @@ export function NotificationBell() {
         }
     }, [open, hasMore, loadMore]);
 
-    const getNotificationColor = (type: AppNotification['type'], isRead: boolean) => {
-        if (isRead) return 'bg-gray-50 dark:bg-gray-900/50';
-        switch (type) {
-            case 'PROJECT_ADDED': return 'bg-emerald-50/70 dark:bg-emerald-500/10 border-l-4 border-l-[#1BC47D]';
-            case 'ORDER_UPDATE': return 'bg-emerald-100/60 dark:bg-emerald-500/15 border-l-4 border-l-[#21D19F]';
-            case 'MESSAGE': return 'bg-slate-50 dark:bg-[#0B1220] border-l-4 border-l-[#0B1C2D]';
-            case 'PAYMENT': return 'bg-sky-50/70 dark:bg-sky-500/10 border-l-4 border-l-sky-500';
-            case 'SYSTEM':
-            default: return 'bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-500';
+    const getNotificationColor = (notification: AppNotification) => {
+        if (notification.isRead) return 'bg-gray-50 dark:bg-gray-900/50';
+
+        switch (getNotificationTone(notification)) {
+            case 'message':
+                return 'bg-slate-50 dark:bg-[#0B1220] border-l-4 border-l-[#0B1C2D]';
+            case 'processing':
+                return 'bg-sky-50/70 dark:bg-sky-500/10 border-l-4 border-l-sky-500';
+            case 'funded':
+                return 'bg-emerald-100/60 dark:bg-emerald-500/15 border-l-4 border-l-[#21D19F]';
+            case 'success':
+                return 'bg-emerald-50/70 dark:bg-emerald-500/10 border-l-4 border-l-[#1BC47D]';
+            case 'warning':
+                return 'bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-500';
+            case 'info':
+                return notification.category === 'project'
+                    ? 'bg-emerald-50/70 dark:bg-emerald-500/10 border-l-4 border-l-[#1BC47D]'
+                    : 'bg-sky-50/70 dark:bg-sky-500/10 border-l-4 border-l-sky-500';
+            case 'system':
+            default:
+                return 'bg-slate-50 dark:bg-slate-900/60 border-l-4 border-l-slate-400';
         }
     };
 
-    const getNotificationIcon = (type: AppNotification['type']) => {
-        switch (type) {
-            case 'PROJECT_ADDED': return <Rocket className="w-4 h-4 text-emerald-600" />;
-            case 'ORDER_UPDATE': return <Package className="w-4 h-4 text-emerald-500" />;
-            case 'MESSAGE': return <MessageSquare className="w-4 h-4 text-[#0B1C2D] dark:text-emerald-200" />;
-            case 'PAYMENT': return <DollarSign className="w-4 h-4 text-sky-600" />;
-            case 'SYSTEM':
-            default: return <Cog className="w-4 h-4 text-amber-500" />;
+    const getNotificationIcon = (notification: AppNotification) => {
+        const tone = getNotificationTone(notification);
+
+        if (notification.category === 'message') {
+            return <MessageSquare className="w-4 h-4 text-[#0B1C2D] dark:text-emerald-200" />;
+        }
+        if (notification.category === 'project') {
+            return <Rocket className="w-4 h-4 text-emerald-600" />;
+        }
+
+        switch (tone) {
+            case 'success':
+                return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+            case 'processing':
+                return <Clock className="w-4 h-4 text-sky-600" />;
+            case 'funded':
+                return <DollarSign className="w-4 h-4 text-emerald-600" />;
+            case 'warning':
+                return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+            case 'info':
+                return <Package className="w-4 h-4 text-sky-600" />;
+            case 'system':
+            default:
+                return <Cog className="w-4 h-4 text-slate-500" />;
         }
     };
 
@@ -117,7 +164,12 @@ export function NotificationBell() {
         <Popover
             onOpenChange={(isOpen) => {
                 setOpen(isOpen);
-                if (isOpen && notifications.length === 0) void refresh();
+                if (!isOpen) return;
+                if (!active) {
+                    activate();
+                    return;
+                }
+                if (notifications.length === 0) void refresh();
             }}
         >
             <PopoverTrigger asChild>
@@ -125,13 +177,25 @@ export function NotificationBell() {
                     aria-label={openNotificationsAria}
                     variant="ghost"
                     size="icon"
-                    className="relative w-11 h-11 rounded-xl text-[#0B1C2D] transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white"
+                    className={cn(
+                        "relative overflow-visible w-11 h-11 rounded-xl text-[#0B1C2D] transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white",
+                        triggerClassName
+                    )}
                 >
-                    {unreadCount > 0 ? <BellRing className="h-5 w-5 text-emerald-600" /> : <Bell className="h-5 w-5" />}
+                    {unreadCount > 0 ? (
+                        <BellRing className={cn("h-5 w-5 text-emerald-600", iconClassName)} />
+                    ) : (
+                        <Bell className={cn("h-5 w-5", iconClassName)} />
+                    )}
                     {unreadCount > 0 && (
-                        <Badge className="absolute -top-1 right-0 w-6 h-6 p-0 flex items-center justify-center bg-gradient-to-r from-[#E5484D] to-[#F5A623] text-white text-xs border-2 border-background">
-                            {unreadCount > 99 ? '99+' : unreadCount}
-                        </Badge>
+                        <span
+                            data-testid="notification-unread-indicator"
+                            aria-hidden="true"
+                            className={cn(
+                                "absolute -right-0.5 -top-0.5 z-10 h-3 w-3 rounded-full border-2 border-background bg-[#E5484D] shadow-[0_0_0_3px_rgba(229,72,77,0.16)]",
+                                badgeClassName
+                            )}
+                        />
                     )}
                 </Button>
             </PopoverTrigger>
@@ -193,7 +257,7 @@ export function NotificationBell() {
                             role="list"
                             aria-label={notificationsListLabel}
                         >
-                            {loading ? (
+                            {loading || isBootstrapping ? (
                                 <div className="flex items-center justify-center py-8">
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
                                 </div>
@@ -207,13 +271,13 @@ export function NotificationBell() {
                                     {notifications.map((n) => (
                                         <div
                                             key={n.id}
-                                            className={`p-4 cursor-pointer transition-colors hover:bg-emerald-50/60 dark:hover:bg-emerald-500/10 ${getNotificationColor(n.type, n.isRead)}`}
+                                            className={`p-4 cursor-pointer transition-colors hover:bg-emerald-50/60 dark:hover:bg-emerald-500/10 ${getNotificationColor(n)}`}
                                             onClick={() => onClickNotification(n)}
                                             role="listitem"
                                         >
                                             <div className="flex items-start space-x-3">
                                                 <div className="flex-shrink-0 mt-1">
-                                                    {getNotificationIcon(n.type)}
+                                                    {getNotificationIcon(n)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between">
@@ -222,11 +286,29 @@ export function NotificationBell() {
                                                                 {n.title}
                                                             </p>
                                                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{n.message}</p>
+                                                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="border border-emerald-100 bg-white/80 text-[10px] font-semibold uppercase tracking-wide text-[#0B1C2D] dark:border-[#1E2A3D] dark:bg-[#111B2D] dark:text-[#E6EDF3]"
+                                                                >
+                                                                    {t(getNotificationBadgeTranslationKey(n))}
+                                                                </Badge>
+                                                                {(() => {
+                                                                    const actionKey = getNotificationActionTranslationKey(n);
+                                                                    if (!actionKey) return null;
+
+                                                                    return (
+                                                                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                                                            {t(actionKey)}
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                            </div>
                                                             <div className="flex items-center space-x-2 mt-2">
                                                                 <Clock className="w-3 h-3 text-muted-foreground" />
                                                                 <span className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: distanceLocale })}
-                                </span>
+                                                                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: distanceLocale })}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                         {!n.isRead && (

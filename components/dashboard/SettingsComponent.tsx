@@ -1,4 +1,3 @@
-import {TabsContent} from "@/components/ui/tabs";
 import {Card, CardHeader, CardTitle, CardContent} from "@/components/ui/card";
 import {
     Bell,
@@ -14,14 +13,15 @@ import {useAuth} from "@/contexts/auth-context";
 import {useTranslations} from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import React, {useEffect, useMemo, useState} from "react";
-import { toast } from "sonner";
 import {Button} from "@/components/ui/button";
 import Link from "next/link";
-import CompanyInformationsSettingsDialog from "@/components/dashboard/settings/company-informations-settings-dialog";
 import CompanyManagersSettingsDialog from "@/components/dashboard/settings/company-managers-settings-dialog";
 
+type SettingsComponentProps = {
+    onOpenCompanyInformationsDialog: () => void;
+};
 
-export default function SettingsComponent() {
+export default function SettingsComponent({ onOpenCompanyInformationsDialog }: SettingsComponentProps) {
     const { user, loading, userLoading } = useAuth();
     const roleSlugs = useMemo(() => {
         const rolesList = Array.isArray(user?.roles) ? user?.roles : [];
@@ -37,8 +37,9 @@ export default function SettingsComponent() {
         );
     }, [user?.roles, user?.role_slugs, user?.role]);
     const isProvider = roleSlugs.includes('provider');
+    const isClient = roleSlugs.includes('client');
+    const canManageCompany = isProvider || isClient;
     const t = useTranslations();
-    const [openCompanyInformationsDialog, setOpenCompanyInformationsDialog] = useState<boolean>(false);
     const [openCompanyManagersDialog, setOpenCompanyManagersDialog] = useState<boolean>(false);
 
     useEffect(() => {
@@ -64,7 +65,7 @@ export default function SettingsComponent() {
 
     return (
         <>
-            <TabsContent value="settings" className="space-y-6">
+            <div className="space-y-6">
                 <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Profile Settings */}
                     <Card className="glass-card">
@@ -94,17 +95,19 @@ export default function SettingsComponent() {
                                 </Button>
                             </div>
 
-                            {isProvider && (
+                            {canManageCompany && (
                                 <>
-                                    <Button variant="outline" className="w-full justify-start" onClick={() => setOpenCompanyInformationsDialog(true)}>
+                                    <Button variant="outline" className="w-full justify-start" onClick={onOpenCompanyInformationsDialog}>
                                         <Building2 className="w-4 h-4 mr-2" />
                                         {t('dashboard.settings.profile.company_informations')}
                                     </Button>
 
+                                    {isProvider ? (
                                     <Button variant="outline" className="w-full justify-start" onClick={() => setOpenCompanyManagersDialog(true)}>
                                         <UsersRound className="w-4 h-4 mr-2" />
                                         {t('dashboard.settings.profile.company_managers')}
                                     </Button>
+                                    ) : null}
                                 </>
                             )}
                         </CardContent>
@@ -164,21 +167,13 @@ export default function SettingsComponent() {
                         </CardContent>
                     </Card>
                 </div>
-            </TabsContent>
-
-            {isProvider && (
-                <>
-                    <CompanyInformationsSettingsDialog
-                        openCompanyInformationsDialog={openCompanyInformationsDialog}
-                        setOpenCompanyInformationsDialog={setOpenCompanyInformationsDialog}
-                    />
-
-                    <CompanyManagersSettingsDialog
-                        openCompanyManagersDialog={openCompanyManagersDialog}
-                        setOpenCompanyManagersDialog={setOpenCompanyManagersDialog}
-                    />
-                </>
-            )}
+            </div>
+            {isProvider ? (
+                <CompanyManagersSettingsDialog
+                    openCompanyManagersDialog={openCompanyManagersDialog}
+                    setOpenCompanyManagersDialog={setOpenCompanyManagersDialog}
+                />
+            ) : null}
         </>
     );
 }

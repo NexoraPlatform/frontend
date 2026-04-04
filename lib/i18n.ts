@@ -15,6 +15,7 @@ export const localeConfig = {
 };
 
 type NamespaceLoader = () => Promise<any>;
+type Messages = Record<string, any>;
 
 // Basic translations structure - expand as needed
 export const translations: Record<Locale, Record<string, NamespaceLoader | NamespaceLoader[]>> = {
@@ -65,11 +66,13 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/trustora/final_cta.json"),
             () => import("@/locales/ro/trustora/early_access.json"),
             () => import("@/locales/ro/trustora/open_soon.json"),
+            () => import("@/locales/ro/trustora/landing.json"),
         ],
         errors: [() => import("@/locales/ro/errors/page.json")],
         admin: [
             () => import("@/locales/ro/admin/loading.json"),
             () => import("@/locales/ro/admin/dashboard.json"),
+            () => import("@/locales/ro/admin/contracts.json"),
             () => import("@/locales/ro/admin/early_access.json"),
             () => import("@/locales/ro/admin/categories.json"),
             () => import("@/locales/ro/admin/calls.json"),
@@ -79,9 +82,13 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/admin/roles.json"),
             () => import("@/locales/ro/admin/services.json"),
             () => import("@/locales/ro/admin/settings.json"),
+            () => import("@/locales/ro/admin/legal_clauses.json"),
+            () => import("@/locales/ro/admin/legal_service_categories.json"),
             () => import("@/locales/ro/admin/tests.json"),
             () => import("@/locales/ro/admin/users.json"),
             () => import("@/locales/ro/admin/newsletter.json"),
+            () => import("@/locales/ro/admin/activity.json"),
+            () => import("@/locales/ro/admin/audit_logs.json"),
         ],
         auth: [
             () => import("@/locales/ro/auth/signin.json"),
@@ -137,11 +144,13 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/trustora/final_cta.json"),
             () => import("@/locales/en/trustora/early_access.json"),
             () => import("@/locales/en/trustora/open_soon.json"),
+            () => import("@/locales/en/trustora/landing.json"),
         ],
         errors: [() => import("@/locales/en/errors/page.json")],
         admin: [
             () => import("@/locales/en/admin/loading.json"),
             () => import("@/locales/en/admin/dashboard.json"),
+            () => import("@/locales/en/admin/contracts.json"),
             () => import("@/locales/en/admin/early_access.json"),
             () => import("@/locales/en/admin/categories.json"),
             () => import("@/locales/en/admin/calls.json"),
@@ -151,9 +160,13 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/admin/roles.json"),
             () => import("@/locales/en/admin/services.json"),
             () => import("@/locales/en/admin/settings.json"),
+            () => import("@/locales/en/admin/legal_clauses.json"),
+            () => import("@/locales/en/admin/legal_service_categories.json"),
             () => import("@/locales/en/admin/tests.json"),
             () => import("@/locales/en/admin/users.json"),
             () => import("@/locales/en/admin/newsletter.json"),
+            () => import("@/locales/en/admin/activity.json"),
+            () => import("@/locales/en/admin/audit_logs.json"),
         ],
         auth: [
             () => import("@/locales/en/auth/signin.json"),
@@ -163,6 +176,79 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
         accessDenied: [() => import("@/locales/en/access-denied/page.json")],
     },
 };
+
+export type TranslationNamespace = keyof (typeof translations)[Locale];
+
+export const sharedClientNamespaces: TranslationNamespace[] = [
+    'navigation',
+    'common',
+    'homepage',
+    'services',
+    'search',
+    'projects',
+    'help',
+    'contact',
+    'trustora',
+    'errors',
+    'auth',
+    'about',
+    'accessDenied',
+];
+
+function mergeDeep(target: Messages, source: Messages) {
+    for (const [key, value] of Object.entries(source)) {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            target[key] ??= {};
+            mergeDeep(target[key], value);
+        } else {
+            target[key] = value;
+        }
+    }
+}
+
+function resolveLocale(locale: Locale | string): Locale {
+    return translations[locale as Locale] ? (locale as Locale) : defaultLocale;
+}
+
+export function buildClientMessageNamespaces(
+    extraNamespaces: TranslationNamespace[] = [],
+): TranslationNamespace[] {
+    return Array.from(new Set([...sharedClientNamespaces, ...extraNamespaces]));
+}
+
+export async function loadMessagesForNamespaces(
+    locale: Locale | string,
+    namespaces?: TranslationNamespace[],
+): Promise<Messages> {
+    const resolvedLocale = resolveLocale(locale);
+    const source = translations[resolvedLocale];
+    const targetNamespaces = namespaces?.length
+        ? namespaces
+        : (Object.keys(source) as TranslationNamespace[]);
+    const messages: Messages = {};
+
+    for (const namespace of targetNamespaces) {
+        const loadersForNamespace = source[namespace];
+        if (!loadersForNamespace) continue;
+
+        const loaders = Array.isArray(loadersForNamespace)
+            ? loadersForNamespace
+            : [loadersForNamespace];
+        const loaded = await Promise.all(
+            loaders.map(async (load) => {
+                const module = await load();
+                return module?.default ?? module;
+            }),
+        );
+
+        messages[namespace] = {};
+        for (const chunk of loaded) {
+            mergeDeep(messages[namespace], chunk);
+        }
+    }
+
+    return messages;
+}
 
 const namespaceCache: Record<Locale, Record<string, any>> = {
     ro: {},
@@ -175,7 +261,7 @@ export async function getTranslation(locale: Locale, key: string): Promise<strin
 
     if (!namespace) return key;
 
-    const resolvedLocale = translations[locale] ? locale : defaultLocale;
+    const resolvedLocale = resolveLocale(locale);
     if (!namespaceCache[resolvedLocale]) {
         namespaceCache[resolvedLocale] = {};
     }

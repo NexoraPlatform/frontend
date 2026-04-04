@@ -41,6 +41,153 @@
         "welcome": "Welcome, {name}!",
         "description": "Schedule a 1:1 call with a Trustora operator"
     },
+    "providerFlow": {
+        "shell": {
+            "title": "Competency Tests",
+            "description": "Show your knowledge for the selected services and follow the progress in real time.",
+            "waitingResultDescription": "Your answers are being evaluated in the background.",
+            "generatingDescription": "AI is preparing the tests for your selected services."
+        },
+        "loading": {
+            "generatingPrefix": "Generating",
+            "waitingResultPrefix": "Waiting for",
+            "words": {
+                "questions": "the questions",
+                "test": "the test",
+                "result": "the result"
+            }
+        },
+        "levels": {
+            "junior": "Junior",
+            "intermediate": "Intermediate",
+            "senior": "Senior",
+            "expert": "Expert"
+        },
+        "errors": {
+            "defaultGeneration": "The test could not be generated.",
+            "defaultEvaluation": "The test could not be evaluated.",
+            "evaluationStateWithMessage": "The evaluation status could not be loaded: {message}",
+            "unknown": "Unknown error",
+            "generationState": "The generation status could not be loaded.",
+            "generationRequestId": "We did not receive a request_id for test generation.",
+            "cooldownDefault": "You cannot retake the test yet.",
+            "generationStart": "The test generation could not be started.",
+            "invalidData": "Invalid data",
+            "evaluationRequestId": "We did not receive a request_id for test evaluation.",
+            "submitTestWithMessage": "The test could not be submitted: {message}",
+            "startTest": "The test could not be started"
+        },
+        "questionTypes": {
+            "singleChoice": "Single choice",
+            "multipleChoice": "Multiple choice",
+            "codeWriting": "Code writing",
+            "textInput": "Text answer"
+        },
+        "question": {
+            "points": "{count, plural, one {# point} other {# points}}",
+            "counter": "Question {current} of {total}",
+            "template": "Template:",
+            "testCases": "Test cases:",
+            "input": "Input:",
+            "expectedOutput": "Expected output:",
+            "writeCode": "Write your code:",
+            "writeCodePlaceholder": "Write your code here...",
+            "yourAnswer": "Your answer:",
+            "writeAnswerPlaceholder": "Write your answer here..."
+        },
+        "result": {
+            "title": "Test Result",
+            "description": "See the final score, feedback, and next steps.",
+            "passedTitle": "Congratulations! You passed the test!",
+            "failedTitle": "You did not pass the test",
+            "passedDescription": "You demonstrated the required competency for this level.",
+            "failedDescription": "You can retake the test after 30 days.",
+            "scoreLabel": "Your score",
+            "passingScoreLabel": "Passing score",
+            "timeSpentLabel": "Minutes used",
+            "hideExplanations": "Hide explanations",
+            "showExplanations": "See explanations",
+            "backToDashboard": "Back to dashboard",
+            "calendarTitle": "Schedule the video interview",
+            "calendarDescription": "To complete the verification process, please choose a date for the interview.",
+            "calendarNote": "Test passed: {title}",
+            "explanationsTitle": "Answer explanations",
+            "correct": "Correct",
+            "incorrect": "Incorrect",
+            "questionLabel": "Question {index}",
+            "yourAnswer": "Your answer:",
+            "noAnswer": "You did not answer",
+            "correctAnswer": "Correct answer:",
+            "unspecified": "Unspecified",
+            "explanation": "Explanation:"
+        },
+        "progress": {
+            "label": "Progress",
+            "counter": "{current} of {total}",
+            "previous": "Previous",
+            "next": "Next",
+            "finishTest": "Finish test"
+        },
+        "list": {
+            "headerDescription": "Show your knowledge for the selected services",
+            "stepBadge": "Step 3 of 4",
+            "levelLabel": "Level {level}",
+            "processingTitle": "The test for this service is being generated",
+            "processingDescription": "AI is preparing the questions and final structure.",
+            "processingBadge": "Processing",
+            "cooldownDefault": "This test cannot be retaken yet.",
+            "availableAgainAt": "Available again on: {date}",
+            "failedDefault": "The test for this service could not be generated.",
+            "testCardDescription": "{service} - Level {level}",
+            "questionCount": "{count, plural, one {# question} other {# questions}}",
+            "minuteCount": "{count, plural, one {# minute} other {# minutes}}",
+            "passingScore": "Passing score: {score}%",
+            "certification": "Certification",
+            "startTest": "Start test",
+            "emptyTitle": "No tests available",
+            "emptyDescription": "Administrators have not created the tests for the selected services yet.",
+            "back": "Back"
+        },
+        "startWarning": {
+            "title": "Before you start the test",
+            "description": "As soon as you start the test, monitoring stays active until the attempt is finished.",
+            "leaveTab": "If you leave the tab, minimize the window, or lose focus, the test ends immediately.",
+            "noReturn": "You will not be able to return to this attempt after it is stopped.",
+            "retry": "You will be able to take the test again after 14 days.",
+            "cancel": "Back",
+            "confirm": "I understand, start the test"
+        }
+    },
+    "examGuard": {
+        "alerts": {
+            "failed": "EXAM LEFT - You were automatically failed.",
+            "warning": "WARNING! Do not leave the tab. Violations: {current}/{limit}"
+        },
+        "errors": {
+            "communication": "Server communication error"
+        }
+    },
+    "examFailure": {
+        "badge": "Exam left",
+        "title": "You were automatically failed",
+        "description": "Exam monitoring detected that you left the tab or the browser window lost focus.",
+        "reasons": {
+            "title": "What triggered the stop",
+            "leaveTab": "Leaving the tab or minimizing the window is treated as a violation.",
+            "loseFocus": "Switching to another app or browser window is logged automatically.",
+            "integrity": "This rule exists to preserve fairness and exam integrity."
+        },
+        "nextSteps": {
+            "title": "What you can do now",
+            "review": "Go back to the dashboard to review the test status and your services.",
+            "retry": "You will be able to retake the exam after 14 days under the current cooldown rules.",
+            "contact": "If this was an error, contact the Trustora team for review."
+        },
+        "actions": {
+            "dashboard": "Back to Dashboard",
+            "services": "View services"
+        }
+    },
     "metadata": {
         "web_development": {
             "name": "Web Development",

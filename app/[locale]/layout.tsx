@@ -1,24 +1,26 @@
 import { ReactNode } from "react";
-import dynamic from "next/dynamic";
-import Script from "next/script";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, setRequestLocale } from "next-intl/server";
-
-import ActivityTracker from "@/components/ActivityTracker";
-import { LocaleSync } from "@/components/LocaleSync";
+import { setRequestLocale } from "next-intl/server";
+import { auth } from "@/auth";
+import { GoogleTagManagerLoader } from "@/components/analytics/google-tag-manager-loader";
+import { AppShell } from "@/components/layout/app-shell";
+import { RuntimeAuthProviders } from "@/components/layout/runtime-auth-providers";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/contexts/auth-context";
-import { ChatProvider } from "@/contexts/chat-context";
+import { hasSessionAuthTokens } from "@/lib/auth/session";
+import { normalizeAuthUser } from "@/lib/auth/user";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
-import { NotificationProvider } from "@/contexts/notification-context";
+import { loadMessagesForNamespaces, sharedClientNamespaces } from "@/lib/i18n";
 import { locales } from "@/lib/navigation";
 import { buildGlobalKnowledgeGraph, serializeJsonLd } from "@/lib/seo";
-
-const OneSignalInit = dynamic(() => import("@/components/OneSignalInit"), {
-  loading: () => null,
-});
+import {
+  TRUSTORA_THEME_ATTRIBUTE,
+  TRUSTORA_THEME_DEFAULT,
+  TRUSTORA_THEME_STORAGE_KEY,
+} from "@/lib/theme";
+import { GoogleTagManager } from '@next/third-parties/google';
 
 type Props = {
   children: ReactNode;
@@ -26,6 +28,7 @@ type Props = {
 };
 
 export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -33,6 +36,15 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
+  const requestHeaders = await headers();
+  const session = await auth();
+  const nonce =
+    requestHeaders.get("x-nonce") ??
+    requestHeaders.get("content-security-policy")?.match(/'nonce-([^']+)'/)?.[1] ??
+    undefined;
+  const hasInitialSessionAuth = hasSessionAuthTokens(session as any);
+  const initialSession = hasInitialSessionAuth ? session : null;
+  const initialUser = hasInitialSessionAuth ? normalizeAuthUser(session?.user ?? null) : null;
 
   if (!locales.includes(locale as (typeof locales)[number])) {
     notFound();
@@ -40,58 +52,47 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   setRequestLocale(locale);
 
-  const messages = await getMessages({ locale });
-  const initialUser = null;
+  const messages = await loadMessagesForNamespaces(locale, sharedClientNamespaces);
+
   const rawGtmId = process.env.GTM_ID?.trim();
   const gtmId = rawGtmId && /^[A-Za-z0-9_-]+$/.test(rawGtmId) ? rawGtmId : null;
-  const isProduction = process.env.NODE_ENV === "production";
-  const shouldLoadOneSignal = isProduction && Boolean(process.env.ONESIGNAL_APP_ID);
-  const shouldLoadGtm = isProduction && Boolean(gtmId);
+  const shouldLoadGtm = Boolean(gtmId);
 
-  const globalJsonLd = serializeJsonLd(buildGlobalKnowledgeGraph());
+  const globalJsonLd = serializeJsonLd(buildGlobalKnowledgeGraph(locale));
 
   return (
     <div className="font-sans antialiased">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: globalJsonLd }}
-      />
+      <JsonLdScript id="global" json={globalJsonLd} />
       {shouldLoadGtm && gtmId && (
-        <Script id="gtm" strategy="lazyOnload">
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':Date.now(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${JSON.stringify(gtmId)});`}
-        </Script>
+        // <GoogleTagManagerLoader gtmId={gtmId} nonce={nonce} />
+          <GoogleTagManager gtmId={gtmId} nonce={nonce} />
       )}
-      {shouldLoadGtm && gtmId && (
-        <noscript>
-          <iframe
-            title="Google Tag Manager"
-            src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}`}
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
-      )}
+      {nonce ? <meta name="csp-nonce" content={nonce} /> : null}
+      {/*{shouldLoadGtm && gtmId && (*/}
+      {/*  <noscript>*/}
+      {/*    <iframe*/}
+      {/*      title="Google Tag Manager"*/}
+      {/*      src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}`}*/}
+      {/*      height="0"*/}
+      {/*      width="0"*/}
+      {/*      style={{ display: "none", visibility: "hidden" }}*/}
+      {/*    />*/}
+      {/*  </noscript>*/}
+      {/*)}*/}
       <NextIntlClientProvider locale={locale} messages={messages}>
-        <AuthProvider initialUser={initialUser}>
-          <CurrencyProvider>
+        <CurrencyProvider>
+          <RuntimeAuthProviders initialSession={initialSession as any} initialUser={initialUser}>
             <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
+              attribute={TRUSTORA_THEME_ATTRIBUTE}
+              defaultTheme={TRUSTORA_THEME_DEFAULT}
               enableSystem
               disableTransitionOnChange
-              storageKey="trustora-theme"
+              storageKey={TRUSTORA_THEME_STORAGE_KEY}
             >
-              <LocaleSync />
-              <ActivityTracker />
-              <NotificationProvider>
-                <ChatProvider>{children}</ChatProvider>
-              </NotificationProvider>
-              <Toaster position="top-right" expand={false} richColors closeButton />
-              {shouldLoadOneSignal && <OneSignalInit />}
+              <AppShell>{children}</AppShell>
             </ThemeProvider>
-          </CurrencyProvider>
-        </AuthProvider>
+          </RuntimeAuthProviders>
+        </CurrencyProvider>
       </NextIntlClientProvider>
     </div>
   );

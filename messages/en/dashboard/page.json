@@ -34,6 +34,10 @@
     "finance": "Financial",
     "settings": "Settings"
   },
+  "shell": {
+    "toggle_menu": "Toggle dashboard menu",
+    "sign_out": "Sign Out"
+  },
   "finance": {
     "title": "Financial status",
     "wallet_balance": "Wallet balance",
@@ -46,7 +50,12 @@
     "transfer_success": "Transfer initiated successfully.",
     "transfer_error": "Transfer failed: {message}",
     "insufficient_balance": "Amount exceeds available balance.",
-    "invalid_amount": "Enter a valid amount."
+    "invalid_amount": "Enter a valid amount.",
+    "requirements": {
+      "phone": "phone number",
+      "company": "company details",
+      "missing": "Complete {items} before connecting your Rapyd account."
+    }
   },
   "loading": {
     "dashboard": "Loading dashboard...",
@@ -55,6 +64,7 @@
   },
   "errors": {
     "projects_load_failed": "Couldn't load projects: {message}",
+    "services_load_failed": "Couldn't load services: {message}",
     "generic": "Error: {message}"
   },
   "notifications": {
@@ -156,6 +166,64 @@
       }
     }
   },
+  "overview_page": {
+    "cards": {
+      "footer": "Compared to the last reporting window"
+    },
+    "charts": {
+      "performance_title": "Performance Trend",
+      "performance_description": "Current values compared with the previous reporting window across the core dashboard indicators.",
+      "mix_title": "Activity Mix",
+      "mix_description": "A quick breakdown of current workflow signals pulled from your latest dashboard activity.",
+      "previous": "Previous",
+      "current": "Current",
+      "value": "Value",
+      "groups": {
+        "projects": "Projects",
+        "finance": "Finance",
+        "collaboration": "Collaboration",
+        "delivery": "Delivery",
+        "system": "System"
+      }
+    },
+    "table": {
+      "title": "Recent Projects",
+      "description": "The latest opportunities and project updates visible from your dashboard home.",
+      "project": "Project",
+      "budget": "Budget",
+      "status": "Status",
+      "updated": "Updated",
+      "action": "Action",
+      "view_all": "View all",
+      "view": "View project",
+      "untitled_project": "Untitled project",
+      "no_budget": "Budget unavailable",
+      "empty_title": "No recent projects",
+      "empty_description": "Projects will appear here as soon as activity reaches your dashboard."
+    }
+  },
+  "badges": {
+    "title": "Badges",
+    "headline": "Your reputation is taking shape",
+    "description": "Review the badges you've already unlocked and the backend-evaluated progress toward the next important milestones.",
+    "awarded": "Awarded",
+    "in_progress": "In progress",
+    "featured": "Featured badges",
+    "latest": "Recently unlocked",
+    "all_unlocked": "{count} badges unlocked",
+    "loading": "Loading badges...",
+    "error": "We couldn't load your badges.",
+    "empty_title": "Your badges will appear here",
+    "empty_description": "As you complete projects, milestones, and verification steps, the system will automatically unlock new badges.",
+    "progress_title": "Active progress",
+    "progress_headline": "Track the next badges",
+    "progress_description": "These goals are recalculated automatically from your activity across the platform.",
+    "progress_empty": "There are no badges in progress right now.",
+    "criteria_complete": "criteria completed",
+    "next_step": "Next step",
+    "rewards_title": "Active perks",
+    "untitled_badge": "Untitled badge"
+  },
   "filters": {
     "search_placeholder": "Search projects by title or description...",
     "active": "Active filters:",
@@ -218,6 +286,36 @@
       "provider": "Manage the services you offer",
       "client": "The services you're following"
     },
+    "loading": "Loading your services",
+    "retry": "Retry",
+    "manage_cta": "Manage services",
+    "summary": {
+      "total": "Active services",
+      "verified": "Verified services",
+      "categories": "Covered categories",
+      "average_rating": "Average rating"
+    },
+    "labels": {
+      "verified": "Verified",
+      "rating": "Rating",
+      "reviews": "reviews",
+      "projects": "projects",
+      "delivery_provider": "Delivery",
+      "category_fallback": "Uncategorized",
+      "service_fallback": "Untitled service",
+      "not_rated": "No rating yet"
+    },
+    "levels": {
+      "junior": "Junior",
+      "mid": "Mid",
+      "senior": "Senior",
+      "expert": "Expert"
+    },
+    "upgrade": {
+      "label": "Level upgrade",
+      "description": "You can take the test to move from {current} to {target}.",
+      "cta": "Take the {level} test"
+    },
     "empty": {
       "title": {
         "provider": "You don't offer services yet",
@@ -239,6 +337,7 @@
     }
   },
   "settings": {
+    "page_description": "Manage your profile, notifications, security preferences and company information.",
     "profile": {
       "title": "Profile Settings",
       "company_informations": "Company Information",
@@ -259,13 +358,19 @@
       "company_managers_transfer_button": "Transfer ownership",
       "company_managers_transfer_confirm": "Transfer company ownership to {name}? This action cannot be undone.",
       "legal_name": "Legal Company Name",
-      "represented_by": "Legally Represented By",
+      "commercial_name": "Commercial Name",
+      "represented_by": "Authorized Signatory",
+      "signatory_title": "Signatory Title",
       "contact_email": "Contact Email",
-      "id_type": "ID Type",
-      "id_code": "Identification Code",
+      "id_type": "Tax ID Type",
+      "id_code": "Tax Identification Number",
+      "registration_number": "Registration Number",
+      "vat_number": "VAT Number",
+      "vat_registered": "The company is VAT registered",
       "currency": "Currency",
       "hq_address": "Headquarters Address",
       "street": "Street and Number",
+      "address_line_2": "Address line 2",
       "city": "City / Sector",
       "state": "County / State",
       "zip": "Postal Code",
@@ -279,12 +384,17 @@
       "success": "Company information saved/created successfully.",
       "placeholders": {
         "company": "ex: ACME Corp LLC",
+        "commercial_name": "ex: ACME Tech",
         "represented_by": "ex: John Doe",
+        "signatory_title": "ex: Director",
         "email": "contact@company.com",
         "id_type": "EIN",
         "id_code": "12-3456789",
+        "registration_number": "12345678",
+        "vat_number": "GB123456789",
         "currency": "Select currency",
         "address": "123 Business Rd, Suite 1",
+        "address_line_2": "Floor 2, Suite 5",
         "city": "New York",
         "state": "NY",
         "zip": "10001",
@@ -323,6 +433,139 @@
       "iban": "IBAN",
       "company_address": "Company address",
       "save": "Save Bank Details"
+    }
+  },
+  "onboarding_bar": {
+    "company": {
+      "title": "Add your company details",
+      "description": "Complete your company's legal and banking details to continue onboarding and unlock secure payouts.",
+      "action": "Open company details"
+    },
+    "escrow_customer": {
+      "title": "Start your Escrow.com onboarding",
+      "description": "To use escrow payments, you need to create your Escrow.com onboarding profile first.",
+      "action": "Start onboarding",
+      "loading": "Starting...",
+      "success": "Escrow.com onboarding started successfully.",
+      "error": "Failed to start the Escrow.com onboarding."
+    },
+    "escrow_kyb": {
+      "title": "Complete your KYB verification",
+      "description": "Finish the KYB verification on Escrow.com to complete onboarding and to be able to receive funds.",
+      "action": "Continue KYB"
+    }
+  },
+  "reviews": {
+    "title": "Project reviews",
+    "description": "Send feedback only after completed projects and track what has been published by and about you.",
+    "tabs": {
+      "opportunities": "Eligible ({count})",
+      "authored": "Sent ({count})",
+      "received": "Received ({count})"
+    },
+    "status": {
+      "submitted": "Submitted",
+      "published": "Published",
+      "removed": "Removed"
+    },
+    "double_blind": {
+      "description": "Submitted reviews stay hidden until the counterparty also submits a review or the publication window expires."
+    },
+    "opportunity": {
+      "review_target": "You can review the {role}: {name}",
+      "provider": "provider",
+      "client": "client",
+      "milestones": "{count} eligible milestones"
+    },
+    "labels": {
+      "person_fallback": "Trustora user",
+      "reviewee": "Recipient",
+      "reviewer": "Author",
+      "project_fallback": "Project",
+      "flags": "{count} flags",
+      "rating": "{value}/5",
+      "submitted_at": "Submitted",
+      "published_at": "Published",
+      "milestone": "Milestone",
+      "service": "Service",
+      "project_status_fallback": "Project status unavailable"
+    },
+    "dimensions": {
+      "communication": "Communication",
+      "quality": "Quality",
+      "timeliness": "Timeliness",
+      "professionalism": "Professionalism",
+      "scope_clarity": "Scope clarity",
+      "payment_reliability": "Payment reliability",
+      "would_work_again": "Would work together again",
+      "would_work_again_yes": "Yes",
+      "would_work_again_no": "No"
+    },
+    "notes": {
+      "submitted": "This review is still hidden and will become visible after double-blind publication.",
+      "removed": "This review is no longer public after a moderation action."
+    },
+    "empty": {
+      "opportunities_title": "There are no reviews to write right now",
+      "opportunities_provider": "Review opportunities will show up here once the project reaches a final status.",
+      "opportunities_client": "You can leave a review here only after the project is completed.",
+      "authored_title": "You have not sent any reviews yet",
+      "authored_description": "The reviews you submit will appear here together with their current status.",
+      "received_title": "You have not received any reviews yet",
+      "received_description": "Published reviews about you will appear here."
+    },
+    "actions": {
+      "edit": "Edit",
+      "write": "Write review",
+      "view_profile": "View profile"
+    },
+    "composer": {
+      "new_title_provider": "Review provider",
+      "new_title_client": "Review client",
+      "edit_title": "Edit review",
+      "description_create": "Your feedback enters the double-blind publication flow configured in the backend.",
+      "description_edit": "You can update the review while it stays in submitted status.",
+      "reviewee_label": "You are reviewing",
+      "reviewee_fallback": "Selected user",
+      "rating_label": "Overall rating",
+      "rating_value": "{value} out of 5",
+      "rating_empty": "Select a rating",
+      "milestone_label": "Link a milestone",
+      "loading_milestones": "Loading eligible milestones...",
+      "milestone_placeholder": "Select the relevant milestone",
+      "milestone_none": "No specific milestone",
+      "no_milestones": "There are no eligible milestones to link to this review.",
+      "headline_label": "Headline",
+      "headline_placeholder": "Short optional summary",
+      "body_label": "Public feedback",
+      "body_placeholder_client": "Describe how communication, clarity and payment reliability went on the project.",
+      "body_placeholder_provider": "Describe the delivered outcome, quality, communication and timeliness on the project.",
+      "private_feedback_label": "Private feedback",
+      "private_feedback_placeholder": "Internal notes that are never published.",
+      "private_feedback_placeholder_edit": "Leave empty to keep the existing private feedback.",
+      "private_feedback_hint": "Private feedback is not shown publicly on user profiles.",
+      "private_feedback_hint_edit": "If left empty, the frontend will not overwrite any existing private feedback.",
+      "score_section_title": "Detailed scores",
+      "score_section_description": "Add extra criteria for a more useful review.",
+      "would_work_again_label": "Would you work together again?",
+      "would_work_again_unset": "Prefer not to answer",
+      "would_work_again_yes": "Yes",
+      "would_work_again_no": "No",
+      "cancel": "Cancel",
+      "submit": "Submit review",
+      "save": "Save changes",
+      "success_published": "The review has been published.",
+      "success_submitted": "The review has been submitted.",
+      "success_updated": "The review has been updated.",
+      "milestone_fallback": "Milestone #{id}",
+      "errors": {
+        "review_missing": "The selected review is no longer available for editing.",
+        "reviewee_missing": "We could not determine the review target for this review.",
+        "project_not_finished": "You can submit a review only after the project is completed.",
+        "rating_required": "Select a rating from 1 to 5.",
+        "body_too_short": "Public feedback must be at least 10 characters long.",
+        "generic": "We could not save the review."
+      }
     }
   },
   "actions": {

@@ -1,11 +1,51 @@
 {
   "visual": {
-    "title": "Rapyd + Notar + Marketplace",
-    "money_label": "Bani",
-    "money_subtitle": "Strat escrow",
-    "contracts_label": "Contracte",
-    "contracts_subtitle": "Execuție digitală",
-    "verification_label": "Verificare",
-    "verification_subtitle": "Strat de identitate"
+    "badge": "SYSTEM PROOF",
+    "title": "Cum funcționează contractele digitale și plățile escrow pentru proiecte IT",
+    "subtitle": "Nu îți cerem să ai încredere oarbă. Îți arătăm exact cum sunt protejate identitatea, banii și livrările înainte să intri în platformă.",
+    "step_one": {
+      "label": "PASUL 1",
+      "title": "Ambele părți intră verificate",
+      "body": "Compania și profesionistul trec prin verificări reale înainte de a colabora, ca să reducem riscul din primul contact."
+    },
+    "step_two": {
+      "label": "PASUL 2",
+      "title": "Banii intră în escrow înainte de lucru",
+      "body": "Clientul securizează milestone-ul, iar prestatorul știe că livrarea pornește cu fondurile rezervate, nu cu promisiuni."
+    },
+    "step_three": {
+      "label": "PASUL 3",
+      "title": "Fiecare milestone lasă urme clare",
+      "body": "Statusurile, aprobările și dovada criptografică creează un audit trail ușor de urmărit pentru ambele părți."
+    },
+    "contract": {
+      "badge": "Exemplu de contract live",
+      "title": "Flux contractual pregătit pentru lansare",
+      "parties_label": "Părți verificate",
+      "parties_value": "Companie și prestator confirmați",
+      "escrow_label": "Escrow",
+      "escrow_value": "Milestone securizat înainte de start",
+      "proof_label": "Dovadă",
+      "proof_value": "Hash criptografic și istoric de statusuri",
+      "milestone_label": "Milestone",
+      "amount_label": "Sumă",
+      "status_label": "Status",
+      "milestone_one": {
+        "title": "M1: Discovery și specificații",
+        "amount": "1.200 €",
+        "status": "Eliberat după aprobare"
+      },
+      "milestone_two": {
+        "title": "M2: Implementare nucleu",
+        "amount": "2.900 €",
+        "status": "Fonduri blocate în escrow"
+      },
+      "milestone_three": {
+        "title": "M3: QA și livrare finală",
+        "amount": "1.100 €",
+        "status": "Se securizează înainte de start"
+      },
+      "footer": "Asta deschidem acum pentru cohorta inițială: colaborări IT clare, protejate și ușor de controlat."
+    }
   }
 }

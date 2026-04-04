@@ -36,10 +36,10 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
         <h3 className="text-base font-semibold text-slate-900 dark:text-white">2. OPERATORUL DE DATE</h3>
         <p>Operatorul datelor dumneavoastră cu caracter personal este:</p>
         <ul className="space-y-1 pl-5 list-disc">
-          <li>Denumire Companie: PTECHIT S.R.L.</li>
-          <li>Sediu Social: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>
-          <li>Email contact GDPR: contact@trustora.ro</li>
-          <li>Reprezentant: Ion Arsene Claudiu</li>
+          {/*<li>Denumire Companie: PTECHIT S.R.L.</li>*/}
+          {/*<li>Sediu Social: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>*/}
+          {/*<li>Email contact GDPR: contact@trustora.ro</li>*/}
+          {/*<li>Reprezentant: Ion Arsene Claudiu</li>*/}
         </ul>
       </section>
 
@@ -294,10 +294,10 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
         <h3 className="text-base font-semibold text-slate-900 dark:text-white">2. DATA CONTROLLER</h3>
         <p>The controller of your personal data is:</p>
         <ul className="space-y-1 pl-5 list-disc">
-          <li>Company name: PTECHIT S.R.L.</li>
-          <li>Registered office: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>
-          <li>GDPR contact email: contact@trustora.ro</li>
-          <li>Representative: Ion Arsene Claudiu</li>
+          {/*<li>Company name: PTECHIT S.R.L.</li>*/}
+          {/*<li>Registered office: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>*/}
+          {/*<li>GDPR contact email: contact@trustora.ro</li>*/}
+          {/*<li>Representative: Ion Arsene Claudiu</li>*/}
         </ul>
       </section>
 

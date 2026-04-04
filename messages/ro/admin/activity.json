@@ -1,0 +1,91 @@
+{
+  "activity": {
+    "manage_title": "Gestionare Istoric Activitate",
+    "manage_subtitle": "Revizuiește evenimentele automate, actualizările financiare și schimbările din fluxul proiectelor dintr-un singur dashboard.",
+    "search_placeholder": "Caută activități după mesaj, ID sau metadata...",
+    "actions": {
+      "refresh": "Reîncarcă"
+    },
+    "summary": {
+      "cards": {
+        "total": "Evenimente Înregistrate",
+        "unread": "Necitite pe pagină",
+        "finance": "Evenimente Financiare",
+        "projects": "Flux Proiecte"
+      }
+    },
+    "filters": {
+      "type_placeholder": "Selectează tipul",
+      "status_placeholder": "Selectează statusul",
+      "all_types": "Toate tipurile de activitate",
+      "all_statuses": "Toate statusurile",
+      "read": "Citite",
+      "unread": "Necitite"
+    },
+    "list_title": "Jurnal Activitate",
+    "list_description": "{count} activități pe această pagină",
+    "table": {
+      "event": "Eveniment",
+      "context": "Context",
+      "category": "Categorie",
+      "recorded": "Înregistrat",
+      "status": "Status",
+      "event_id": "ID #{id}",
+      "metadata_empty": "Fără metadata suplimentară",
+      "status_read": "Citit",
+      "status_unread": "Nou"
+    },
+    "types": {
+      "project_created": "Proiect creat",
+      "invoice_paid": "Factură plătită",
+      "proposal_received": "Propunere primită",
+      "project_paid": "Proiect plătit"
+    },
+    "categories": {
+      "project": "Proiect",
+      "finance": "Financiar",
+      "proposal": "Propunere",
+      "system": "Sistem"
+    },
+    "messages": {
+      "project_created": "Proiectul \"{projectName}\" a fost creat",
+      "invoice_paid": "Factura {invoiceId} a fost plătită pentru {amount}",
+      "proposal_received": "A fost primită o propunere nouă pentru \"{projectName}\"",
+      "project_paid": "Proiectul \"{projectName}\" a fost plătit pentru {amount}",
+      "system_default": "Activitate înregistrată în sistem"
+    },
+    "context": {
+      "project": "Proiect",
+      "invoice": "Factură",
+      "amount": "Sumă",
+      "status": "Status",
+      "created": "Creat",
+      "received": "Primit"
+    },
+    "sidebar_title": "Snapshot Activitate",
+    "sidebar_description": "Diagnostic rapid pentru pagina de activitate încărcată acum.",
+    "sidebar": {
+      "page": "Pagina curentă",
+      "loaded": "Rânduri încărcate",
+      "total": "Rânduri totale",
+      "unread": "Rânduri necitite",
+      "last_page": "Ultima pagină",
+      "refresh_note": "Folosește reîncărcarea după moderare, plăți sau teste webhook ca să aduci ultimul flux de activitate."
+    },
+    "legend_title": "Legendă Evenimente",
+    "legend_description": "Fiecare tip de eveniment păstrează aceeași mapare vizuală folosită în tabelul de activitate.",
+    "empty_title": "Nu au fost găsite activități",
+    "empty_description": "Încearcă să modifici filtrele sau textul de căutare.",
+    "error_message": "Nu am putut încărca fluxul de activitate.",
+    "error_prefix": "Eroare: ",
+    "pagination": {
+      "page": "Pagina {page} din {lastPage}",
+      "total": "{total} evenimente în total"
+    },
+    "fallbacks": {
+      "project": "Proiect necunoscut",
+      "invoice": "Factură necunoscută",
+      "amount": "Sumă necunoscută"
+    }
+  }
+}

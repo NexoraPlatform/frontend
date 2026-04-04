@@ -1,23 +1,18 @@
 // proxy.ts
 import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
-import {
-  chain,
-  chainMatch,
-  continued,
-  isPageRequest,
-  nextSafe,
-} from '@next-safe/middleware';
-import type { NextMiddleware } from 'next/server';
 import { auth } from '@/auth';
 import {
   checkRequirement,
+  getRoleSlugs,
+  isSuperUser,
   type AccessUser,
   type Requirement,
 } from '@/lib/access';
 import { enforceApiRateLimit } from '@/lib/server/rate-limit';
-import { fetchLaravelUserFromCookieHeader } from '@/lib/auth/laravel-session';
+import { hasSessionAuthTokens } from '@/lib/auth/session';
 import { normalizeAuthUser } from '@/lib/auth/user';
+import { buildAllowedInlineScriptHashes } from '@/lib/csp';
 import { defaultLocale } from '@/lib/i18n';
 import { locales, localePrefix } from '@/lib/navigation';
 
@@ -44,6 +39,173 @@ const ROUTE_RULES: RouteRule[] = [
 
 const AUTH_PAGES = new Set(['/auth/signin', '/auth/signup']);
 const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/client', '/provider', '/tests', '/integrations'];
+
+const mergeHeaderValues = (currentValue: string | null, nextValue: string) => {
+  if (!currentValue) return nextValue;
+  const merged = new Set(
+    `${currentValue},${nextValue}`
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+  return Array.from(merged).join(', ');
+};
+
+const createCspNonce = () => btoa(crypto.randomUUID());
+
+let inlineScriptHashPromise: Promise<string[]> | null = null;
+const LOCAL_DEV_CONNECT_SRC = [
+  'http://127.0.0.1:8000',
+  'http://localhost:8000',
+  'ws://127.0.0.1:8000',
+  'ws://localhost:8000',
+];
+const LOCAL_DEV_IMAGE_SRC = [
+  'http://127.0.0.1:8000',
+  'http://localhost:8000',
+];
+
+const getAllowedInlineScriptHashes = () => {
+  if (!inlineScriptHashPromise) {
+    inlineScriptHashPromise = buildAllowedInlineScriptHashes();
+  }
+
+  return inlineScriptHashPromise;
+};
+
+// proxy.ts
+
+const buildPageCsp = async (nonce: string) => {
+  const isDev = process.env.NODE_ENV === 'development';
+  const vercelPreviewFeedbackEnabled = ['1', 'true'].includes(
+    (process.env.VERCEL_PREVIEW_FEEDBACK_ENABLED ?? '').toLowerCase()
+  );
+  // Keep the Vercel toolbar opt-in on preview deployments so CSP only trusts
+  // vercel.live when comments/toolbar are intentionally enabled.
+  const allowVercelLive = isDev || vercelPreviewFeedbackEnabled;
+  const allowedInlineScriptHashes = await getAllowedInlineScriptHashes();
+
+  const scriptSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    ...allowedInlineScriptHashes,
+    "'unsafe-inline'",
+    ...(!isDev ? ["'strict-dynamic'"] : []),
+    ...(isDev ? ["'unsafe-eval'"] : []),
+    "https:",
+    ...(allowVercelLive ? ['https://vercel.live'] : []),
+  ];
+  // Keep strict-dynamic for script execution, but do not apply it to
+  // parser-inserted <script> elements. Next/Vercel can emit same-origin
+  // chunk tags without nonces, which browsers will block under script-src-elem
+  // when strict-dynamic is present.
+  const scriptSrcElem = scriptSrc.filter((value) => value !== "'strict-dynamic'");
+
+  const styleSrc = [
+    "'self'",
+    "'unsafe-inline'", // Recomandat pentru stiluri (GTM modifică des stiluri inline)
+  ];
+  const connectSrc = [
+    "'self'",
+    'https:',
+    'wss:',
+    ...(isDev ? LOCAL_DEV_CONNECT_SRC : []),
+  ];
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc.join(' ')}`,
+    `script-src-elem ${scriptSrcElem.join(' ')}`,
+    "script-src-attr 'unsafe-inline'",
+    `style-src ${styleSrc.join(' ')}`,
+    `style-src-elem ${styleSrc.join(' ')}`,
+    "style-src-attr 'unsafe-inline'",
+    `img-src 'self' data: blob: https: ${isDev ? LOCAL_DEV_IMAGE_SRC.join(' ') : ''}`.trim(),
+    `connect-src ${connectSrc.join(' ')}`,
+    "frame-src 'self' https:",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
+};
+
+const createPageSecurityContext = async (req: Request) => {
+  const nonce = createCspNonce();
+  const requestHeaders = new Headers(req.headers);
+  const csp = await buildPageCsp(nonce);
+
+  requestHeaders.set('x-nonce', nonce);
+  // Next parses the nonce from the request CSP header when rendering server components.
+  requestHeaders.set('content-security-policy', csp);
+
+  return { csp, requestHeaders };
+};
+
+
+const applyPageCspHeader = (response: NextResponse, csp: string, requestHeaders: Headers) => {
+  response.headers.set('Content-Security-Policy', csp);
+  const nonce = requestHeaders.get('x-nonce');
+  if (nonce) response.headers.set('x-nonce', nonce);
+
+  return response;
+};
+
+const copyMiddlewareHeaders = (
+  target: NextResponse,
+  source?: NextResponse | Response | null
+) => {
+  if (!source) return target;
+
+  source.headers.forEach((value, key) => {
+    const normalizedKey = key.toLowerCase();
+
+    if (normalizedKey === 'set-cookie') {
+      target.headers.append(key, value);
+      return;
+    }
+
+    if (normalizedKey === 'vary') {
+      target.headers.set(key, mergeHeaderValues(target.headers.get(key), value));
+      return;
+    }
+
+    if (
+      (normalizedKey === 'x-middleware-override-headers' ||
+        normalizedKey.startsWith('x-middleware-request-')) &&
+      target.headers.has(key)
+    ) {
+      return;
+    }
+
+    target.headers.set(key, value);
+  });
+
+  return target;
+};
+
+const createPageContinuationResponse = (
+  intlResponse: NextResponse | Response | null,
+  requestHeaders: Headers,
+  csp: string
+) => {
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  copyMiddlewareHeaders(response, intlResponse);
+  return applyPageCspHeader(response, csp, requestHeaders);
+};
+
+const createPageRewriteResponse = (url: URL, requestHeaders: Headers, csp: string, ) => {
+  const response = NextResponse.rewrite(url, {
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  return applyPageCspHeader(response, csp, requestHeaders);
+};
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -190,25 +352,14 @@ function isBasicAuthAuthorized(request: any) {
 
 function isAdminUser(user: AccessUser | null) {
   if (!user) return false;
-  if (user.is_superuser) return true;
-  return Array.isArray(user.roles)
-    ? user.roles.some((role) =>
-      typeof role === 'string'
-        ? role.toLowerCase() === 'admin'
-        : role.slug?.toLowerCase() === 'admin'
-    )
-    : false;
+  if (isSuperUser(user)) return true;
+  return getRoleSlugs(user).includes('admin');
 }
 
 // ---- Proxy Main ----
 
 export const proxy = auth(async (req) => {
   const { pathname } = req.nextUrl;
-  const isServiceWorkerScript = /^\/OneSignalSDK(?:Updater)?Worker\.js$/i.test(pathname);
-
-  if (isServiceWorkerScript) {
-    return NextResponse.next();
-  }
 
   if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
     return new NextResponse('Authentication required.', {
@@ -236,6 +387,31 @@ export const proxy = auth(async (req) => {
     return NextResponse.next();
   }
 
+  if (req.method === 'OPTIONS') {
+    const response = new NextResponse(null, { status: 204 });
+    const origin = req.headers.get('origin');
+    const requestHeaders = req.headers.get('access-control-request-headers');
+
+    response.headers.set('Allow', 'GET, HEAD, OPTIONS');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    response.headers.set('Access-Control-Max-Age', '86400');
+
+    if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Vary', mergeHeaderValues(response.headers.get('Vary'), 'Origin'));
+    }
+
+    if (requestHeaders) {
+      response.headers.set('Access-Control-Allow-Headers', requestHeaders);
+      response.headers.set(
+        'Vary',
+        mergeHeaderValues(response.headers.get('Vary'), 'Access-Control-Request-Headers')
+      );
+    }
+
+    return response;
+  }
+
   // SECURITY: Use platform-specific headers for geo-location (harder to spoof)
   // x-vercel-ip-country (Vercel) and cf-ipcountry (Cloudflare) are set by the CDN
   const country = req.headers.get('x-vercel-ip-country') ||
@@ -260,41 +436,39 @@ export const proxy = auth(async (req) => {
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
   const session = (req as any).auth;
+  const hasSessionTokens = hasSessionAuthTokens(session as any);
   const sessionUser = session?.user as AccessUser | null | undefined;
-  let user: AccessUser | null = null;
+  const user =
+    hasSessionTokens && sessionUser
+      ? ((normalizeAuthUser(sessionUser) as AccessUser | null) ?? sessionUser)
+      : null;
+  const finalizeResponse = <T extends NextResponse>(response: T) => response;
 
-  if (sessionUser) {
-    const cookieHeader = req.headers.get('cookie') ?? '';
-    if (!cookieHeader.includes('laravel_session=')) {
-      user = sessionUser;
-    } else {
-      const requestOrigin = req.headers.get('origin');
-      const rawUser = await fetchLaravelUserFromCookieHeader(cookieHeader, requestOrigin);
-      user = (normalizeAuthUser(rawUser) as AccessUser | null) ?? null;
-    }
-  }
-
-  // Treat only validated backend session data as authenticated.
-  const isAuthenticated = Boolean(user);
+  const isAuthenticated = Boolean(user && hasSessionTokens);
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;
 
-  if (!pathLocale || pathLocale !== preferredLocale) {
+  if (!pathLocale) {
     const url = req.nextUrl.clone();
     url.pathname = `/${preferredLocale}${normalizedPath === '/' ? '' : normalizedPath}`;
-    return NextResponse.redirect(url);
+    return finalizeResponse(NextResponse.redirect(url));
   }
 
+  const pageSecurity = await createPageSecurityContext(req);
   const intlResponse = intlMiddleware(req);
 
   if (
     intlResponse?.headers.get('location') ||
     intlResponse?.headers.get('x-middleware-rewrite')
   ) {
-    return intlResponse;
+    return finalizeResponse(intlResponse as NextResponse);
   }
 
-  const baseResponse = intlResponse ?? NextResponse.next();
+  const baseResponse = createPageContinuationResponse(
+    intlResponse,
+    pageSecurity.requestHeaders,
+    pageSecurity.csp
+  );
   baseResponse.headers.set('X-Client-Geo-Country', country);
   if (ip) {
     baseResponse.headers.set('X-Client-Geo-IP', ip as string);
@@ -314,7 +488,7 @@ export const proxy = auth(async (req) => {
       normalizedPath === '/' ? false : openSoonRoutes.has(normalizedPath);
 
     if (isOpenSoonRoute) {
-      return baseResponse;
+      return finalizeResponse(baseResponse);
     }
 
     let adminBypass = false;
@@ -325,9 +499,11 @@ export const proxy = auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/open-soon`, req.url);
       if (normalizedPath === '/') {
-        return NextResponse.rewrite(url);
+        return finalizeResponse(
+          createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp)
+        );
       }
-      return NextResponse.redirect(url);
+      return finalizeResponse(NextResponse.redirect(url));
     }
   }
 
@@ -345,7 +521,7 @@ export const proxy = auth(async (req) => {
       normalizedPath === '/' ? false : earlyAccessRoutes.has(normalizedPath);
 
     if (isEarlyAccessRoute) {
-      return baseResponse;
+      return finalizeResponse(baseResponse);
     }
 
     let adminBypass = false;
@@ -356,9 +532,11 @@ export const proxy = auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/early-access`, req.url);
       if (normalizedPath === '/') {
-        return NextResponse.rewrite(url);
+        return finalizeResponse(
+          createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp)
+        );
       }
-      return NextResponse.redirect(url);
+      return finalizeResponse(NextResponse.redirect(url));
     }
   }
 
@@ -368,25 +546,25 @@ export const proxy = auth(async (req) => {
   // A cookie might exist but be invalid/expired
   if (AUTH_PAGES.has(normalizedPath) && user) {
     const url = new URL(`/${locale}/dashboard`, req.url);
-    return NextResponse.redirect(url);
+    return finalizeResponse(NextResponse.redirect(url));
   }
 
   // Explicitly protect authenticated-only sections and preserve callbackUrl.
   if (!isAuthenticated && isAuthRequiredPath(normalizedPath)) {
-    return redirectToSignin(req, locale);
+    return finalizeResponse(redirectToSignin(req, locale));
   }
 
   // 3. Protected Routes
   const requirement = findRequirement(normalizedPath);
 
   if (!requirement) {
-    return baseResponse;
+    return finalizeResponse(baseResponse);
   }
 
   // 4. Token & Permission Checks
-  if (!isAuthenticated) return redirectToSignin(req, locale);
+  if (!isAuthenticated) return finalizeResponse(redirectToSignin(req, locale));
 
-  if (requirement === 'auth-only') return baseResponse;
+  if (requirement === 'auth-only') return finalizeResponse(baseResponse);
 
   const allowed = checkRequirement(user || null, requirement);
 
@@ -394,41 +572,10 @@ export const proxy = auth(async (req) => {
     const url = req.nextUrl.clone();
     url.pathname = `/${locale}/access-denied`;
     url.searchParams.set('from', req.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return finalizeResponse(NextResponse.redirect(url));
   }
 
-  return baseResponse;
+  return finalizeResponse(baseResponse);
 });
 
-const securityHeadersMiddleware = chainMatch(isPageRequest)(
-  nextSafe({
-    // CSP stays managed by existing config to avoid regressions with scripts/services.
-    disableCsp: true,
-    frameOptions: 'DENY',
-    contentTypeOptions: 'nosniff',
-    referrerPolicy: 'strict-origin-when-cross-origin',
-    permissionsPolicy: false,
-    xssProtection: false,
-  }),
-);
-
-const proxiedMiddleware = proxy as unknown as NextMiddleware;
-const securedMiddleware = chain(continued(proxiedMiddleware), securityHeadersMiddleware);
-
-export default ((...args: Parameters<NextMiddleware>) => {
-  const [req, evt] = args;
-
-  // Unit tests invoke middleware with only `req`; keep legacy behavior there.
-  if (args.length < 2 || !evt) {
-    return proxiedMiddleware(req, evt as any);
-  }
-
-  return securedMiddleware(req, evt);
-}) as NextMiddleware;
-
-export const config = {
-  matcher: [
-    '/api/:path*',
-    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|non-critical\\.css|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|avif)|_error).*)',
-  ],
-};
+export default proxy;

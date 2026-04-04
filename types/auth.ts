@@ -13,6 +13,10 @@ export interface User {
     email: string;
     firstName: string;
     lastName: string;
+    github_connected?: boolean;
+    escrow_customer_id?: string | null;
+    escrow_kyb_verified?: boolean | null;
+    escrow_next_step?: string | null;
     connected_accounts?: ConnectedAccount[];
     [key: string]: any;
 }

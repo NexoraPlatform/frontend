@@ -3,9 +3,17 @@
     "manage_title": "Gestionare Apeluri de verificare",
     "manage_subtitle": "Administrează apelurile de verificare pentru servicii",
     "search_placeholder": "Caută apeluri după participant, data...",
+    "summary": {
+      "cards": {
+        "total": "Total apeluri",
+        "waiting": "În așteptare",
+        "accepted": "Acceptate",
+        "finished": "Finalizate"
+      }
+    },
     "filters": {
       "passed": {
-        "label": "Filtru nivel",
+        "label": "Filtru rezultat",
         "all": "Toate Rezultatele",
         "yes": "Da",
         "no": "Nu"
@@ -26,11 +34,29 @@
     "list_title": "Lista Apeluri",
     "list_description": "{count} apeluri găsite",
     "link_test_details": "Vezi detalii test",
+    "participant_empty": "Participant necunoscut",
+    "interviewer_empty": "Intervievator nealocat",
     "scheduled_at_prefix": "Programat la",
     "passing_score_prefix": "Nota de trecere:",
     "category_prefix": "Categorie:",
     "created_prefix": "Creat:",
     "results_label": "{count} rezultate",
+    "table": {
+      "participant": "Participant",
+      "interviewer": "Intervievator",
+      "service": "Serviciu",
+      "schedule": "Programare",
+      "result": "Rezultat",
+      "status": "Status",
+      "actions": "Acțiuni",
+      "scheduled_at": "Programat {date}",
+      "created_at": "Creat {date}",
+      "no_score": "Fără scor încă",
+      "passed": "Promovat",
+      "failed": "Respins",
+      "pending": "În așteptare",
+      "join_available": "Camera video este pregătită"
+    },
     "dropdown": {
       "connect": "Conectează-te la interviu",
       "move_waiting": "Mută în Așteptare",

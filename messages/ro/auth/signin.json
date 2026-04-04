@@ -1,9 +1,23 @@
 {
   "signin": {
     "badge": "Trustora Secure Access",
-    "title_prefix": "Bun venit înapoi la",
-    "title_brand": "Trustora",
-    "subtitle": "Intră în workspace-ul tău securizat și gestionează proiectele cu încredere, transparență și escrow automatizat.",
+    "title_prefix": "Arhitectul",
+    "title_brand": "Securității Digitale",
+    "subtitle": "Accesează seiful tău criptat și administrează active digitale sensibile cu suveranitate enterprise. Conectează-te securizat în dashboardul tău Trustora.",
+    "welcome_back": "Bine ai revenit",
+    "social_divider": "Sau continuă cu",
+    "hero_kicker": "Infrastructură verificată",
+    "oauth_unavailable": "Autentificarea socială nu este disponibilă momentan.",
+    "providers": {
+      "google": "Google",
+      "github": "GitHub"
+    },
+    "metrics": {
+      "encryption_value": "AES-256",
+      "encryption_label": "Standard de criptare",
+      "protocol_value": "Zero-Trust",
+      "protocol_label": "Protocol de acces"
+    },
     "benefits": {
       "verified_contracts": "Contracte verificate",
       "automated_escrow": "Escrow automatizat",
@@ -17,6 +31,8 @@
     "password_label": "Parola",
     "password_placeholder": "Parola ta",
     "forgot_password": "Ai uitat parola?",
+    "remember_me": "Ține-mă minte 30 de zile",
+    "remember_me_hint": "Păstrează-mă autentificat 30 de zile. Dacă nu este bifat, voi fi deconectat la închiderea browserului.",
     "loading": "Se conectează...",
     "submit": "Conectează-te",
     "no_account": "Nu ai cont?",

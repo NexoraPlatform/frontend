@@ -1,0 +1,13 @@
+:global(.trustora-wizard input),
+:global(.trustora-wizard textarea),
+:global(.trustora-wizard button[role='combobox']) {
+  background-color: var(--input-bg);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+:global(.trustora-wizard input::placeholder),
+:global(.trustora-wizard textarea::placeholder) {
+  color: var(--text-muted);
+  opacity: 0.9;
+}
