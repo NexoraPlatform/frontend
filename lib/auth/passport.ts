@@ -33,6 +33,45 @@ const PASSPORT_LOGOUT_PATH =
   process.env.LARAVEL_LOGOUT_PATH ||
   '/auth/logout';
 
+const resolvePassportClientIdSource = () => {
+  if (process.env.PASSPORT_CLIENT_ID) return 'PASSPORT_CLIENT_ID';
+  if (process.env.LARAVEL_CLIENT_ID) return 'LARAVEL_CLIENT_ID';
+  return 'missing';
+};
+
+const resolvePassportClientSecretSource = () => {
+  if (process.env.PASSPORT_CLIENT_SECRET) return 'PASSPORT_CLIENT_SECRET';
+  if (process.env.LARAVEL_CLIENT_SECRET) return 'LARAVEL_CLIENT_SECRET';
+  return 'missing';
+};
+
+const maskValue = (value?: string | null, visibleChars = 4) => {
+  if (!value) return null;
+  if (value.length <= visibleChars * 2) return '*'.repeat(value.length);
+  return `${value.slice(0, visibleChars)}...${value.slice(-visibleChars)}`;
+};
+
+const buildPassportDebugContext = (params?: {
+  origin?: string | null;
+  grantType?: string;
+  username?: string | null;
+}) => ({
+  nodeEnv: process.env.NODE_ENV ?? 'unknown',
+  apiBaseUrl: API_BASE_URL,
+  apiRootUrl: API_ROOT_URL,
+  origin: params?.origin ?? null,
+  grantType: params?.grantType ?? null,
+  usernameMasked: maskValue(params?.username ?? null, 2),
+  passportClientIdSource: resolvePassportClientIdSource(),
+  passportClientIdMasked: maskValue(PASSPORT_CLIENT_ID),
+  passportClientSecretSource: resolvePassportClientSecretSource(),
+  passportClientSecretPresent: PASSPORT_CLIENT_SECRET.length > 0,
+  passportClientSecretLength: PASSPORT_CLIENT_SECRET.length || 0,
+  passportScope: PASSPORT_SCOPE,
+  passportProfilePath: PASSPORT_PROFILE_PATH,
+  passportLogoutPath: PASSPORT_LOGOUT_PATH,
+});
+
 const resolveAppOrigin = (fallback?: string | null) =>
   fallback ||
   process.env.NEXT_PUBLIC_APP_URL ||
@@ -40,8 +79,13 @@ const resolveAppOrigin = (fallback?: string | null) =>
   process.env.AUTH_URL ||
   'http://127.0.0.1:3000';
 
-const ensurePassportClientConfig = () => {
+const ensurePassportClientConfig = (params?: {
+  origin?: string | null;
+  grantType?: string;
+  username?: string | null;
+}) => {
   if (!PASSPORT_CLIENT_ID || !PASSPORT_CLIENT_SECRET) {
+    console.error('[passport][config-missing]', buildPassportDebugContext(params));
     throw new Error(
       'Missing Passport client credentials in the frontend server environment. Set PASSPORT_CLIENT_ID/PASSPORT_CLIENT_SECRET or LARAVEL_CLIENT_ID/LARAVEL_CLIENT_SECRET.'
     );
@@ -64,12 +108,36 @@ const createDefaultHeaders = (origin?: string | null, bearerToken?: string | nul
   return headers;
 };
 
-const parseTokenResponse = async (response: Response) => {
+const parseTokenResponse = async (
+  response: Response,
+  params?: {
+    origin?: string | null;
+    grantType?: string;
+    username?: string | null;
+  }
+) => {
   const payload = await response.json().catch(() => null);
+  const errorPayload =
+    payload && typeof payload === 'object'
+      ? (payload as Record<string, unknown>)
+      : null;
 
   if (!response.ok) {
+    console.error('[passport][token-error]', {
+      ...buildPassportDebugContext(params),
+      status: response.status,
+      statusText: response.statusText,
+      responseError:
+        errorPayload
+          ? {
+              error: errorPayload.error ?? null,
+              error_description: errorPayload.error_description ?? null,
+              message: errorPayload.message ?? null,
+            }
+          : null,
+    });
     const message =
-      (payload && typeof payload === 'object' && (payload.error_description || payload.message || payload.error)) ||
+      (errorPayload && (errorPayload.error_description || errorPayload.message || errorPayload.error)) ||
       `Passport token request failed (${response.status})`;
     throw new Error(String(message));
   }
@@ -83,7 +151,11 @@ export async function exchangePassportPasswordGrant(params: {
   scope?: string;
   origin?: string | null;
 }) {
-  ensurePassportClientConfig();
+  ensurePassportClientConfig({
+    origin: params.origin,
+    grantType: 'password',
+    username: params.username,
+  });
 
   const body = new URLSearchParams({
     grant_type: 'password',
@@ -104,7 +176,11 @@ export async function exchangePassportPasswordGrant(params: {
     cache: 'no-store',
   });
 
-  return parseTokenResponse(response);
+  return parseTokenResponse(response, {
+    origin: params.origin,
+    grantType: 'password',
+    username: params.username,
+  });
 }
 
 export async function refreshPassportAccessToken(params: {
@@ -112,7 +188,10 @@ export async function refreshPassportAccessToken(params: {
   scope?: string;
   origin?: string | null;
 }) {
-  ensurePassportClientConfig();
+  ensurePassportClientConfig({
+    origin: params.origin,
+    grantType: 'refresh_token',
+  });
 
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
@@ -132,7 +211,10 @@ export async function refreshPassportAccessToken(params: {
     cache: 'no-store',
   });
 
-  return parseTokenResponse(response);
+  return parseTokenResponse(response, {
+    origin: params.origin,
+    grantType: 'refresh_token',
+  });
 }
 
 export async function fetchPassportUserProfile(
