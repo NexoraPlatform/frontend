@@ -146,6 +146,7 @@ const authConfig: NextAuthConfig = {
             origin,
           });
         } catch (error) {
+          console.log(error);
           throw new PassportCredentialsSignin(resolvePassportErrorCode(error), error);
         }
 
