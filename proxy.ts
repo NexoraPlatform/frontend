@@ -95,6 +95,11 @@ const buildPageCsp = async (nonce: string) => {
     "https:",
     ...(allowVercelLive ? ['https://vercel.live'] : []),
   ];
+  // Keep strict-dynamic for script execution, but do not apply it to
+  // parser-inserted <script> elements. Next/Vercel can emit same-origin
+  // chunk tags without nonces, which browsers will block under script-src-elem
+  // when strict-dynamic is present.
+  const scriptSrcElem = scriptSrc.filter((value) => value !== "'strict-dynamic'");
 
   const styleSrc = [
     "'self'",
@@ -110,7 +115,7 @@ const buildPageCsp = async (nonce: string) => {
   return [
     "default-src 'self'",
     `script-src ${scriptSrc.join(' ')}`,
-    `script-src-elem ${scriptSrc.join(' ')}`,
+    `script-src-elem ${scriptSrcElem.join(' ')}`,
     "script-src-attr 'unsafe-inline'",
     `style-src ${styleSrc.join(' ')}`,
     `style-src-elem ${styleSrc.join(' ')}`,
@@ -380,6 +385,31 @@ export const proxy = auth(async (req) => {
       }
     }
     return NextResponse.next();
+  }
+
+  if (req.method === 'OPTIONS') {
+    const response = new NextResponse(null, { status: 204 });
+    const origin = req.headers.get('origin');
+    const requestHeaders = req.headers.get('access-control-request-headers');
+
+    response.headers.set('Allow', 'GET, HEAD, OPTIONS');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    response.headers.set('Access-Control-Max-Age', '86400');
+
+    if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Vary', mergeHeaderValues(response.headers.get('Vary'), 'Origin'));
+    }
+
+    if (requestHeaders) {
+      response.headers.set('Access-Control-Allow-Headers', requestHeaders);
+      response.headers.set(
+        'Vary',
+        mergeHeaderValues(response.headers.get('Vary'), 'Access-Control-Request-Headers')
+      );
+    }
+
+    return response;
   }
 
   // SECURITY: Use platform-specific headers for geo-location (harder to spoof)

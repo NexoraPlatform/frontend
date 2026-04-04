@@ -77,7 +77,7 @@ describe('proxy', () => {
     vi.restoreAllMocks();
   });
 
-  const makeReq = (path: string, opts?: { auth?: any; headers?: HeadersInit }) => {
+  const makeReq = (path: string, opts?: { auth?: any; headers?: HeadersInit; method?: string }) => {
     const url = new URL(baseUrl + path);
     (url as any).clone = () => new URL(url.toString());
     const headers = new Headers(opts?.headers);
@@ -109,6 +109,7 @@ describe('proxy', () => {
     };
     return {
       url: url.toString(),
+      method: opts?.method ?? 'GET',
       nextUrl: url as any,
       headers,
       cookies,
@@ -181,6 +182,21 @@ describe('proxy', () => {
     });
     const res: any = await proxy(req);
     expect(res.type).toBe('next');
+  });
+
+  it('returns 204 for non-api OPTIONS page requests', async () => {
+    const req = makeReq('/en', {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://vercel.live',
+        'access-control-request-headers': 'x-vercel-preview-signature',
+      },
+    });
+    const res: any = await proxy(req);
+    expect(res.status).toBe(204);
+    expect(res.headers.get('Allow')).toBe('GET, HEAD, OPTIONS');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://vercel.live');
+    expect(res.headers.get('Access-Control-Allow-Headers')).toBe('x-vercel-preview-signature');
   });
 
   it('enforces open soon funnel with redirect (non-admin)', async () => {
